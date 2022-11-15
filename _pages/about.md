@@ -1,4 +1,4 @@
----
+<!-- ---
 permalink: /
 title: "academicpages is a ready-to-fork GitHub Pages template for academic personal websites"
 excerpt: "About me"
@@ -47,4 +47,38 @@ Example: editing a markdown file for a talk
 
 For more info
 ------
-More info about configuring academicpages can be found in [the guide](https://academicpages.github.io/markdown/). The [guides for the Minimal Mistakes theme](https://mmistakes.github.io/minimal-mistakes/docs/configuration/) (which this theme was forked from) might also be helpful.
+More info about configuring academicpages can be found in [the guide](https://academicpages.github.io/markdown/). The [guides for the Minimal Mistakes theme](https://mmistakes.github.io/minimal-mistakes/docs/configuration/) (which this theme was forked from) might also be helpful. -->
+
+
+---
+permalink: /
+title: "Minghao Liu's peronsl website"
+excerpt: "About me"
+author_profile: true
+redirect_from: 
+  - /about/
+  - /about.html
+---
+
+I am currently a 3th-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)!
+
+My research interests are X.
+
+Previously, I received my Computer Science Master degree and Computer Science B.S degree in [University of California, Santa Cruz](https://engineering.ucsc.edu/)
+
+News
+======
+
+
+[2022. 07] One first-author paper accepted to ECCV 2022.
+
+[2022. 05] Paper accepted in siggraph asia 2022. 
+
+[2022. 04] One first-author paper accepted to ICPR 2022.
+
+[2021. 09] I start my journey at ByteDance-CVG (Research Intern), advised by [Jing Liu] and [Shen Sang]. 
+
+
+Conference Review
+======
+Reviewer at AAAI 2023 ICLR 2023.
