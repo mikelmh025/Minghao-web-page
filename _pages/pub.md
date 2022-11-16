@@ -8,6 +8,8 @@ redirect_from:
 ---
 
 
+
+
 {% include base_path %}
 
 Publications and Preprints 
@@ -17,7 +19,7 @@ Publications and Preprints
 AgileAvatar: Stylized 3D Avatar Creation via Cascaded Domain Bridging. 
 Shen Sang, Tiancheng Zhi, Guoxian Song, **Minghao Liu**, Chunpong Lai, Jing Liu, Linjie Luo, Xiang Wen, and James Davis. 
 SIGGRAPH Asia -- ACM SIGGRAPH Conference and Exhibition on Computer Graphics and Interactive Techniques in Asia, 2022
-[[paper]]() [Category: Self-supervised avatar creation model]   
+[[paper coming soon]]() [Category: Self-supervised avatar creation model]   
 
 DuelGAN: A Duel between Two Discriminators Stabilizes the GAN Training.           
 Jiaheng Wei\*, **Minghao Liu\***, Jiahao Luo, Andrew Zhu, James Davis, Yang Liu               
@@ -28,7 +30,7 @@ ECCV -- European Conference on Computer Vision, 2022
 Low-light Image Enhancement Using Chain-consistent Adversarial Networks.           
 **Minghao Liu\***, Jiahao Luo, Xiaohan Zhang, Yang Liu, and James Davis
 ICPR -- 26TH International Conference on Pattern Recognition, 2022            
-[[paper]]() [Category: Self-supervised Generative Models]   
+[[paper coming soon]]() [Category: Self-supervised Generative Models]   
 
 How much does input data type impact final face model accuracy? 
 Jiahao Luo, Fahim Khan, Issei Mori, Akila de Silva, Eric Sandoval Ruezga, **Minghao Liu**, Alex Pang, and James Davis. 
