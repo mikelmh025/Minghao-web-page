@@ -11,16 +11,18 @@ redirect_from:
 
 
 
-I am currently a 3th-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)!
+<!-- I am currently a 3th-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)!
 
-My research is in application of machine learning in computer vision tasks. For specifically: utilizing the human in the loop techiques to improve machine learning algorithms, generative adversarial networks, and autoencoder networks. 
+My research is in application of machine learning in computer vision tasks. For specifically: utilizing the human in the loop techiques to improve machine learning algorithms, generative adversarial networks, and autoencoder networks.  -->
 
-Previously, I received my Computer Science Master degree and Computer Science B.S degree in [University of California, Santa Cruz](https://engineering.ucsc.edu/)
 
 
 I am a third-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)! 
 
 My research interests lie in applying machine learning to computer vision tasks, particularly using human centric techniques to improve the performance or the explainability of machine learning algorithms. I also have interests in generative adversarial networks and autoencoder networks.
+
+
+Previously, I received my Computer Science Master degree and Computer Science B.S degree in [University of California, Santa Cruz](https://engineering.ucsc.edu/)
 
 
 
