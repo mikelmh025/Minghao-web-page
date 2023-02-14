@@ -1,12 +1,49 @@
 ---
 permalink: /
-title: "Minghao Liu's peronsl website"
+title: "Minghao Liu's personal website"
 excerpt: "About me"
 author_profile: true
 redirect_from: 
   - /about/
   - /about.html
 ---
+
+
+
+
+I am currently a 3th-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)!
+
+My research is in application of machine learning in computer vision tasks. For specifically: utilizing the human in the loop techiques to improve machine learning algorithms, generative adversarial networks, and autoencoder networks. 
+
+Previously, I received my Computer Science Master degree and Computer Science B.S degree in [University of California, Santa Cruz](https://engineering.ucsc.edu/)
+
+
+I am a third-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)! 
+
+My research interests lie in applying machine learning to computer vision tasks, particularly using human centric techniques to improve the performance or the explainability of machine learning algorithms. I also have interests in generative adversarial networks and autoencoder networks.
+
+
+
+News
+======
+
+
+[2022. 07] A first-author paper accepted to ECCV 2022.
+
+[2022. 05] A Paper accepted in siggraph asia 2022. 
+
+[2022. 04] A first-author paper accepted to ICPR 2022.
+
+
+Conference Review
+======
+Reviewer at AAAI 2023 ICLR 2023 CVPR 2023 WWW 2023.
+
+
+
+In addition, I had the privilege of serving as a research intern at ByteDance-CVG, where I was advised by Jing Liu and Shen Sang.
+
+I'm passionate about using my skills to solve real-world problems, and I'm always looking for new opportunities to collaborate and innovate. Please feel free to reach out to me to discuss potential collaborations or to learn more about my work.
 
 <!-- ---
 permalink: /
@@ -17,30 +54,6 @@ redirect_from:
   - /about/
   - /about.html
 --- -->
-
-
-I am currently a 3th-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)!
-
-My research is in application of machine learning in computer vision tasks. For specifically: utilizing the human in the loop techiques to improve machine learning algorithms, generative adversarial networks, and autoencoder networks. 
-
-Previously, I received my Computer Science Master degree and Computer Science B.S degree in [University of California, Santa Cruz](https://engineering.ucsc.edu/)
-
-News
-======
-
-
-[2022. 07] One first-author paper accepted to ECCV 2022.
-
-[2022. 05] Paper accepted in siggraph asia 2022. 
-
-[2022. 04] One first-author paper accepted to ICPR 2022.
-
-[2021. 09] I start my journey at ByteDance-CVG (Research Intern), advised by [Jing Liu] and [Shen Sang]. 
-
-
-Conference Review
-======
-Reviewer at AAAI 2023 ICLR 2023 CVPR 2023 WWW 2023.
 
 
 <!-- This is the front page of a website that is powered by the [academicpages template](https://github.com/academicpages/academicpages.github.io) and hosted on GitHub pages. [GitHub pages](https://pages.github.com) is a free service in which websites are built and hosted from code and data stored in a GitHub repository, automatically updating when a new commit is made to the respository. This template was forked from the [Minimal Mistakes Jekyll Theme](https://mmistakes.github.io/minimal-mistakes/) created by Michael Rose, and then extended to support the kinds of content that academics have: publications, talks, teaching, a portfolio, blog posts, and a dynamically-generated CV. You can fork [this repository](https://github.com/academicpages/academicpages.github.io) right now, modify the configuration and markdown files, add your own PDFs and other content, and have your own site for free, with no ads! An older version of this template powers my own personal website at [stuartgeiger.com](http://stuartgeiger.com), which uses [this Github repository](https://github.com/staeiou/staeiou.github.io).
