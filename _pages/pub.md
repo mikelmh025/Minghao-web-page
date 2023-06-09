@@ -17,13 +17,13 @@ Publications and Preprints
 
 * Do humans and machines have the same eyes? Human-machine perceptual differences on image classification. \
 **Minghao Liu**, Jiaheng Wei, James Davis, and Yang Liu. \
-Arxiv 
+Arxiv \
 [[paper]](https://arxiv.org/pdf/2304.08733.pdf) [Category: Human-machine perceptual differences]
 
 * Tag-based annotation creates better avatars. \
-**Minghao Liu**, Zeyu Cheng, Shen Sang, Jing Liu, James Davis
-Arxiv 
-[[paper]](https://arxiv.org/pdf/2302.07354.pdf) [Category: Avatar creation]
+**Minghao Liu**, Zeyu Cheng, Shen Sang, Jing Liu, James Davis \
+Arxiv \
+[[paper]](https://arxiv.org/pdf/2302.07354.pdf) [Category: Avatar creation] 
 
 <!-- **GANs** -->
 * AgileAvatar: Stylized 3D Avatar Creation via Cascaded Domain Bridging. \
