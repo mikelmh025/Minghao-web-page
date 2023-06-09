@@ -15,11 +15,21 @@ redirect_from:
 Publications and Preprints 
 ======
 
+* Do humans and machines have the same eyes? Human-machine perceptual differences on image classification. \
+**Minghao Liu**, Jiaheng Wei, James Davis, and Yang Liu. \
+Arxiv 
+[[paper]](https://arxiv.org/pdf/2304.08733.pdf) [Category: Human-machine perceptual differences]
+
+* Tag-based annotation creates better avatars. \
+**Minghao Liu**, Zeyu Cheng, Shen Sang, Jing Liu, James Davis
+Arxiv 
+[[paper]](https://arxiv.org/pdf/2302.07354.pdf) [Category: Avatar creation]
+
 <!-- **GANs** -->
 * AgileAvatar: Stylized 3D Avatar Creation via Cascaded Domain Bridging. \
 Shen Sang, Tiancheng Zhi, Guoxian Song, **Minghao Liu**, Chunpong Lai, Jing Liu, Linjie Luo, Xiang Wen, and James Davis.  \
 SIGGRAPH Asia -- ACM SIGGRAPH Conference and Exhibition on Computer Graphics and Interactive Techniques in Asia, 2022 \
-[[paper coming soon]]() [Category: Self-supervised avatar creation model]    
+[[paper coming soon]](https://arxiv.org/abs/2211.07818) [Category: Self-supervised avatar creation model]    
 
 * DuelGAN: A Duel between Two Discriminators Stabilizes the GAN Training.            \
 Jiaheng Wei\*, **Minghao Liu\***, Jiahao Luo, Andrew Zhu, James Davis, Yang Liu                \

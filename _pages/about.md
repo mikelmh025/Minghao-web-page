@@ -29,6 +29,9 @@ Previously, I received my Computer Science Master degree and Computer Science B.
 News
 ======
 
+[2023 Summer] Research intern at Meta at Sausalito, California.
+
+[2022-2023 academic year] Student Instrucotr for CMPM 118 Collaborative Research Experience in Engineering. Leading groups of undergraduate students to conduct research in computer vision and machine learning. (Avatar creation, avatar annotation system, ChatGPT evaluation on Math problem solving)
 
 [2022. 07] A first-author paper accepted to ECCV 2022.
 
@@ -39,7 +42,7 @@ News
 
 Conference Review
 ======
-Reviewer at AAAI 2023 ICLR 2023 CVPR 2023 WWW 2023.
+Reviewer at AAAI 2023 ICLR 2023 CVPR 2023 WWW 2023 NeurIPS 2023.
 
 
 
