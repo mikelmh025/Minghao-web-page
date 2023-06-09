@@ -19,7 +19,7 @@ My research is in application of machine learning in computer vision tasks. For 
 
 I am a third-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)! 
 
-My research interests lie in applying machine learning to computer vision tasks, particularly using human centric techniques to improve the performance or the explainability of machine learning algorithms. I also have interests in generative adversarial networks and autoencoder networks.
+My research interests lie in applying machine learning to computer vision tasks, particularly seeking complementary teaming between human and artificial intelligence. I also have interests in generative adversarial networks and autoencoder networks on computer vision applicaitons.
 
 
 Previously, I received my Computer Science Master degree and Computer Science B.S degree in [University of California, Santa Cruz](https://engineering.ucsc.edu/)
@@ -39,15 +39,16 @@ News
 
 [2022. 04] A first-author paper accepted to ICPR 2022.
 
+[2021 summer - 2022 Dec] Research intern/paper collaboration at ByteDance-CVG. Advised by Jing Liu and Shen Sang.
+
 
 Conference Review
 ======
 Reviewer at AAAI 2023 ICLR 2023 CVPR 2023 WWW 2023 NeurIPS 2023.
 
 
-
-In addition, I had the privilege of serving as a research intern at ByteDance-CVG, where I was advised by Jing Liu and Shen Sang.
-
+Collaboration?
+======
 I'm passionate about using my skills to solve real-world problems, and I'm always looking for new opportunities to collaborate and innovate. Please feel free to reach out to me to discuss potential collaborations or to learn more about my work.
 
 <!-- ---
