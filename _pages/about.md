@@ -21,6 +21,8 @@ Previously, I received my Computer Science Master degree and Computer Science B.
 News
 ======
 
+[2024 Spring] Selected as a Dissertation-Year Fellowship recipient for 2024-25.
+
 [2023 Summer] Research intern at Meta at Sausalito, California.
 
 [2022-2023 academic year] Student Instrucotr for CMPM 118 Collaborative Research Experience in Engineering. Leading groups of undergraduate students to conduct research in computer vision and machine learning. (Avatar creation, avatar annotation system, ChatGPT evaluation on Math problem solving)
