@@ -21,19 +21,21 @@ Previously, I received my Computer Science Master degree and Computer Science B.
 News
 ======
 
-[2024 Spring] Selected as a Dissertation-Year Fellowship recipient for 2024-25.
+[2024 Spring] [Mentorship] The undergraduate research team I led won the 2024 the DEANS' CHANCELLOR'S UNDERGRADUATE RESEARCH AWARD. (Less than 3% of selection rate)
 
-[2023 Summer] Research intern at Meta at Sausalito, California.
+[2024 Spring] [Award] Selected as a Dissertation-Year Fellowship recipient for 2024-25.
 
-[2022-2023 academic year] Student Instrucotr for CMPM 118 Collaborative Research Experience in Engineering. Leading groups of undergraduate students to conduct research in computer vision and machine learning. (Avatar creation, avatar annotation system, ChatGPT evaluation on Math problem solving)
+[2023 Summer] [Industury] Research intern at Meta at Sausalito, California.
 
-[2022. 07] A first-author paper accepted to ECCV 2022.
+[2022-2023 academic year] [Mentorship] Student Instrucotr for CMPM 118 Collaborative Research Experience in Engineering. Leading groups of undergraduate students to conduct research in computer vision and machine learning. (Avatar creation, avatar annotation system, ChatGPT evaluation on Math problem solving)
 
-[2022. 05] A Paper accepted in siggraph asia 2022. 
+[2022. 07] [Publication] A first-author paper accepted to ECCV 2022.
 
-[2022. 04] A first-author paper accepted to ICPR 2022.
+[2022. 05] [Publication] A Paper accepted in siggraph asia 2022. 
 
-[2021 summer - 2022 Dec] Research intern/paper collaboration at ByteDance-CVG. Advised by Jing Liu and Shen Sang.
+[2022. 04] [Publication] A first-author paper accepted to ICPR 2022.
+
+[2021 summer - 2022 Dec] [Industury] Research intern/paper collaboration at ByteDance-CVG. Advised by Jing Liu and Shen Sang.
 
 
 Conference Review
