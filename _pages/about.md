@@ -21,6 +21,8 @@ Previously, I received my Computer Science Master degree and Computer Science B.
 News
 ======
 
+[2024 Winter] [Publication] Human and AI perceptual differences in image classification errors accpeted to AAAI25.
+
 [2024 Spring] [Mentorship] The undergraduate research team I led won the 2024 the DEANS' CHANCELLOR'S UNDERGRADUATE RESEARCH AWARD. (Less than 3% of selection rate)
 
 [2024 Spring] [Award] Selected as a Dissertation-Year Fellowship recipient for 2024-25.

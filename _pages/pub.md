@@ -15,9 +15,9 @@ redirect_from:
 Publications and Preprints 
 ======
 
-* Do humans and machines have the same eyes? Human-machine perceptual differences on image classification. \
+* Human and AI perceptual differences in image classification errors. \
 **Minghao Liu**, Jiaheng Wei, James Davis, and Yang Liu. \
-Arxiv \
+AAAI Conference on Artificial Intelligence, 2025 \
 [[paper]](https://arxiv.org/pdf/2304.08733.pdf) [Category: Human-machine perceptual differences]
 
 * Tag-based annotation creates better avatars. \
