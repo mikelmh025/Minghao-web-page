@@ -11,7 +11,7 @@ redirect_from:
 
 I am a third-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)! 
 
-My research interests lie in applying machine learning to computer vision tasks, particularly seeking complementary teaming between human and artificial intelligence. I also have interests in generative adversarial networks and autoencoder networks on computer vision applicaitons.
+My research interests lie in applying machine learning to computer vision tasks, particularly focusing on complementary teaming between human and artificial intelligence. I am experienced in **improving** generative models, including diffusion models, GANs, and VAEs. I have also **worked** on automatic dataset collection. Additionally, my expertise extends to **applications** of label noise learning, label noise detection, object detection, image segmentation, and image super-resolution models.
 
 
 Previously, I received my Computer Science Master degree and Computer Science B.S degree in [University of California, Santa Cruz](https://engineering.ucsc.edu/)
@@ -21,7 +21,9 @@ Previously, I received my Computer Science Master degree and Computer Science B.
 News
 ======
 
-[2024 Winter] [Publication] Human and AI perceptual differences in image classification errors accpeted to AAAI25.
+[2024 Winter] [Publication] Human and AI perceptual differences in image classification errors accpeted to AAAI25. (First Author)
+
+[2024 Summer] [Industury] Research intern at Meta at Sausalito, California.
 
 [2024 Spring] [Mentorship] The undergraduate research team I led won the 2024 the DEANS' CHANCELLOR'S UNDERGRADUATE RESEARCH AWARD. (Less than 3% of selection rate)
 
@@ -42,7 +44,7 @@ News
 
 Conference Review
 ======
-Reviewer at AAAI 2023, ICLR 2023, CVPR 2023, WWW 2023, NeurIPS 2023, ICCV-CLVL 2023, AAAI 2024, ICLR 2024, ICML 2024, ECCV 2024, CVPR 2024 (DFAD 2024)
+Reviewer at AAAI 2023, ICLR 2023, CVPR 2023, WWW 2023, NeurIPS 2023, ICCV-CLVL 2023, AAAI 2024, ICLR 2024, ICML 2024, ECCV 2024, CVPR 2024 (DFAD 2024), Neurips-dataset 2024, AAAI 2025, ICLR 2025, WWW 2025, CVPR 2025
 
 
 Collaboration?
