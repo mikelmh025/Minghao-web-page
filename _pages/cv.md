@@ -9,7 +9,7 @@ redirect_from:
 
 {% include base_path %}
 
-[Download here](https://mikelmh025.github.io/Minghao-web-page/files/Minghao Liu's CV 20221115.pdf)
+[Download here](https://mikelmh025.github.io/Minghao-web-page/files/Minghao Liu's CV 20241210.pdf)
 
 <!-- 
 Education
