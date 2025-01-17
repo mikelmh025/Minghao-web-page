@@ -21,7 +21,7 @@ Previously, I received my Computer Science Master degree and Computer Science B.
 News
 ======
 
-[2024 Winter] [Publication] Human and AI perceptual differences in image classification errors accpeted to AAAI25. (First Author)
+[2024 Winter] [Publication] Human and AI perceptual differences in image classification errors accpeted to AAAI25 **Oral Presnetaion (4.6% of the 12957 submissions.)**. (First Author)
 
 [2024 Summer] [Industury] Research intern at Meta at Sausalito, California.
 
