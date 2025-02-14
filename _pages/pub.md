@@ -18,7 +18,7 @@ Publications and Preprints
 * Human and AI perceptual differences in image classification errors. \
 **Minghao Liu**, Jiaheng Wei, James Davis, and Yang Liu. \
 AAAI Conference on Artificial Intelligence, 2025 \
-[[paper]](https://arxiv.org/pdf/2304.08733.pdf) [Category: Human-machine perceptual differences]
+[[paper]](https://arxiv.org/pdf/2304.08733.pdf) [[Video]](https://youtu.be/ANbgSWtnYOc)[Category: Human-machine perceptual differences]
 
 * Tag-based annotation creates better avatars. \
 **Minghao Liu**, Zeyu Cheng, Shen Sang, Jing Liu, James Davis \
