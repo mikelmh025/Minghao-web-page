@@ -13,7 +13,9 @@ redirect_from:
 I am a last-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/)! 
 
 
-My research interests lie in applying machine learning to computer vision tasks, particularly focusing on complementary teaming between human and artificial intelligence. I am experienced in **improving** generative models, including diffusion models, GANs, and VAEs. I have also **worked** on automatic dataset collection. Additionally, my expertise extends to **applications** of label noise learning, label noise detection, object detection, image segmentation, and image super-resolution models.
+My research interests lie in applying machine learning to computer vision tasks. I am experienced in Generative AI, Human-AI teaming, Auto Dataset Collection. 
+
+<!-- My research interests lie in applying machine learning to computer vision tasks, particularly focusing on complementary teaming between human and artificial intelligence. I am experienced in **improving** generative models, including diffusion models, GANs, and VAEs. I have also **worked** on automatic dataset collection. Additionally, my expertise extends to **applications** of label noise learning, label noise detection, object detection, image segmentation, and image super-resolution models. -->
 
 
 Previously, I received my Computer Science Master degree and Computer Science B.S degree in [University of California, Santa Cruz](https://engineering.ucsc.edu/)
