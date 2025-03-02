@@ -9,7 +9,7 @@ redirect_from:
 
 {% include base_path %}
 
-Updated on: 20241210 [Download here](https://mikelmh025.github.io/Minghao-web-page/files/Minghao Liu's CV 20241210.pdf)
+Updated on: 20241210 [Download here](https://mikelmh025.github.io/Minghao-web-page/files/Minghao Liu's CV 20250224.pdf)
 
 If I have missed any latest updates, please refer to my [LinkedIn](https://www.linkedin.com/in/minghao-liu-mliu40/) and [Google Scholar](https://scholar.google.com/citations?user=77dTmmgAAAAJ&hl=en) for the most recent information.
 
