@@ -25,6 +25,8 @@ Previously, I received my Computer Science Master degree and Computer Science B.
 News
 ======
 
+[2025 Spring] [Job] Will join Accenture as Advanced AI Research Scientist Manager after PhD dissertation. 
+
 [2024 Winter] [Publication] Human and AI perceptual differences in image classification errors accpeted to AAAI25 **Oral Presnetaion (4.6% of the 12957 submissions.)**. (First Author) [[Pre-record]](https://youtu.be/ANbgSWtnYOc)
 
 [2024 Summer] [Industury] Research intern at Meta at Sausalito, California.
@@ -48,7 +50,7 @@ News
 
 Conference Review
 ======
-Reviewer at AAAI 2023, ICLR 2023, CVPR 2023, WWW 2023, NeurIPS 2023, ICCV-CLVL 2023, AAAI 2024, ICLR 2024, ICML 2024, ECCV 2024, CVPR 2024 (DFAD 2024), Neurips-dataset 2024, AAAI 2025, ICLR 2025, WWW 2025, CVPR 2025, ICML 2025, KDD 2025
+Reviewer at AAAI 2023, ICLR 2023, CVPR 2023, WWW 2023, NeurIPS 2023, ICCV-CLVL 2023, AAAI 2024, ICLR 2024, ICML 2024, ECCV 2024, CVPR 2024 (DFAD 2024), Neurips-dataset 2024, AAAI 2025, ICLR 2025, WWW 2025, CVPR 2025, ICML 2025, KDD 2025, ICCV 2025.
 
 
 Collaboration?
