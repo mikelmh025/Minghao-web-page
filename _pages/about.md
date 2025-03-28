@@ -8,9 +8,7 @@ redirect_from:
   - /about.html
 ---
 
-**Looking for full time position**
-
-I am a last-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/) [[UCSC VIS Group](https://sites.google.com/ucsc.edu/vis/)]! 
+I am a last-year Computer Science and Engineering Ph.D. candidate at [University of California, Santa Cruz](https://engineering.ucsc.edu/), fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/) [[UCSC VIS Group](https://sites.google.com/ucsc.edu/vis/)]! Incoming Advanced AI Research Scientist Manager at Accenture after my Ph.D. dissertation. 
 
 
 My research interests lie in applying machine learning to computer vision tasks. I am experienced in Generative AI, Human-AI teaming, Auto Dataset Collection. 
