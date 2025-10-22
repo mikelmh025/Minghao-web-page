@@ -8,7 +8,7 @@ redirect_from:
   - /about.html
 ---
 
-I am an incoming Advanced AI Research Scientist Manager at [Accenture](https://www.accenture.com/), where I will focus on Generative AI and AI agent tools. I recently completed my Computer Science and Engineering Ph.D. at [University of California, Santa Cruz](https://engineering.ucsc.edu/), where I was fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/) [[UCSC VIS Group](https://sites.google.com/ucsc.edu/vis/)].
+I am currently an Advanced AI Research Scientist Manager at [Accenture](https://www.accenture.com/), where I focus on Generative AI and AI agent tools. I completed my Computer Science and Engineering Ph.D. at [University of California, Santa Cruz](https://engineering.ucsc.edu/), where I was fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/) [[UCSC VIS Group](https://sites.google.com/ucsc.edu/vis/)].
 
 My research interests lie in applying machine learning to computer vision tasks, with expertise in Generative AI, Human-AI teaming, and Auto Dataset Collection. I am passionate about bridging the gap between cutting-edge research and real-world applications, particularly in the development and deployment of AI systems that enhance human capabilities.
 
@@ -17,7 +17,11 @@ Previously, I received my Computer Science Master degree and Computer Science B.
 News
 ======
 
-[2025 Summer] [Career] Started as Advanced AI Research Scientist Manager at Accenture, focusing on Generative AI and AI agent tools.
+[2025 Sep] [Publication] "GenIR: Generative Visual Feedback for Mental Image Retrieval" accepted to NeurIPS 2025. (Co-first Author)
+
+[2025 Aug] [Publication] "Tag-based annotation creates better avatars" accepted to NeSy 2025. (First Author)
+
+[2025 June] [Career] Started as Advanced AI Research Scientist Manager at Accenture @ Mountain View, CA. Working with the Physical AI team on simulation systems and Vision Language Action (VLA) model integrations.
 
 [2025 Spring] [Publication] "Controllable Biophysical Human Faces" accepted to EGSR 2025 (CGF track). (First Author)
 

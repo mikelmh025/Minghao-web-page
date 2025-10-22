@@ -13,12 +13,20 @@ Publications and Preprints
 
 **2025**
 
+* GenIR: Generative Visual Feedback for Mental Image Retrieval. \
+Diji Yang\*, **Minghao Liu\***, Chung-Hsiang Lo, Yi Zhang, James Davis \
+NeurIPS 2025 (Neural Information Processing Systems) \
+[[paper coming soon]]() [Category: Generative AI for image retrieval] (*co-first author)
+
+* Tag-based annotation creates better avatars. \
+**Minghao Liu**, Zeyu Cheng, Shen Sang, Jing Liu, James Davis \
+NeSy 2025 (Neurosymbolic Artificial Intelligence) \
+[[paper]](https://arxiv.org/pdf/2302.07354.pdf) [Category: Avatar creation methodology]
+
 * Controllable Biophysical Human Faces. \
 **Minghao Liu**, Stephane Grabli, Sébastien Speierer, Nikolaos Sarafianos, Lukas Bode, Matt Jen-Yuan Chiang, Christophe Hery, James Davis, Carlos Aliaga  \
 EGSR 2025 (Computer Graphics Forum track) \
 [[paper coming soon]]() [Category: Biophysical face modeling]
-
-
 
 * Human and AI perceptual differences in image classification errors. \
 **Minghao Liu**, Jiaheng Wei, James Davis, and Yang Liu. \
@@ -49,10 +57,7 @@ A Ngo, D Phelps, D Lai, T Wong, L Mathias, A Shivamurthy, M Ajmal, **Minghao Liu
 arXiv preprint arXiv:2308.12642, 2023 \
 [[paper]](https://arxiv.org/abs/2308.12642) [Category: Avatar annotation system]
 
-* Tag-based annotation creates better avatars. \
-**Minghao Liu**, Zeyu Cheng, Shen Sang, Jing Liu, James Davis \
-arXiv preprint arXiv:2302.07354, 2023 \
-[[paper]](https://arxiv.org/pdf/2302.07354.pdf) [Category: Avatar creation methodology] 
+ 
 
 **2022**
 
