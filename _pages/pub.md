@@ -11,6 +11,23 @@ redirect_from:
 Publications and Preprints 
 ======
 
+**2026**
+
+* Inference Time Optimization with Confidence Dynamics. \
+Yu Wang, **Minghao Liu**, Jiayun Wang, Jinrui Huang, Ankit Shah, Wei Wei \
+ICML 2026 (International Conference on Machine Learning) -- Accenture \
+[[paper]](https://arxiv.org/pdf/2605.25244) [Category: LLM reasoning / inference-time optimization]
+
+* Reward-Free Evolving Agents via Pairwise Validator. \
+**Minghao Liu\***, Yu Wang, Jiayu Wang, Wei Wei \
+NeurIPS 2026 (submission) -- Accenture \
+[[paper coming soon]]() [Category: Self-evolving agents] (*co-first author)
+
+* Physical AI: The Next Frontier in AI and Robotics to Build Truly Autonomous Machines. \
+Ankit Parag Shah, **Minghao Liu**, Jinrui Huang, Bhavya Pranav Tandra, Yu Wang, Sakshi Agarwal, Paul Wu, et al. \
+Preprint, 2026 -- Accenture \
+[[paper]](https://www.preprints.org/frontend/manuscript/47ef8067355b5f580a0ff1a8161f4d48/download_pub) [Category: Physical AI / robotics survey]
+
 **2025**
 
 * GenIR: Generative Visual Feedback for Mental Image Retrieval. \

@@ -10,12 +10,16 @@ redirect_from:
 
 I am currently an Advanced AI Research Scientist Manager at [Accenture](https://www.accenture.com/), where I focus on Generative AI and AI agent tools. I completed my Computer Science and Engineering Ph.D. at [University of California, Santa Cruz](https://engineering.ucsc.edu/), where I was fortunately advised by Prof. [James Davis](https://users.soe.ucsc.edu/~davis/) [[UCSC VIS Group](https://sites.google.com/ucsc.edu/vis/)].
 
-My research interests lie in applying machine learning to computer vision tasks, with expertise in Generative AI, Human-AI teaming, and Auto Dataset Collection. I am passionate about bridging the gap between cutting-edge research and real-world applications, particularly in the development and deployment of AI systems that enhance human capabilities.
+My research interests span Generative AI, self-evolving AI agents, LLM reasoning, Human-AI teaming, and Auto Dataset Collection. I am passionate about bridging the gap between cutting-edge research and real-world applications, particularly in the development and deployment of AI systems that enhance human capabilities.
 
 Previously, I received my Computer Science Master degree and Computer Science B.S degree from [University of California, Santa Cruz](https://engineering.ucsc.edu/).
 
 News
 ======
+
+[2026 May] [Publication] "Inference Time Optimization with Confidence Dynamics" accepted to ICML 2026. (Accenture)
+
+[2026] [Submission] "Reward-Free Evolving Agents via Pairwise Validator" submitted to NeurIPS 2026. (Co-first Author, Accenture)
 
 [2025 Sep] [Publication] "GenIR: Generative Visual Feedback for Mental Image Retrieval" accepted to NeurIPS 2025. (Co-first Author)
 
@@ -49,14 +53,15 @@ News
 
 Conference Review
 ======
-Reviewer at AAAI 2023, ICLR 2023, CVPR 2023, WWW 2023, NeurIPS 2023, ICCV-CLVL 2023, AAAI 2024, ICLR 2024, ICML 2024, ECCV 2024, CVPR 2024 (DFAD 2024), NeurIPS-dataset 2024, AAAI 2025, ICLR 2025, WWW 2025, CVPR 2025, ICML 2025, KDD 2025, ICCV 2025, SIGGRAPH 2025
+Reviewer at AAAI 2023, ICLR 2023, CVPR 2023, WWW 2023, NeurIPS 2023, ICCV-CLVL 2023, AAAI 2024, ICLR 2024, ICML 2024, ECCV 2024, CVPR 2024 (DFAD 2024), NeurIPS-dataset 2024, AAAI 2025, ICLR 2025, WWW 2025, CVPR 2025, ICML 2025, KDD 2025, ICCV 2025, SIGGRAPH 2025, NeurIPS 2026
 
 Research Interests & Expertise
 ======
 - **Generative AI**: Diffusion models, GANs, VAEs, and their applications in computer vision
+- **AI Agents**: Self-evolving conversational and code agents, reward-free agent training, and agentic systems for real-world applications
+- **LLM Reasoning**: Inference-time optimization and confidence-based reasoning methods
 - **Human-AI Teaming**: Developing systems that enhance collaboration between humans and AI
 <!-- - **Computer Vision**: Object detection, image segmentation, image super-resolution -->
-<!-- - **AI Agent Tools**: Building and deploying AI systems for real-world applications -->
 - **Dataset Construction**: Automatic data collection and curation methodologies
 
 Collaboration?
