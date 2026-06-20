@@ -19,9 +19,9 @@ ICML 2026 (International Conference on Machine Learning) -- Accenture \
 [[paper]](https://arxiv.org/pdf/2605.25244) [Category: LLM reasoning / inference-time optimization]
 
 * Reward-Free Evolving Agents via Pairwise Validator. \
-**Minghao Liu\***, Yu Wang, Jiayu Wang, Wei Wei \
+**Minghao Liu**, Yu Wang, Jiayu Wang, Wei Wei \
 NeurIPS 2026 (submission) -- Accenture \
-[[paper coming soon]]() [Category: Self-evolving agents] (*co-first author)
+[[paper coming soon]]() [Category: Self-evolving agents]
 
 * Physical AI: The Next Frontier in AI and Robotics to Build Truly Autonomous Machines. \
 Ankit Parag Shah, **Minghao Liu**, Jinrui Huang, Bhavya Pranav Tandra, Yu Wang, Sakshi Agarwal, Paul Wu, et al. \

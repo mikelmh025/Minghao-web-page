@@ -19,7 +19,7 @@ News
 
 [2026 May] [Publication] "Inference Time Optimization with Confidence Dynamics" accepted to ICML 2026. (Accenture)
 
-[2026] [Submission] "Reward-Free Evolving Agents via Pairwise Validator" submitted to NeurIPS 2026. (Co-first Author, Accenture)
+[2026] [Submission] "Reward-Free Evolving Agents via Pairwise Validator" submitted to NeurIPS 2026. (First Author, Accenture)
 
 [2025 Sep] [Publication] "GenIR: Generative Visual Feedback for Mental Image Retrieval" accepted to NeurIPS 2025. (Co-first Author)
 

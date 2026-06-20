@@ -9,9 +9,9 @@ redirect_from:
 
 {% include base_path %}
 
-Updated on: 20260518 [Download here](https://mikelmh025.github.io/Minghao-web-page/files/Minghao_Liu_CV_20260518.pdf)
+Updated on: 20260617 [Download here](https://mikelmh025.github.io/Minghao-web-page/files/Minghao_Liu_CV_20260617.pdf)
 
-If I have missed any latest updates, please refer to my [LinkedIn](https://www.linkedin.com/in/minghao-liu-mliu40/) and [Google Scholar](https://scholar.google.com/citations?user=77dTmmgAAAAJ&hl=en) for the most recent information.
+If I have missed any latest updates, please refer to my [LinkedIn](https://www.linkedin.com/in/minghao-liu-mliu40/) and [Google Scholar](https://scholar.google.com/citations?user=Th8DIfYAAAAJ&hl=en) for the most recent information.
 
 
 <!-- 
