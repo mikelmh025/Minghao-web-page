@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Foundations — 39 Papers, Fast-Forward</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#faf9f5; --ink:#1f1e1b; --muted:#6b675f; --accent:#cc785c; --accent-dark:#a85b42;
+  --accent-soft:#f3e2da; --card:#f1efe8; --line:#e2ded2; --code-bg:#ece9e0; --good:#2e7d4f;
+  --bg:var(--cream); --fg:var(--ink); --shadow:0 18px 50px -18px rgba(31,30,27,.25);
+  --lead-bg:radial-gradient(1200px 700px at 75% -10%, #3a382f 0%, #1f1e1b 55%);
+}
+html[data-theme="dark"]{
+  --bg:#171613; --fg:#ece9df; --muted:#a49e90; --card:#22201b; --line:#33302a;
+  --code-bg:#2a2822; --accent:#e08b6d; --accent-dark:#e8a58c; --accent-soft:#3a2c25;
+  --shadow:0 18px 50px -18px rgba(0,0,0,.6);
+  --lead-bg:radial-gradient(1200px 700px at 75% -10%, #262girl 0%, #111009 55%);
+  --lead-bg:radial-gradient(1200px 700px at 75% -10%, #26241d 0%, #111009 55%);
+}
+*{box-sizing:border-box; margin:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:"Inter",-apple-system,sans-serif;
+  overflow:hidden; transition:background .35s,color .35s;
+}
+code{font-family:"JetBrains Mono",monospace; font-size:.86em; background:var(--code-bg);
+  padding:.08em .38em; border-radius:5px}
+strong{color:var(--accent-dark)}
+a{color:var(--accent-dark)}
+
+/* ---------- viz (validated palette: #2a78d6 #1baf7a #eda100 #4a3aa7) ---------- */
+:root{--c1:#2a78d6; --c2:#1baf7a; --c3:#eda100; --c4:#4a3aa7; --grid:#e1e0d9; --axis:#c3c2b7}
+html[data-theme="dark"]{--c1:#3987e5; --c2:#199e70; --c3:#c98500; --c4:#9085e9; --grid:#2c2c2a; --axis:#4a4a44}
+.viz{margin:2px 0 18px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 16px 8px}
+.viz svg{width:100%; height:auto; display:block; max-height:240px}
+.viz text,.demo text{font-family:"Inter",sans-serif; fill:var(--muted)}
+.viz .lb,.demo .lb{font-size:11px; font-weight:600}
+.viz .lb2,.demo .lb2{font-size:10px}
+.viz .ink,.demo .ink{fill:var(--fg)}
+.viz .mono,.demo .mono{font-family:"JetBrains Mono",monospace}
+
+/* ---------- interactive demos ---------- */
+.demo{margin-top:18px; border:1.5px solid var(--accent); border-radius:16px; padding:16px 20px 18px; background:transparent}
+.demo .dhead{display:flex; align-items:center; gap:8px; margin-bottom:14px;
+  font:800 11.5px "Inter"; letter-spacing:.1em; text-transform:uppercase; color:var(--accent-dark)}
+.demo .dhead::before{content:"⚡"; font-size:14px}
+.drow{display:flex; gap:18px; flex-wrap:wrap; align-items:flex-end; margin-bottom:4px}
+.dctl{display:flex; flex-direction:column; gap:5px}
+.dctl label{font:600 11px "Inter"; color:var(--muted); text-transform:uppercase; letter-spacing:.05em}
+.dctl output{font:700 13px "JetBrains Mono"; color:var(--accent-dark)}
+.dctl input[type=range]{accent-color:var(--accent); width:160px; cursor:pointer}
+.dctl input[type=number],.dctl select{border:1px solid var(--line); background:var(--card); color:var(--fg);
+  border-radius:8px; padding:6px 10px; font:600 13px "JetBrains Mono"; width:110px; outline:none}
+.dctl select{width:auto; font-family:"Inter"; font-weight:600}
+.dchecks{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+.dchecks label{display:flex; gap:5px; align-items:center; font:600 12.5px "Inter"; color:var(--fg); cursor:pointer; text-transform:none; letter-spacing:0}
+.dchecks input{accent-color:var(--accent)}
+.dstats{display:flex; gap:12px; flex-wrap:wrap; margin-top:14px}
+.dstat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 16px; min-width:130px}
+.dstat .v{font:700 19px "JetBrains Mono"; color:var(--accent-dark); line-height:1.2}
+.dstat .k{font:600 10px "Inter"; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-top:3px}
+.dnote{font:500 12.5px "Inter"; color:var(--muted); margin-top:12px; line-height:1.5}
+.dbadge{display:inline-block; font:700 12px "Inter"; border-radius:999px; padding:4px 12px; margin-top:12px}
+.dbadge.ok{background:rgba(12,163,12,.12); color:#0ca30c}
+.dbadge.warn{background:rgba(208,59,59,.12); color:#d03b3b}
+.dbar{display:flex; height:24px; border-radius:7px; overflow:hidden; gap:2px; margin-top:12px; background:var(--code-bg)}
+.dbar>div{transition:width .25s}
+.demo svg text{font-family:"Inter",sans-serif; fill:var(--muted); font-size:10px}
+
+/* ---------- chrome ---------- */
+#progress{position:fixed; top:0; left:0; height:3px; z-index:60;
+  background:linear-gradient(90deg,var(--accent),var(--accent-dark)); width:0%;
+  transition:width .35s cubic-bezier(.4,0,.2,1)}
+#topbar{position:fixed; top:0; left:0; right:0; height:52px; z-index:50;
+  display:flex; align-items:center; gap:10px; padding:0 18px; pointer-events:none}
+#topbar>*{pointer-events:auto}
+.brand{font-weight:800; font-size:13px; letter-spacing:.04em; color:var(--muted);
+  text-transform:uppercase; user-select:none}
+.brand b{color:var(--accent-dark)}
+.spacer{flex:1}
+.btn{border:1px solid var(--line); background:var(--card); color:var(--fg);
+  border-radius:9px; padding:6px 11px; font:600 12.5px "Inter"; cursor:pointer;
+  display:inline-flex; align-items:center; gap:6px; transition:all .18s}
+.btn:hover{border-color:var(--accent); color:var(--accent-dark); transform:translateY(-1px)}
+.btn kbd{font-family:"JetBrains Mono"; font-size:10px; background:var(--code-bg);
+  border:1px solid var(--line); border-radius:4px; padding:1px 5px; color:var(--muted)}
+
+/* ---------- stage ---------- */
+#stage{position:absolute; inset:0; display:flex; align-items:center; justify-content:center}
+.slide{
+  position:absolute; width:min(1120px,94vw); max-height:calc(100vh - 120px);
+  overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+  padding:48px 58px; border-radius:22px;
+  opacity:0; transform:translateX(60px) scale(.985); pointer-events:none;
+  transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .45s cubic-bezier(.4,0,.2,1);
+}
+.slide.active{opacity:1; transform:none; pointer-events:auto}
+.slide.prev{transform:translateX(-60px) scale(.985)}
+.slide.content{background:var(--bg)}
+@media (prefers-reduced-motion:reduce){ .slide{transition:opacity .2s} .slide.prev,.slide{transform:none} }
+
+/* paper slide */
+.pno{display:inline-flex; align-items:center; gap:10px; margin-bottom:6px}
+.pno .num{font:800 15px "JetBrains Mono"; color:#fff; background:var(--accent);
+  border-radius:9px; padding:4px 11px; letter-spacing:.02em}
+.pno .yr{font:600 13px "JetBrains Mono"; color:var(--muted)}
+h1.ptitle{font-size:clamp(24px,3.1vw,36px); font-weight:800; letter-spacing:-.015em; line-height:1.12; margin-bottom:20px}
+.cols{display:grid; grid-template-columns:1fr 1fr; gap:20px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px 22px;
+  transition:transform .2s, box-shadow .2s}
+.panel:hover{transform:translateY(-2px); box-shadow:var(--shadow)}
+.panel h3{font-size:11.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--accent-dark); margin-bottom:12px; display:flex; align-items:center; gap:8px}
+.panel h3::before{content:""; width:8px; height:8px; border-radius:2px; background:var(--accent)}
+.panel ul{list-style:none; display:flex; flex-direction:column; gap:10px}
+.panel li{font-size:14.5px; line-height:1.52; padding-left:16px; position:relative; color:var(--fg)}
+.panel li::before{content:""; position:absolute; left:0; top:.55em; width:6px; height:6px;
+  border-radius:50%; background:var(--accent); opacity:.7}
+.active .panel li{opacity:0; transform:translateY(8px); animation:rise .45s forwards}
+@keyframes rise{to{opacity:1; transform:none}}
+.tl{font-size:15.5px; color:var(--muted); font-style:italic; margin:-10px 0 20px}
+
+.chiprow{display:flex; gap:8px; margin-top:20px; flex-wrap:wrap}
+.chip{font:600 12px "JetBrains Mono"; color:var(--accent-dark); background:var(--card);
+  border:1px solid var(--line); border-radius:999px; padding:5px 14px; text-decoration:none;
+  transition:all .18s; display:inline-flex; align-items:center; gap:6px}
+a.chip:hover{border-color:var(--accent); background:var(--accent-soft); transform:translateY(-1px)}
+a.chip::after{content:"↗"; font-size:11px; opacity:.6}
+
+/* lead slide */
+.slide.lead{background:var(--lead-bg); color:#e9e5da; display:flex; flex-direction:column;
+  justify-content:center; min-height:min(560px,70vh); box-shadow:var(--shadow)}
+.slide.lead .kicker{font:700 13px "JetBrains Mono"; color:var(--accent); letter-spacing:.14em;
+  text-transform:uppercase; margin-bottom:14px}
+.slide.lead h1{font-size:clamp(32px,4.4vw,54px); font-weight:900; letter-spacing:-.02em;
+  color:#f6f3ea; line-height:1.06; margin-bottom:14px}
+.slide.lead h2{font-size:clamp(16px,1.9vw,22px); font-weight:600; color:var(--accent); margin-bottom:18px}
+.slide.lead p{color:#b9b4a6; font-size:15.5px; line-height:1.6; max-width:720px}
+.slide.lead .minis{display:flex; gap:8px; margin-top:26px; flex-wrap:wrap}
+.mini{font:600 12px "Inter"; color:#d8d3c5; background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.13); border-radius:999px; padding:6px 14px; cursor:pointer;
+  transition:all .18s}
+.mini:hover{background:var(--accent); color:#fff; border-color:var(--accent)}
+
+/* generic content slide (how-to, map) */
+.slide h1.gt{font-size:clamp(26px,3.2vw,38px); font-weight:800; letter-spacing:-.015em; margin-bottom:22px}
+table.neat{width:100%; border-collapse:collapse; font-size:14.5px; margin:6px 0 16px}
+table.neat th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--accent-dark); padding:8px 12px; border-bottom:2px solid var(--accent)}
+table.neat td{padding:10px 12px; border-bottom:1px solid var(--line); line-height:1.5; vertical-align:top}
+table.neat tr{transition:background .15s}
+table.neat tbody tr:hover{background:var(--card)}
+.callout{border-left:4px solid var(--accent); background:var(--card); border-radius:0 12px 12px 0;
+  padding:14px 18px; font-size:14.5px; line-height:1.55; margin-top:14px}
+
+/* reading map */
+.mapchip{display:inline-block; font:700 12px "JetBrains Mono"; background:var(--card);
+  border:1px solid var(--line); color:var(--accent-dark); border-radius:8px; padding:3px 9px;
+  margin:2px; cursor:pointer; transition:all .15s}
+.mapchip:hover{background:var(--accent); color:#fff; border-color:var(--accent); transform:scale(1.08)}
+.maparrow{color:var(--muted); font-size:12px; margin:0 2px}
+
+/* ---------- overview grid ---------- */
+#overview{position:fixed; inset:0; z-index:70; background:var(--bg); overflow-y:auto;
+  padding:70px 40px 40px; display:none}
+#overview.open{display:block; animation:fadein .25s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+#ovgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px; max-width:1400px; margin:0 auto}
+.ovcard{border:1px solid var(--line); background:var(--card); border-radius:14px; padding:14px 16px;
+  cursor:pointer; transition:all .18s; min-height:92px; position:relative; overflow:hidden}
+.ovcard:hover{transform:translateY(-3px); box-shadow:var(--shadow); border-color:var(--accent)}
+.ovcard.now{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft)}
+.ovcard .n{font:700 11px "JetBrains Mono"; color:var(--accent-dark)}
+.ovcard .t{font:700 14px "Inter"; margin-top:4px; line-height:1.3}
+.ovcard .s{font:500 11px "Inter"; color:var(--muted); margin-top:6px}
+.ovcard.lead-card{background:var(--ink); border-color:#333}
+.ovcard.lead-card .t{color:#f0ece1}
+.ovsec{grid-column:1/-1; font:800 12px "Inter"; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); margin-top:10px}
+
+/* ---------- TOC sidebar ---------- */
+#toc{position:fixed; top:0; bottom:0; left:0; width:320px; z-index:80; background:var(--bg);
+  border-right:1px solid var(--line); transform:translateX(-100%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+  overflow-y:auto; padding:64px 0 30px; box-shadow:var(--shadow)}
+#toc.open{transform:none}
+#toc .sec{font:800 11px "Inter"; letter-spacing:.1em; text-transform:uppercase; color:var(--accent-dark);
+  padding:16px 22px 6px}
+#toc .item{display:flex; gap:10px; padding:7px 22px; font:500 13.5px "Inter"; cursor:pointer;
+  color:var(--fg); border-left:3px solid transparent; transition:all .14s}
+#toc .item:hover{background:var(--card)}
+#toc .item.now{border-left-color:var(--accent); background:var(--card); font-weight:700}
+#toc .item .n{font:600 11px "JetBrains Mono"; color:var(--muted); min-width:26px; padding-top:2px}
+
+/* ---------- search ---------- */
+#search{position:fixed; inset:0; z-index:90; background:rgba(20,19,16,.45); backdrop-filter:blur(6px);
+  display:none; align-items:flex-start; justify-content:center; padding-top:12vh}
+#search.open{display:flex; animation:fadein .18s}
+#sbox{width:min(640px,92vw); background:var(--bg); border:1px solid var(--line); border-radius:18px;
+  box-shadow:var(--shadow); overflow:hidden}
+#sinput{width:100%; border:none; outline:none; background:transparent; color:var(--fg);
+  font:500 17px "Inter"; padding:18px 22px; border-bottom:1px solid var(--line)}
+#sresults{max-height:46vh; overflow-y:auto}
+.sres{padding:12px 22px; cursor:pointer; display:flex; gap:12px; align-items:baseline}
+.sres:hover,.sres.sel{background:var(--card)}
+.sres .n{font:700 11px "JetBrains Mono"; color:var(--accent-dark); min-width:30px}
+.sres .t{font:600 14px "Inter"}
+.sres .x{font:400 12px "Inter"; color:var(--muted); margin-left:auto; white-space:nowrap}
+
+/* ---------- footer nav ---------- */
+#navbar{position:fixed; bottom:16px; left:0; right:0; display:flex; align-items:center;
+  justify-content:center; gap:14px; z-index:50; pointer-events:none}
+#navbar>*{pointer-events:auto}
+.navbtn{width:42px; height:42px; border-radius:50%; border:1px solid var(--line); background:var(--card);
+  color:var(--fg); font-size:17px; cursor:pointer; transition:all .18s; display:flex; align-items:center; justify-content:center}
+.navbtn:hover{border-color:var(--accent); color:var(--accent-dark); transform:translateY(-2px)}
+#counter{font:600 12.5px "JetBrains Mono"; color:var(--muted); min-width:70px; text-align:center; user-select:none}
+#secname{position:fixed; bottom:26px; left:22px; font:600 11.5px "Inter"; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--muted); z-index:50; user-select:none; max-width:30vw;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+#help{position:fixed; inset:0; z-index:95; background:rgba(20,19,16,.45); backdrop-filter:blur(6px);
+  display:none; align-items:center; justify-content:center}
+#help.open{display:flex; animation:fadein .18s}
+#helpbox{background:var(--bg); border:1px solid var(--line); border-radius:18px; padding:28px 34px; width:min(460px,90vw); box-shadow:var(--shadow)}
+#helpbox h2{font-size:18px; margin-bottom:16px}
+#helpbox .row{display:flex; justify-content:space-between; padding:7px 0; font-size:14px; border-bottom:1px solid var(--line)}
+#helpbox kbd{font:600 11.5px "JetBrains Mono"; background:var(--code-bg); border:1px solid var(--line); border-radius:5px; padding:2px 8px}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="topbar">
+  <span class="brand">LLM <b>Foundations</b> · 39 papers</span>
+  <div class="spacer"></div>
+  <button class="btn" id="b-toc">☰ Contents</button>
+  <button class="btn" id="b-search">Search <kbd>/</kbd></button>
+  <button class="btn" id="b-grid">Grid <kbd>G</kbd></button>
+  <button class="btn" id="b-theme">◐</button>
+  <button class="btn" id="b-help">?</button>
+</div>
+
+<div id="stage"></div>
+
+<div id="navbar">
+  <button class="navbtn" id="b-prev">←</button>
+  <span id="counter">1 / 1</span>
+  <button class="navbtn" id="b-next">→</button>
+</div>
+<div id="secname"></div>
+
+<div id="overview"><div id="ovgrid"></div></div>
+<div id="toc"></div>
+<div id="search"><div id="sbox"><input id="sinput" placeholder="Search papers, concepts, methods…  (Enter to jump, Esc to close)"><div id="sresults"></div></div></div>
+<div id="help"><div id="helpbox">
+  <h2>Keyboard shortcuts</h2>
+  <div class="row"><span>Next / previous slide</span><span><kbd>→</kbd> <kbd>←</kbd> <kbd>Space</kbd></span></div>
+  <div class="row"><span>First / last slide</span><span><kbd>Home</kbd> <kbd>End</kbd></span></div>
+  <div class="row"><span>Overview grid</span><span><kbd>G</kbd> or <kbd>Esc</kbd></span></div>
+  <div class="row"><span>Search</span><span><kbd>/</kbd> or <kbd>⌘K</kbd></span></div>
+  <div class="row"><span>Contents sidebar</span><span><kbd>T</kbd></span></div>
+  <div class="row"><span>Dark / light</span><span><kbd>D</kbd></span></div>
+  <div class="row"><span>This help</span><span><kbd>?</kbd></span></div>
+</div></div>
+
+<script>
+/* ============================== DATA ============================== */
+const P = (no,title,year,arxiv,paper,practice,tl)=>({type:'paper',no,title,year,arxiv,paper,practice,tl});
+
+const SECTIONS = [
+{title:"§1 · The architecture era", sub:"1–4 — Transformer · BERT · GPT-1 · GPT-2", slides:[
+P(1,"Attention Is All You Need",2017,"1706.03762",
+["<strong>Three</strong> attention uses: encoder self / decoder <em>causal</em> / cross — only causal survives in LLMs",
+"Forgotten knobs that mattered: label smoothing 0.1, warmup→inv-sqrt LR, beam α=0.6, checkpoint averaging",
+"The complexity table O(n²·d) vs O(n·d²) → origin of the entire efficiency literature (#18–25)"],
+["Nobody runs it verbatim — surviving stack: decoder-only, <strong>pre</strong>-norm RMSNorm, SwiGLU, RoPE, no biases",
+"FFN ≈ 2/3 of params → why MoE targets the FFN; attention → why the KV cache exists"],
+"Pure-attention encoder-decoder; scaled dot-product + multi-head; sinusoidal positions."),
+P(2,"BERT",2018,"1810.04805",
+["80/10/10 masking exists to fix the pretrain–finetune mismatch ([MASK] never appears downstream)",
+"Fine-tuning vs <strong>feature extraction</strong> compared (concat last 4 layers ≈ close) — ancestor of the embeddings industry",
+"NSP presented as key; RoBERTa later showed it useless-to-harmful"],
+["Encoders thrive at scale: retrieval bi-encoders, rerankers, classification, moderation",
+"Build with DeBERTa-v3 / ModernBERT (RoPE, FA2, 8K ctx); mean pooling > [CLS] for similarity"],
+"Bidirectional encoder pre-trained with masked LM + next-sentence prediction; fine-tune per task."),
+P(3,"GPT-1 — Generative Pre-Training",2018,null,
+["<strong>Input transformations</strong> — serializing tasks into delimiter-joined sequences → ancestor of prompt formats & chat templates",
+"Auxiliary LM loss (λ=0.5) during fine-tuning — early catastrophic-forgetting control",
+"§5 zero-shot probing: task ability grows during <em>pre-training</em> — the seed of GPT-2/3"],
+["Read for lineage. Living legacy: task formatting is a modeling decision — chat-template sensitivity still skews evals today"],
+"Decoder-only LM pre-training on BooksCorpus, then supervised fine-tuning per task."),
+P(4,"GPT-2 — Unsupervised Multitask Learners",2019,null,
+["WebText's Reddit-karma filter = first <em>human-signal</em> data quality filter — data curation as capability lever starts here",
+"<strong>Byte-level BPE</strong>: the tokenizer outlived the model by half a decade",
+"Memorization analysis + staged release — first serious misuse-risk treatment"],
+["Model-based quality classifiers (FineWeb-Edu) are direct descendants",
+"GPT-2 scale = today's research substrate: speedruns, interpretability, optimizer ablations (#37)"],
+"1.5B decoder-only on 40GB of quality-filtered web text; tasks emerge zero-shot."),
+]},
+{title:"§2 · The scaling era", sub:"5–9 — Scaling Laws · GPT-3 · The Pile · Chinchilla · PaLM", slides:[
+P(5,"Scaling Laws for Neural LMs",2020,"2001.08361",
+["Depth/width shape barely matters at fixed N; bigger models are <strong>more sample-efficient</strong>",
+"Critical batch size scales with loss → basis of batch-ramp schedules",
+"The flawed prescription (N ∝ C^0.73, “stop early”) — cause: LR schedule not retuned per run length"],
+["The <em>methodology</em> is the asset: fit small runs, extrapolate, then commit compute (+ µP transfer)",
+"Use Chinchilla's coefficients; keep Kaplan's sample-efficiency intuition for fine-tuning"],
+"Loss is a power law in params, data, compute; scale beats architecture tweaks."),
+P(6,"GPT-3 — Few-Shot Learners",2020,"2005.14165",
+["The contamination appendix: they found their own dedup bug and published clean/dirty splits — still the reference method",
+"Alternating dense / banded-sparse attention layers (almost never replicated)",
+"Honest failure catalog: bidirectional-ish tasks, 5-digit arithmetic, broader impacts"],
+["Few-shot = the floor; known pathologies: example-order, format, majority-label bias",
+"The escalation ladder it started: prompt → few-shot → RAG → LoRA → full FT",
+"300B tokens on 175B params = the canonical <em>undertrained</em> model (see #8)"],
+"175B params; zero/one/few-shot in-context learning replaces fine-tuning."),
+P(7,"The Pile",2020,"2101.00027",
+["22 documented sources with datasheet, consent status, known issues — template for every data card since",
+"The Pile as <em>benchmark</em>: per-component perplexity reveals what a model has seen",
+"Mixture weights (epochs per source) as an explicit design lever"],
+["Superseded (FineWeb, Dolma); lesson inverted: <strong>filtered web > raw diversity</strong> per token — but domain coverage (code, math) still sets capability profiles",
+"Books3 litigation → corpus provenance is now legal due-diligence, not just science"],
+"An 825 GiB open corpus from 22 curated sources; diversity as a design principle."),
+P(8,"Chinchilla — Compute-Optimal Training",2022,"2203.15556",
+["<em>Three</em> estimation methods (training curves, isoFLOP valleys, parametric fit L = E + A/N^α + B/D^β) that roughly agree",
+"Kaplan's error diagnosed precisely: cosine schedule must match run length",
+"The parametric loss form is now the standard for all scaling fits"],
+["It's <strong>training</strong>-optimal only — inference dominates, so everyone overtrains (Llama-3-8B: ~1,900 tok/param vs “20”)",
+"isoFLOP sweeps = standard tool for any architecture decision",
+"Caveats since: data quality shifts coefficients; ≥4 epochs of repeats decays sharply"],
+"Params and tokens scale equally; ~20 tokens/param; 70B@1.4T beats 280B@300B."),
+P(9,"PaLM",2022,"2204.02311",
+["The checklist that became default: SwiGLU, <strong>parallel attn+FFN blocks</strong>, MQA, RoPE, no biases",
+"<strong>MFU</strong> introduced as the honest efficiency metric (46.2%) — now universal",
+"Loss-spike protocol: restart + <em>skip the offending ~200 batches</em> (spikes = state×data)",
+"“Discontinuous improvements” → primary evidence in the emergence (vs “mirage”) debate"],
+["Dense 540B was a dead end (MoE won) — but nearly every component persists",
+"Inherited ops: MFU accounting when buying compute; batch-skip restarts"],
+"540B dense across two TPU pods; breakthrough few-shot and CoT results."),
+]},
+{title:"§3 · Open models", sub:"10–12 — OPT · BLOOM · LLaMA", slides:[
+P(10,"OPT",2022,"2205.01068",
+["The <strong>logbook</strong> is the artifact: 35+ restarts in 2 months, fp16 loss-scaling pain, mid-run LR surgery, grad-norm spikes as early warning",
+"Honest replication gap vs GPT-3 despite matched architecture → <em>data</em> was the differentiator"],
+["Read the logbook before your first >10B run — closest thing to a pretraining ops manual",
+"What it foreshadowed: bf16 everywhere, automated spike rollback, data-first mindset",
+"The models themselves: obsolete (Pythia for research, Llama for capability)"],
+"A GPT-3 replication suite (125M–175B) with weights released and a brutally honest logbook."),
+P(11,"BLOOM",2022,"2211.05100",
+["ROOTS: per-language community governance, English deliberately downweighted (~30%)",
+"Tokenizer <strong>fertility</strong> analysis (tokens/word/language) — why some languages pay 3–4× cost & context tax",
+"ALiBi at 176B, embedding-LayerNorm stability trick, carbon accounting, RAIL license"],
+["Capability superseded (Qwen, Llama 3+), but fertility analysis is standard for any multilingual product — billing, latency, effective context all trace here",
+"The existence proof for open, publicly-funded frontier training"],
+"A 176B open multilingual model (46+13 languages) built by a 1000-person collaboration."),
+P(12,"LLaMA",2023,"2302.13971",
+["The recipe everyone copies: RMSNorm pre-norm, SwiGLU (2/3·4d), RoPE, AdamW β₂=0.95, cosine→10% peak, wd 0.1, clip 1.0",
+"Data pipeline detailed: CCNet, quality classifier on Wikipedia-referenced pages, permissive-license code",
+"Efficiency: fused attention, selective checkpointing → 380 tok/s/GPU on 2048 A100s"],
+["<strong>The</strong> reference architecture — fine-tuning tools assume its module names (<code>q_proj</code>, <code>gate_proj</code>…)",
+"Its strategy = industry capital logic: spend training compute to buy inference efficiency",
+"The leak → open-ecosystem case study → licensed Llama 2/3 releases"],
+"7B–65B on 1–1.4T public tokens; overtrain small models; 13B > GPT-3."),
+]},
+{title:"§4 · Alignment", sub:"13–15 — InstructGPT · Constitutional AI · Self-Instruct", slides:[
+P(13,"InstructGPT — RLHF",2022,"2203.02155",
+["The underrated asset: <strong>real API prompt distribution</strong> (generation 45%, QA, brainstorm…) — alignment quality is bounded by prompt realism",
+"Labeler ops: ~40 screened contractors, ~73% agreement, held-out generalization checks",
+"<strong>PPO-ptx</strong>: pretraining gradients mixed into RL to buy back the “alignment tax”"],
+["The 3 stages survive with substitutions: PPO → GRPO or DPO-family; KL control still the central knob",
+"RM overoptimization (Goodharting) became its own subfield — the KL penalty is the original mitigation",
+"Small-aligned > huge-raw = the argument for post-training budgets"],
+"SFT → reward model → PPO with KL penalty; 1.3B aligned beats 175B raw."),
+P(14,"Constitutional AI",2022,"2212.08073",
+["The harmlessness-vs-<strong>evasiveness</strong> Pareto shift (elo plots) — engage-but-decline beats refusal",
+"CoT inside the AI preference labeler; ensembling over principles",
+"Missed ablation: revisions <em>without</em> critiques work almost as well",
+"AI-feedback quality crosses human-crowdworker agreement with scale → basis of RLAIF"],
+["RLAIF is the default at scale; human labels reserved for hardest cases",
+"Constitutions = auditable governance artifacts; critique→revise loop reused in synthetic data, agent reflection, red-team-then-patch"],
+"Self-critique + revision against written principles, then RL from AI preference labels."),
+P(15,"Self-Instruct",2022,"2212.10560",
+["Reusable mechanics: 8-shot generation (6 seed : 2 generated), <strong>output-first</strong> for classification, ROUGE-L < 0.7 dedup",
+"Only ~54% of sampled outputs fully correct — fine-tuning worked anyway: instruction tuning is noise-tolerant",
+"Verb-noun diversity analysis (the sunburst) — now standard dataset characterization"],
+["Industrialized: Alpaca (verbatim) → Evol-Instruct → Magpie → persona pipelines",
+"Modern additions: LLM-judge filtering, execution-based verification, decontamination",
+"Triggered the live issues: model collapse debates, API ToS limits on distillation"],
+"Bootstrap 52K instructions from 175 seeds using the model itself; near InstructGPT-001.")
+]},
+{title:"§5 · Efficient fine-tuning", sub:"16–17 — LoRA · QLoRA", slides:[
+P(16,"LoRA",2021,"2106.09685",
+["§7 (universally skipped): ΔW <strong>amplifies directions weak in W</strong> (~20×) — adaptation boosts latent features, doesn't add knowledge",
+"r=1–4 sufficed on GPT-3 tasks; B=0 init; α/r decouples LR from rank; paper applied it to W_q/W_v only",
+"The latency argument: merged LoRA = zero overhead; sequential adapters can't hide latency — why LoRA won"],
+["Defaults drifted: <strong>all linear layers</strong>, r=8–64, α≈2r, LR ~10× full-FT; refinements: DoRA, rsLoRA",
+"Style/format: LoRA ≈ full FT · injecting substantial new knowledge: underperforms — match method to gap",
+"Multi-tenant serving: hot-swap adapters over one base (S-LoRA, batched kernels)"],
+"Freeze W, learn ΔW = BA with tiny rank; merge at inference for zero latency."),
+P(17,"QLoRA",2023,"2305.14314",
+["NF4 = quantiles of a standard normal — <em>distribution-matched</em>, not universal; + double quant (~0.37 bits/param) + paged optimizers",
+"The finding that changed practice more than NF4: parity requires LoRA on <strong>every</strong> linear layer (1,000+ models of evidence)",
+"Guanaco: 9K curated OASST > 450K FLAN — quality > quantity, pre-figuring LIMA"],
+["Still the consumer fine-tuning default: NF4 + bf16 compute + paged AdamW (bitsandbytes/Unsloth)",
+"Boundary to keep straight: training quantization ≠ serving quantization — merged models get re-quantized (GPTQ/AWQ/FP8)"],
+"4-bit NF4 frozen base + LoRA on top; 65B fine-tuned on one 48GB GPU.")
+]},
+{title:"§6 · Kernels & positions", sub:"18–21 — FlashAttention 1–2 · RoPE · ALiBi", slides:[
+P(18,"FlashAttention",2022,"2205.14135",
+["IO-complexity analysis <strong>with a lower bound</strong> — count memory traffic, not FLOPs; ~9× fewer HBM accesses",
+"Backward pass: store O(N) statistics, <em>recompute</em> attention on-chip — more FLOPs, less time (the canonical compute-for-bandwidth trade)",
+"The forgotten half: block-sparse FlashAttention (then-SOTA on Path-X)"],
+["Never hand-write attention: SDPA / flash-attn / Triton equivalents",
+"The mindset generalized: fusion + tiling + online normalizers now applied everywhere (fused RMSNorm, CE, Liger)",
+"Memory is linear, but <em>time</em> is still O(N²) → sparse/linear attention (#35 §4)"],
+"Tiled, IO-aware exact attention; online softmax; recompute in backward; O(N) memory."),
+P(19,"FlashAttention-2",2023,"2307.08691",
+["Three fixes = three GPU lessons: non-matmul FLOPs cost ~16× (defer rescaling) · parallelize over <em>sequence length</em> · <strong>split-Q</strong> warp layout kills inter-warp sync",
+"Causal block skipping (~1.7×); native MQA/GQA; receipts: 72% MFU GPT training"],
+["The workhorse; FA-3 extends to Hopper (async TMA, FP8) — know which your hardware runs",
+"The asymmetry it sharpened drives serving design: <strong>prefill = compute-bound, decode = bandwidth-bound</strong> → disaggregated serving"],
+"Rework parallelism and warp partitioning; ~2× FA-1; 50–73% of A100 peak."),
+P(20,"RoPE — Rotary Position Embedding",2021,"2104.09864",
+["The derivation: demand ⟨f(q,m), f(k,n)⟩ depend only on m−n ⇒ rotation is <em>the</em> solution",
+"Wavelength spectrum θᵢ = 10000^(−2i/d): fast dims = local order, slow dims = long range",
+"Norm-preserving ⇒ composes with linear attention — relevant again for hybrid models (#35)"],
+["Universal default. Context extension = spectrum surgery: base 10K → 500K–10M; PI / NTK-aware / YaRN post-hoc",
+"Gotchas: quantize keys <strong>pre-RoPE</strong> (#35/KVQuant); partial-rotary variants; needle tests overstate usable length"],
+"Rotate Q/K by position-dependent angles; relative position emerges in the dot product."),
+P(21,"ALiBi",2021,"2108.12409",
+["Slopes are <em>fixed</em>, geometric (1/2¹…1/2⁸) — learned slopes worked worse; each head = a different receptive field",
+"The lasting contribution is the <strong>benchmark methodology</strong>: train at L, evaluate at kL — sinusoidal/RoPE/T5-bias all degrade sharply"],
+["Lost the standards war to RoPE (kernel compatibility + extension methods) — but used in BLOOM & MPT, echoed in sliding-window attention",
+"Still the right mental model for “why does it fall apart past training length”"],
+"No position embeddings; head-specific linear distance penalties; extrapolates beyond training length.")
+]},
+{title:"§7 · Inference systems", sub:"22–25 — MQA · GQA · Speculative Decoding · PagedAttention", slides:[
+P(22,"Multi-Query Attention",2019,"1911.02150",
+["The real content is the <strong>performance model</strong>: decode arithmetic intensity ≈ O(1) per weight-byte ⇒ decode is <em>memory-bandwidth-bound</em> — the one page behind #23/24/25/35",
+"Quantified trade: ~10× decode speedup for ~0.9 BLEU",
+"Published 2019, ignored until serving economics caught up (~2022, PaLM)"],
+["Pure MQA superseded by GQA — quality gap too visible at chat bars",
+"The transferable skill: analyze any decode-path change as <em>bytes moved per token generated</em>"],
+"One shared K/V head across all query heads; KV cache shrinks by the head count."),
+P(23,"GQA — Grouped-Query Attention",2023,"2305.13245",
+["Two separable contributions: the architecture <strong>and</strong> the uptraining recipe (mean-pool KV heads, ~5% continued pretraining) — the template for post-hoc architecture surgery",
+"The sweep: quality collapses only near G=1; <strong>G=8 is the knee</strong>; wider models tolerate sharing better"],
+["The default (8 KV heads: Llama 2/3, Mistral, Qwen). Significance = cache size: 70B-GQA ≈ 0.31 MB/token vs ~2.5 MHA → serving economics",
+"KV bytes/token = 2 × layers × KV-heads × head-dim × dtype — memorize it; MLA is the post-GQA frontier"],
+"Groups of query heads share KV heads — interpolating MHA↔MQA; uptrain existing checkpoints."),
+P(24,"Speculative Decoding",2022,"2211.17192",
+["The exactness proof: accept w.p. min(1, p/q), resample residual (p−q)₊ ⇒ output distribution <em>identical</em> to target — lossless mathematically",
+"The evaluation formulas: acceptance α, expected tokens (1−α^(γ+1))/(1−α), optimal γ — run these before building",
+"It wins <em>because</em> decode is bandwidth-bound (#22); verification spends spare FLOPs"],
+["Variants that matter: <strong>EAGLE</strong>/Medusa self-drafting heads; n-gram/prompt-lookup (free wins on RAG & code); tree speculation",
+"Gotchas: α collapses off-distribution; batch-1 speedups shrink at high batch; high temperature reduces acceptance"],
+"Small drafter proposes γ tokens; target verifies in one pass; rejection sampling keeps exactness."),
+P(25,"PagedAttention / vLLM",2023,"2309.06180",
+["The motivating measurement: contiguous pre-allocation leaves only 20–38% of KV memory useful; paging → ~96%",
+"The full OS analogy: block tables, copy-on-write (beam/parallel sampling share prompt KV), swap-vs-<strong>recompute</strong> preemption",
+"Honesty: paged lookups cost ~20% attention-kernel overhead"],
+["Default open engine; SGLang's RadixAttention extends to automatic cross-request <strong>prefix caching</strong>",
+"What you actually tune: <code>gpu_memory_utilization</code>, chunked prefill, preemption mode; continuous batching = the other half of throughput"],
+"KV cache in fixed blocks + block tables; <4% waste; copy-on-write sharing; 2–4× throughput.")
+]},
+{title:"§8 · Augmentation & reasoning", sub:"26–29 — RAG · Chain-of-Thought · Tree of Thoughts · ReAct", slides:[
+P(26,"RAG — Retrieval-Augmented Generation",2020,"2005.11401",
+["RAG-Sequence vs RAG-Token marginalization — a distinction modern practice dropped entirely",
+"Joint training with the <em>document</em> encoder frozen (index not rebuilt) — the original answer to “train the retriever?”",
+"Index hot-swap (2016→2018 Wikipedia): knowledge editing without retraining"],
+["Production kept the acronym, dropped the method: frozen retriever + prompt-stuffing",
+"Quality lives elsewhere now: chunking, hybrid dense+BM25, rerankers, groundedness eval",
+"Long context ate the simple cases, not the economics; frontier = <strong>agentic retrieval</strong> (#29's pattern)"],
+"DPR retriever + BART generator trained jointly; retrieved docs as latent variables."),
+P(27,"Chain-of-Thought Prompting",2022,"2201.11903",
+["The ablations are the substance: equation-only and dot-padding both fail — <em>natural-language</em> steps matter, not extra tokens",
+"Below ~10B, CoT <strong>hurts</strong> (fluent-but-wrong chains); length generalization demonstrated"],
+["Internalized by reasoning models (RL-trained long CoT) — prompting it there is redundant-to-harmful; still useful on non-reasoning models",
+"Self-consistency = cheapest reliable boost; <strong>faithfulness caveat</strong>: the stated chain ≠ the causal computation — CoT is not interpretability",
+"Traces became a first-class training asset (→ #36b)"],
+"Worked reasoning steps in the exemplars; multi-step reasoning emerges at ~100B scale."),
+P(28,"Tree of Thoughts",2023,"2305.10601",
+["The reusable part is the 4-D design space: thought granularity · generation (sample/propose) · evaluation (value/vote) · search (BFS/DFS)",
+"Cost stated plainly: ~100× the tokens of one CoT pass; Game of 24: 4% → 74%"],
+["Rarely verbatim (cost + noisy self-evaluation); survives as propose-then-verify, verifier best-of-N, MCTS in math/code",
+"Decision rule: search pays when intermediate states are <em>checkable</em> — otherwise self-consistency or a reasoning model wins on cost"],
+"Search over candidate thoughts: propose → self-evaluate → BFS/DFS with backtracking."),
+P(29,"ReAct",2022,"2210.03629",
+["The error analysis: CoT's dominant failure = hallucination; ReAct's = <strong>repetitive loops</strong> + derailment by noisy observations — still the two agent failure modes",
+"Best config = combination: ReAct + CoT-self-consistency fallback",
+"Fine-tuning small models on ReAct traces beats prompting large ones → seeded trajectory distillation"],
+["The loop is infrastructure: structured tool calls replaced text actions; native tool-use training replaced prompting",
+"Ops lessons that held: loop budgets/detection, observation truncation, action-space design > prompt cleverness"],
+"Interleave Thought → Action → Observation; reasoning steers tools, observations ground reasoning.")
+]},
+{title:"§9 · Preference optimization & RL", sub:"30–32 — DPO · ORPO · GRPO", slides:[
+P(30,"DPO — Direct Preference Optimization",2023,"2305.18290",
+["The trick worth following: π* ∝ π_ref·e^(r/β) ⇒ r = β·log(π/π_ref) ⇒ <strong>partition function cancels</strong> inside Bradley-Terry",
+"Gradient = pairs weighted by how misranked they currently are — built-in hard-example mining",
+"“Your LM is secretly a reward model” — every policy is optimal for <em>some</em> reward"],
+["Default cheap alignment; needs decent SFT init; β ∈ [0.05, 0.3]",
+"Pathologies: chosen-likelihood can <em>fall</em>, length exploitation, offline staleness",
+"<strong>Verifiable tasks → online RL (GRPO) wins</strong>; family to know: IPO, KTO, SimPO, ORPO"],
+"The RLHF optimum has closed form — skip the RM and PPO; train directly on preference pairs."),
+P(31,"ORPO",2024,"2403.07691",
+["The durable insight: vanilla SFT <em>also raises rejected-response likelihood</em> (cross-entropy has no negative signal)",
+"Odds ratio over probability ratio: better-scaled gradient at small p; λ≈0.1",
+"Receipts: Mistral-ORPO-β 12.2% AlpacaEval-2 LC from UltraFeedback only, half of DPO's memory"],
+["Used where simplicity/memory matter; mainstream still runs SFT → DPO/GRPO (stage decoupling eases data iteration)",
+"Constraint: alignment happens <em>during</em> SFT — preference data must cover the full instruction distribution"],
+"Single-stage: SFT loss on chosen + odds-ratio penalty against rejected. No reference model."),
+P(32,"GRPO / DeepSeekMath",2024,"2402.03300",
+["<strong>Data:</strong> iterative fastText mining → 120B math tokens; produced most of the capability; reusable for any domain corpus",
+"<strong>GRPO:</strong> group-mean baseline replaces the critic (halves memory); KL in the loss, not the reward; iterative RM retraining",
+"<strong>§5.2 unified paradigm:</strong> SFT/RFT/DPO/PPO/GRPO as one gradient framework + “RL lifts pass@1, not pass@k” — RL <em>reranks</em> what the model can already sample"],
+["The workhorse of the reasoning era (R1). Setup: verifiable rule-based rewards, G≈8–64",
+"Know the fixes: Dr. GRPO (length/std bias), DAPO (clip-higher, dynamic sampling)",
+"The meta-rule: <strong>verifiability determines the method</strong> — checkable → GRPO; preferences → DPO-family; demos → SFT"],
+"Drop PPO's critic; advantage = group-standardized reward. Plus a 7B math model at 51.7% MATH.")
+]},
+{title:"§10 · Mixture of Experts", sub:"33–34 — Switch Transformer · DeepSeekMoE", slides:[
+P(33,"Switch Transformer",2021,"2101.03961",
+["The stability toolkit (still reused): fp32 <em>router only</em>, 0.1× truncated-normal init, expert dropout, load-balance aux loss (coef 10⁻²)",
+"Capacity-factor mechanics: hard per-expert budget; overflow tokens are <strong>dropped</strong> (residual only) — the detail that bites implementers",
+"Forgotten sections: sparse→dense distillation (~30% of gains kept), multilingual (91% of 101 languages ≥4×)"],
+["MoE won the frontier, but modern designs deviate: top-k 2–8 fine-grained experts, router z-loss, dropless (MegaBlocks), aux-free bias balancing (DeepSeek-V3)",
+"The permanent bargain: total-params <strong>VRAM</strong> for active-params <strong>FLOPs</strong>; all-to-all comms is the systems tax"],
+"Top-1 expert routing; constant per-token FLOPs; 7× pretraining speedup; scaled to 1.6T params."),
+P(34,"DeepSeekMoE",2024,"2401.06066",
+["Two named diseases, one structural fix each: <em>knowledge hybridity</em> → <strong>fine-grained segmentation</strong> (16C2=120 vs 64C6≈74M routings at equal FLOPs); <em>knowledge redundancy</em> → always-on <strong>shared experts</strong>",
+"The ablations prove specialization: disabling top routed experts hurts far more than in GShard; approaches the dense upper bound"],
+["<strong>The</strong> modern MoE design (DeepSeek V2/V3/R1, Qwen-MoE); V3 adds aux-loss-free balancing + MLA",
+"Value prop: ~40% compute for dense-equivalent quality",
+"For capacity planning, quote both: active params → FLOPs/latency; total params → VRAM/cost"],
+"Fine-grained expert segmentation + always-on shared experts → real specialization at ~40% compute.")
+]},
+{title:"§11 · The efficiency frontier", sub:"35–37 — KV Cache · Test-Time Scaling · Muon", slides:[
+P(35,"KV Cache Optimization Survey",2026,"2603.20397",
+["Sizing math: KV/token = 2 × L × H_kv × d_h × bytes → 7B-MHA ≈ 0.5 MB/token ≈ <strong>64 GB @ 128K</strong>",
+"<strong>Evict</strong> (H2O, SnapKV, RocketKV, KVzip) · <strong>Compress</strong> (KIVI, KVQuant, PALU) · <strong>Tier memory</strong> (Paged, InfiniGen, INF2) · <strong>Change the math</strong> (linear, Kimi Linear) · <strong>Combine</strong> (ShadowKV, TailorKV)"],
+["Selection by scenario: long docs → SnapKV/RocketKV · multi-turn → eviction is <em>irreversible</em>, prefer KVzip/quant · datacenter → paged+GQA+fp8 · edge → KIVI/KVQuant · agentic → hybrid linear",
+"Gotchas: quantize keys <strong>pre-RoPE</strong>; attention sinks need full precision; offloading = PCIe math",
+"Broader 2024 taxonomy: <code>35b</code> in this folder (arXiv 2412.19442)"],
+"The full KV-cache landscape in 5 categories, mapped to 7 deployment scenarios."),
+P(36,"Compute-Optimal Test-Time Scaling",2024,"2408.03314",
+["Two mechanisms dissected: PRM <strong>search</strong> (beam wins small budgets & hard Qs; over-search Goodharts the PRM) vs <strong>revisions</strong> (sequential when nearly-right; parallel for diverse restarts)",
+"The hinge: <em>model-predicted difficulty</em> selects the strategy → ~4× efficiency over best-of-N",
+"Read the headline carefully: beats a 14× larger model on easy/medium — on hard questions & high traffic, <strong>pretraining still wins</strong>"],
+["The analytic frame of the o1/R1 era: difficulty-adaptive routing = a serving-cost lever; thinking budgets now product surface",
+"Verifier best-of-N stays the reliable baseline — with the Goodhart caveat attached to every verifier you deploy"],
+"Allocate inference compute per-question by difficulty; a substitution curve, not a free lunch."),
+P('36b',"s1 — Simple Test-Time Scaling",2025,"2501.19393",
+["s1K curation is the substance: 59K → 1K by <strong>quality · difficulty · diversity</strong>; random-1K / longest-1K fail; full 59K barely beats curated 1K — <em>selection elicits reasoning, not volume</em>",
+"<strong>Budget forcing</strong>: suppress end-of-thinking + append “Wait” to extend (triggers self-correction); inject delimiter to cap",
+"Negative results kept: the 6th “Wait” stops helping; rejection sampling <em>inverse</em>-scales"],
+["The cost floor for adding reasoning: distill ~1K traces (26 GPU-min ×16 H100), SFT a strong base, expose a budget knob",
+"Caveats: base-model strength is load-bearing; distillation ToS; trivial to implement with delimiter logits"],
+"1K curated traces + SFT + budget forcing → o1-preview-level math; clean scaling curves."),
+P(37,"Muon Is Scalable for LLM Training",2025,"2502.16982",
+["Muon = momentum + Newton–Schulz orthogonalization (≈5 iters) of each 2-D update",
+"Two additions made it scale: <strong>weight decay</strong> (else weight RMS outgrows bf16 range) · <strong>RMS-matched update scaling</strong> → <em>reuse AdamW LRs directly</em>",
+"Distributed over ZeRO-1: ~1–1.5× Adam comms, ≤½ optimizer memory",
+"FLOPs-matched fits: <strong>~2× efficiency vs AdamW</strong>; receipts: Moonlight 16B-MoE, 5.7T tok"],
+["First credible AdamW challenger; Kimi K2 (1T MoE) used <strong>MuonClip</strong> (+qk-clip)",
+"2-D matrices only — embeddings, norms, unembedding stay AdamW",
+"Theory: steepest descent under the spectral norm; ties to µP — active research"],
+"Orthogonalized momentum + weight decay + RMS matching = ~2× AdamW's compute efficiency.")
+]}
+];
+
+const CHAINS = [
+["Architecture","1 → 2/3 (fork) → 4 → 6 · modern default = 12's recipe",[1,2,3,4,6,12]],
+["Scaling","5 → 8 (corrected) → 12 (overtrain) → 36/36b (scale inference)",[5,8,12,36,'36b']],
+["Data","4 (quality) → 7 (diversity+docs) → 12 → 15/36b (synthetic, curated)",[4,7,12,15,'36b']],
+["Alignment","13 → 14 (AI feedback) → 30 → 31 → 32 · method = f(verifiability)",[13,14,30,31,32]],
+["Fine-tuning","16 → 17 (+ the data-quality lessons)",[16,17]],
+["Positions & kernels","20 vs 21 · 18 → 19",[18,19,20,21]],
+["Inference","22 (roofline) → 23 → 24 → 25 → 35",[22,23,24,25,35]],
+["Reasoning & agents","27 → 28 → 29 → 36 → 32/36b",[27,28,29,36,32,'36b']],
+["Sparsity & training","33 → 34 · 37",[33,34,37]]
+];
+
+/* ===== inline SVG diagrams (keyed by paper number) ===== */
+const VIZ = {
+"1":`<svg viewBox="0 0 660 96">
+<rect x="6" y="30" width="72" height="36" rx="8" fill="none" stroke="var(--axis)"/><text x="42" y="52" text-anchor="middle" class="lb">tokens</text>
+<path d="M82 48h26" stroke="var(--axis)" fill="none"/><path d="M104 44l8 4-8 4z" fill="var(--axis)"/>
+<rect x="114" y="30" width="92" height="36" rx="8" fill="none" stroke="var(--axis)"/><text x="160" y="52" text-anchor="middle" class="lb">embed + pos</text>
+<path d="M210 48h26" stroke="var(--axis)" fill="none"/><path d="M232 44l8 4-8 4z" fill="var(--axis)"/>
+<rect x="244" y="10" width="270" height="76" rx="12" fill="none" stroke="var(--accent)" stroke-width="2"/>
+<text x="379" y="26" text-anchor="middle" class="lb" fill="var(--accent-dark)">× N blocks</text>
+<rect x="258" y="36" width="108" height="34" rx="8" fill="var(--accent)" opacity=".14"/><rect x="258" y="36" width="108" height="34" rx="8" fill="none" stroke="var(--accent)"/><text x="312" y="57" text-anchor="middle" class="lb ink">causal self-attn</text>
+<path d="M370 53h14" stroke="var(--axis)"/><path d="M380 49l8 4-8 4z" fill="var(--axis)"/>
+<rect x="392" y="36" width="108" height="34" rx="8" fill="var(--accent)" opacity=".14"/><rect x="392" y="36" width="108" height="34" rx="8" fill="none" stroke="var(--accent)"/><text x="446" y="57" text-anchor="middle" class="lb ink">FFN (2/3 params)</text>
+<path d="M518 48h26" stroke="var(--axis)" fill="none"/><path d="M540 44l8 4-8 4z" fill="var(--axis)"/>
+<rect x="552" y="30" width="100" height="36" rx="8" fill="none" stroke="var(--axis)"/><text x="602" y="52" text-anchor="middle" class="lb">softmax → next</text>
+</svg>`,
+"5":`<svg viewBox="0 0 660 168">
+<line x1="52" y1="16" x2="52" y2="132" stroke="var(--axis)"/><line x1="52" y1="132" x2="640" y2="132" stroke="var(--axis)"/>
+<text x="46" y="24" text-anchor="end" class="lb2">loss (log)</text><text x="640" y="148" text-anchor="end" class="lb2">scale (log) →</text>
+<path d="M70 26 L460 56" stroke="var(--c3)" stroke-width="2" fill="none"/><text x="470" y="60" class="lb" fill="var(--c3)">L(C) ∝ C^−0.050 — compute</text>
+<path d="M70 44 L460 84" stroke="var(--c1)" stroke-width="2" fill="none"/><text x="470" y="88" class="lb" fill="var(--c1)">L(N) ∝ N^−0.076 — params</text>
+<path d="M70 62 L460 112" stroke="var(--c2)" stroke-width="2" fill="none"/><text x="470" y="116" class="lb" fill="var(--c2)">L(D) ∝ D^−0.095 — data</text>
+<text x="52" y="162" class="lb2">straight lines over 7 orders of magnitude on log-log = power laws — performance is predictable before you train</text>
+</svg>`,
+"8":`<svg viewBox="0 0 660 168">
+<line x1="52" y1="16" x2="52" y2="132" stroke="var(--axis)"/><line x1="52" y1="132" x2="640" y2="132" stroke="var(--axis)"/>
+<text x="46" y="24" text-anchor="end" class="lb2">loss</text><text x="640" y="148" text-anchor="end" class="lb2">model size (log), fixed FLOPs per curve →</text>
+<path d="M80 40 Q 220 118 400 30" stroke="#86b6ef" stroke-width="2" fill="none"/>
+<path d="M120 62 Q 300 132 540 44" stroke="#3987e5" stroke-width="2" fill="none"/>
+<path d="M170 84 Q 380 148 620 62" stroke="#1c5cab" stroke-width="2" fill="none"/>
+<circle cx="216" cy="79" r="5" fill="#86b6ef" stroke="var(--bg)" stroke-width="2"/>
+<circle cx="308" cy="99" r="5" fill="#3987e5" stroke="var(--bg)" stroke-width="2"/>
+<circle cx="396" cy="117" r="5" fill="#1c5cab" stroke="var(--bg)" stroke-width="2"/>
+<path d="M216 79 L308 99 L396 117" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="4 4" fill="none"/>
+<text x="410" y="122" class="lb ink">isoFLOP minima: N_opt ∝ C^0.5, D_opt ∝ C^0.5 → ~20 tok/param</text>
+<text x="96" y="34" class="lb2">1e19 FLOPs</text><text x="150" y="58" class="lb2">1e20</text><text x="206" y="80" text-anchor="end" class="lb2">1e21  </text>
+<text x="52" y="162" class="lb2">each curve = one compute budget swept over model sizes; the valley floor moves right *and* down — equally in N and D</text>
+</svg>`,
+"13":`<svg viewBox="0 0 660 108">
+<rect x="10" y="22" width="180" height="46" rx="10" fill="var(--c1)" opacity=".15"/><rect x="10" y="22" width="180" height="46" rx="10" fill="none" stroke="var(--c1)" stroke-width="1.5"/>
+<text x="100" y="42" text-anchor="middle" class="lb ink">① SFT</text><text x="100" y="58" text-anchor="middle" class="lb2">~13K labeler demonstrations</text>
+<path d="M194 45h32" stroke="var(--axis)"/><path d="M220 41l9 4-9 4z" fill="var(--axis)"/>
+<rect x="236" y="22" width="180" height="46" rx="10" fill="var(--c2)" opacity=".15"/><rect x="236" y="22" width="180" height="46" rx="10" fill="none" stroke="var(--c2)" stroke-width="1.5"/>
+<text x="326" y="42" text-anchor="middle" class="lb ink">② Reward model</text><text x="326" y="58" text-anchor="middle" class="lb2">~33K ranked comparisons</text>
+<path d="M420 45h32" stroke="var(--axis)"/><path d="M446 41l9 4-9 4z" fill="var(--axis)"/>
+<rect x="462" y="22" width="188" height="46" rx="10" fill="var(--c4)" opacity=".15"/><rect x="462" y="22" width="188" height="46" rx="10" fill="none" stroke="var(--c4)" stroke-width="1.5"/>
+<text x="556" y="42" text-anchor="middle" class="lb ink">③ PPO vs the RM</text><text x="556" y="58" text-anchor="middle" class="lb2">+ per-token KL to SFT · + ptx mix</text>
+<text x="330" y="94" text-anchor="middle" class="lb2">the KL penalty is the original defense against reward hacking; ptx buys back the “alignment tax”</text>
+</svg>`,
+"16":`<svg viewBox="0 0 660 140">
+<text x="26" y="74" text-anchor="middle" class="lb ink">x</text>
+<path d="M38 70h30" stroke="var(--axis)"/><path d="M62 66l8 4-8 4z" fill="var(--axis)"/>
+<rect x="78" y="26" width="120" height="88" rx="10" fill="none" stroke="var(--axis)" stroke-width="1.5"/>
+<text x="138" y="64" text-anchor="middle" class="lb ink">W (frozen)</text><text x="138" y="80" text-anchor="middle" class="lb2">d × d</text>
+<path d="M78 20 q60 -14 120 0" stroke="var(--axis)" stroke-dasharray="3 3" fill="none"/><text x="138" y="12" text-anchor="middle" class="lb2">❄ no gradients</text>
+<path d="M58 70 q10 46 40 52" stroke="var(--accent)" fill="none" stroke-width="1.5"/>
+<rect x="102" y="118" width="56" height="16" rx="6" fill="var(--accent)" opacity=".2"/><rect x="102" y="118" width="56" height="16" rx="6" fill="none" stroke="var(--accent)"/><text x="130" y="130" text-anchor="middle" class="lb2 ink">A  d×r</text>
+<path d="M162 126h24" stroke="var(--accent)"/><path d="M180 122l8 4-8 4z" fill="var(--accent)"/>
+<rect x="190" y="118" width="56" height="16" rx="6" fill="var(--accent)" opacity=".2"/><rect x="190" y="118" width="56" height="16" rx="6" fill="none" stroke="var(--accent)"/><text x="218" y="130" text-anchor="middle" class="lb2 ink">B  r×d</text>
+<path d="M202 70h56" stroke="var(--axis)"/><path d="M250 66l8 4-8 4z" fill="var(--axis)"/>
+<path d="M246 126 q34 -6 34 -44" stroke="var(--accent)" fill="none" stroke-width="1.5"/><path d="M276 88l4-9 5 8z" fill="var(--accent)"/>
+<circle cx="280" cy="70" r="12" fill="none" stroke="var(--fg)" stroke-width="1.5"/><text x="280" y="75" text-anchor="middle" class="lb ink">+</text>
+<path d="M292 70h38" stroke="var(--axis)"/><path d="M322 66l8 4-8 4z" fill="var(--axis)"/>
+<text x="348" y="75" class="lb ink">h</text>
+<text x="380" y="52" class="lb ink">trainable: only B·A  (r ≪ d — often 1–64)</text>
+<text x="380" y="72" class="lb2">B init = 0 → training starts exactly at the base model</text>
+<text x="380" y="92" class="lb2">at inference: merge W ← W + BA → zero added latency</text>
+<text x="380" y="112" class="lb2">§7: ΔW amplifies directions ~20× that are weak in W</text>
+</svg>`,
+"18":`<svg viewBox="0 0 660 150">
+<rect x="10" y="20" width="200" height="110" rx="10" fill="none" stroke="var(--axis)"/><text x="110" y="38" text-anchor="middle" class="lb">HBM — big, slow (~3 TB/s)</text>
+<g opacity=".9">${Array.from({length:5},(_,r)=>Array.from({length:5},(_,c)=>`<rect x="${58+c*20}" y="${48+r*14}" width="17" height="11" rx="2" fill="var(--axis)" opacity=".28"/>`).join('')).join('')}</g>
+<line x1="60" y1="120" x2="158" y2="48" stroke="#d03b3b" stroke-width="2"/><line x1="60" y1="48" x2="158" y2="120" stroke="#d03b3b" stroke-width="2"/>
+<text x="110" y="145" text-anchor="middle" class="lb2">N×N scores never written to HBM</text>
+<path d="M218 60h44" stroke="var(--accent)" stroke-width="1.5"/><path d="M254 56l9 4-9 4z" fill="var(--accent)"/><text x="240" y="52" text-anchor="middle" class="lb2">tile Q,K,V</text>
+<path d="M262 96h-44" stroke="var(--accent)" stroke-width="1.5"/><path d="M226 92l-9 4 9 4z" fill="var(--accent)"/><text x="240" y="112" text-anchor="middle" class="lb2">O + O(N) stats</text>
+<rect x="270" y="20" width="180" height="110" rx="10" fill="var(--accent)" opacity=".08"/><rect x="270" y="20" width="180" height="110" rx="10" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+<text x="360" y="38" text-anchor="middle" class="lb" fill="var(--accent-dark)">SRAM — tiny, fast (per-SM)</text>
+<rect x="298" y="50" width="42" height="30" rx="4" fill="var(--accent)" opacity=".25"/><text x="319" y="69" text-anchor="middle" class="lb2 ink">Qᵢ</text>
+<rect x="348" y="50" width="42" height="30" rx="4" fill="var(--accent)" opacity=".25"/><text x="369" y="69" text-anchor="middle" class="lb2 ink">Kⱼ,Vⱼ</text>
+<text x="360" y="100" text-anchor="middle" class="lb2 ink">online softmax: running max + Σ</text>
+<text x="360" y="116" text-anchor="middle" class="lb2">accumulate O block-by-block</text>
+<text x="470" y="50" class="lb ink">same FLOPs, ~9× fewer HBM accesses</text>
+<text x="470" y="70" class="lb2">backward: store O(N) logsumexp,</text>
+<text x="470" y="86" class="lb2">recompute S,P on-chip (compute-for-</text>
+<text x="470" y="102" class="lb2">bandwidth — the canonical trade)</text>
+<text x="470" y="126" class="lb2 mono" fill="var(--accent-dark)">count bytes moved, not FLOPs</text>
+</svg>`,
+"23":`<svg viewBox="0 0 660 158">
+${[0,1,2].map(g=>{const x0=18+g*218, labels=['MHA — 8 KV heads','GQA — 2 KV groups','MQA — 1 KV head'], kv=[8,2,1][g], cache=['KV cache ×1','×¼','×⅛'][g];
+let s=`<text x="${x0+92}" y="16" text-anchor="middle" class="lb ink">${labels[g]}</text>`;
+for(let i=0;i<8;i++){s+=`<rect x="${x0+i*23}" y="26" width="19" height="16" rx="3" fill="var(--accent)" opacity=".8"/>`;}
+s+=`<text x="${x0-6}" y="38" text-anchor="end" class="lb2">Q</text><text x="${x0-6}" y="88" text-anchor="end" class="lb2">KV</text>`;
+const kvw=kv===8?19:kv===2?88:180, step=kv===8?23:kv===2?92:0;
+for(let k=0;k<kv;k++){const kx=x0+(kv===1?2:k*step);s+=`<rect x="${kx}" y="76" width="${kvw}" height="16" rx="3" fill="var(--c1)" opacity=".85"/>`;}
+for(let i=0;i<8;i++){const qx=x0+i*23+9.5;const kx=kv===8?qx:kv===2?(i<4?x0+44:x0+136):x0+92;s+=`<line x1="${qx}" y1="42" x2="${kx}" y2="76" stroke="var(--axis)" stroke-width="1"/>`;}
+s+=`<text x="${x0+92}" y="112" text-anchor="middle" class="lb" fill="var(--c1)">${cache}</text>`;
+return s;}).join('')}
+<text x="330" y="146" text-anchor="middle" class="lb2">queries stay multi-headed (accent); KV heads (blue) shrink — decode streams the KV cache every step, so cache size = decode speed</text>
+</svg>`,
+"24":`<svg viewBox="0 0 660 132">
+<text x="10" y="30" class="lb ink">draft model proposes γ=5 (cheap, serial)</text>
+${['the','cat','sat','on','a'].map((t,i)=>`<rect x="${300+i*62}" y="14" width="54" height="24" rx="6" fill="var(--c1)" opacity=".15"/><rect x="${300+i*62}" y="14" width="54" height="24" rx="6" fill="none" stroke="var(--c1)"/><text x="${327+i*62}" y="30" text-anchor="middle" class="lb2 ink mono">${t}</text>`).join('')}
+<text x="10" y="76" class="lb ink">target verifies all 5 in ONE parallel pass</text>
+${[1,1,1,0,-1].map((v,i)=>{const x=300+i*62;
+ if(v===1)return `<text x="${327+i*62}" y="72" text-anchor="middle" font-size="15" fill="#0ca30c">✓</text>`;
+ if(v===0)return `<text x="${327+i*62}" y="72" text-anchor="middle" font-size="15" fill="#d03b3b">✗</text>`;
+ return `<text x="${327+i*62}" y="72" text-anchor="middle" class="lb2">—</text>`;}).join('')}
+<rect x="486" y="84" width="98" height="24" rx="6" fill="var(--accent)" opacity=".2"/><rect x="486" y="84" width="98" height="24" rx="6" fill="none" stroke="var(--accent)"/><text x="535" y="100" text-anchor="middle" class="lb2 ink">resample (p−q)₊</text>
+<path d="M486 96h-40" stroke="var(--accent)"/><path d="M454 92l-9 4 9 4z" fill="var(--accent)"/>
+<text x="10" y="122" class="lb2">accept w.p. min(1, p/q); first rejection → corrected residual sample. Output = target's distribution, exactly; here 4 tokens for one pass.</text>
+</svg>`,
+"25":`<svg viewBox="0 0 660 168">
+<text x="10" y="18" class="lb ink">logical (per request)</text>
+<text x="10" y="42" class="lb2">req A</text>
+${[0,1,2].map(i=>`<rect x="${52+i*74}" y="28" width="66" height="22" rx="5" fill="var(--c1)" opacity=".15"/><rect x="${52+i*74}" y="28" width="66" height="22" rx="5" fill="none" stroke="var(--c1)"/><text x="${85+i*74}" y="43" text-anchor="middle" class="lb2 mono ink">tok ${i*16}–${i*16+15}</text>`).join('')}
+<text x="10" y="76" class="lb2">req B</text>
+${[0,1].map(i=>`<rect x="${52+i*74}" y="62" width="66" height="22" rx="5" fill="var(--c2)" opacity=".15"/><rect x="${52+i*74}" y="62" width="66" height="22" rx="5" fill="none" stroke="var(--c2)"/><text x="${85+i*74}" y="77" text-anchor="middle" class="lb2 mono ink">tok ${i*16}–${i*16+15}</text>`).join('')}
+<text x="356" y="18" class="lb ink">physical block pool</text>
+${Array.from({length:10},(_,i)=>{const x=356+(i%5)*58, y=28+Math.floor(i/5)*34;
+ const used={7:'var(--c1)',2:'var(--c1)',9:'var(--c1)',3:'var(--c2)',5:'var(--c2)'}[i];
+ return `<rect x="${x}" y="${y}" width="50" height="26" rx="5" fill="${used||'var(--axis)'}" opacity="${used?'.55':'.12'}"/><text x="${x+25}" y="${y+17}" text-anchor="middle" class="lb2 mono ${used?'ink':''}">#${i}</text>`;}).join('')}
+<path d="M192 39 C 300 30 320 70 356 96" stroke="var(--c1)" fill="none" stroke-dasharray="3 3"/>
+<path d="M192 39 C 280 20 420 6 478 26" stroke="var(--c1)" fill="none" stroke-dasharray="3 3"/>
+<text x="10" y="112" class="lb ink">block table A: →#7 →#2 →#9</text><text x="10" y="130" class="lb ink" fill="var(--c2)">block table B: →#3 →#5</text>
+<text x="10" y="156" class="lb2">fixed 16-token blocks, any physical order — waste ≤ one partial block; shared prefixes point at the same block (copy-on-write, ref_cnt)</text>
+</svg>`,
+"34":`<svg viewBox="0 0 660 150">
+<text x="26" y="70" text-anchor="middle" class="lb ink">token</text>
+<path d="M50 66h28" stroke="var(--axis)"/><path d="M72 62l8 4-8 4z" fill="var(--axis)"/>
+<rect x="86" y="46" width="76" height="40" rx="9" fill="var(--c4)" opacity=".15"/><rect x="86" y="46" width="76" height="40" rx="9" fill="none" stroke="var(--c4)" stroke-width="1.5"/>
+<text x="124" y="70" text-anchor="middle" class="lb ink">router</text>
+${Array.from({length:16},(_,i)=>{const x=200+(i%8)*52, y=22+Math.floor(i/8)*44;
+ const hot=[2,5,9,11,14,7].slice(0,6).includes(i);
+ return `<rect x="${x}" y="${y}" width="44" height="30" rx="6" fill="${hot?'var(--accent)':'var(--axis)'}" opacity="${hot?'.75':'.12'}"/><text x="${x+22}" y="${y+19}" text-anchor="middle" class="lb2 ${hot?'ink':''}">E${i}</text>`;}).join('')}
+<path d="M162 60 C 190 40 190 40 200 40" stroke="var(--axis)" stroke-dasharray="3 3" fill="none"/>
+<path d="M162 72 C 190 90 190 90 200 90" stroke="var(--axis)" stroke-dasharray="3 3" fill="none"/>
+<rect x="200" y="106" width="148" height="26" rx="6" fill="var(--c2)" opacity=".2"/><rect x="200" y="106" width="148" height="26" rx="6" fill="none" stroke="var(--c2)"/><text x="274" y="123" text-anchor="middle" class="lb2 ink">shared experts — always on</text>
+<text x="380" y="120" class="lb2">+ weighted sum of the top-k</text>
+<text x="10" y="120" class="lb2">fine-grained: many</text><text x="10" y="134" class="lb2">small experts, top-6/8</text>
+<text x="10" y="20" class="lb ink">DeepSeekMoE: 671B total params · ~37B active per token</text>
+</svg>`,
+"35":`<svg viewBox="0 0 660 176">
+<line x1="60" y1="14" x2="60" y2="134" stroke="var(--axis)"/><line x1="60" y1="134" x2="640" y2="134" stroke="var(--axis)"/>
+<text x="54" y="20" text-anchor="end" class="lb2">GB</text>
+${[0,32,64,96,128].map((v,i)=>`<text x="${60+i*141}" y="150" text-anchor="middle" class="lb2">${v}K</text>`).join('')}
+<line x1="60" y1="46" x2="640" y2="46" stroke="var(--grid)" stroke-dasharray="2 4"/>
+<line x1="60" y1="90" x2="640" y2="90" stroke="var(--grid)" stroke-dasharray="2 4"/>
+<line x1="60" y1="63" x2="640" y2="63" stroke="#d03b3b" stroke-width="1.5" stroke-dasharray="6 4"/><text x="636" y="58" text-anchor="end" class="lb2" fill="#d03b3b">A100 80 GB</text>
+<path d="M60 134 L624 22" stroke="var(--c1)" stroke-width="2" fill="none"/><text x="420 " y="52" class="lb" fill="var(--c1)">7B MHA — 0.50 MB/token (64 GB @128K)</text>
+<path d="M60 134 L624 64" stroke="var(--c2)" stroke-width="2" fill="none"/><text x="430" y="106" class="lb" fill="var(--c2)">70B GQA-8 — 0.31 MB/token</text>
+<circle cx="624" cy="22" r="5" fill="var(--c1)" stroke="var(--bg)" stroke-width="2"/>
+<text x="60" y="170" class="lb2">KV/token = 2 × layers × KV-heads × head-dim × bytes — the cache, not the weights, crosses the GPU line first; that's the whole survey</text>
+</svg>`,
+"36":`<svg viewBox="0 0 660 168">
+<line x1="56" y1="14" x2="56" y2="132" stroke="var(--axis)"/><line x1="56" y1="132" x2="640" y2="132" stroke="var(--axis)"/>
+<text x="50" y="22" text-anchor="end" class="lb2">accuracy</text><text x="640" y="148" text-anchor="end" class="lb2">test-time compute (log) →</text>
+<line x1="56" y1="56" x2="640" y2="56" stroke="var(--grid)" stroke-dasharray="6 4"/>
+<text x="636" y="50" text-anchor="end" class="lb2 ink">14× larger model, greedy (fixed)</text>
+<path d="M70 122 C 220 118 300 62 430 44 C 520 34 590 32 626 31" stroke="var(--c1)" stroke-width="2" fill="none"/>
+<text x="240" y="98" class="lb" fill="var(--c1)">small model + compute-optimal test-time scaling</text>
+<circle cx="352" cy="56" r="5" fill="var(--c1)" stroke="var(--bg)" stroke-width="2"/>
+<path d="M352 56 L352 84" stroke="var(--axis)" stroke-dasharray="2 3"/><text x="358" y="80" class="lb2 ink">crossover — easy/medium questions</text>
+<text x="56" y="160" class="lb2">right of the crossover the small model wins per-FLOP; on the hardest questions and at high traffic, pretraining compute still wins — a substitution curve, not a free lunch</text>
+</svg>`,
+"36b":`<svg viewBox="0 0 660 150">
+<line x1="56" y1="12" x2="56" y2="112" stroke="var(--axis)"/><line x1="56" y1="112" x2="400" y2="112" stroke="var(--axis)"/>
+<text x="50" y="20" text-anchor="end" class="lb2">AIME24</text><text x="400" y="128" text-anchor="end" class="lb2">thinking tokens (budget forcing) →</text>
+<path d="M70 104 C 130 92 180 62 250 44 C 300 32 350 28 388 27" stroke="var(--accent)" stroke-width="2" fill="none"/>
+${[[70,104],[130,84],[196,56],[262,41],[330,30],[388,27]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="var(--accent)" stroke="var(--bg)" stroke-width="2"/>`).join('')}
+<text x="200" y="100" class="lb2 ink">each dot = one more forced “Wait”</text>
+<text x="330" y="18" class="lb2">saturates ~6th</text>
+<text x="430" y="34" class="lb ink">the whole recipe:</text>
+<text x="430" y="56" class="lb2">1K curated traces (quality · difficulty · diversity)</text>
+<text x="430" y="74" class="lb2">SFT: 26 min × 16 H100s on Qwen2.5-32B</text>
+<text x="430" y="92" class="lb2">suppress end-of-thinking, append “Wait”</text>
+<text x="430" y="112" class="lb2 mono" fill="var(--accent-dark)">selection elicits reasoning, not volume</text>
+</svg>`
+};
+
+/* ===== interactive playgrounds (keyed by paper number) ===== */
+const DEMO = {
+"8":`<div class="demo" data-demo="chin"><div class="dhead">Playground — compute-optimal calculator (C = 6ND, D = 20N)</div>
+<div class="drow">
+<div class="dctl"><label>Compute budget C (FLOPs)</label><input type="range" id="ch-c" min="21" max="26" step="0.05" value="24"><output id="ch-co"></output></div>
+<div class="dctl"><label>Your model N (B params)</label><input type="number" id="ch-n" value="8" min="0.1" step="0.5"></div>
+<div class="dctl"><label>Your tokens D (T)</label><input type="number" id="ch-d" value="15" min="0.01" step="0.5"></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="ch-nopt">—</div><div class="k">Chinchilla-optimal N for C</div></div>
+<div class="dstat"><div class="v" id="ch-dopt">—</div><div class="k">optimal tokens D (=20N)</div></div>
+<div class="dstat"><div class="v" id="ch-gpu">—</div><div class="k">H100-years @ 40% MFU</div></div>
+<div class="dstat"><div class="v" id="ch-ratio">—</div><div class="k">your tokens / param</div></div>
+</div>
+<span class="dbadge ok" id="ch-badge">—</span>
+<div class="dnote">The badge judges your N/D against the 20 tok/param floor — but remember the deck's caveat: inference economics push you far past it on purpose (Llama-3-8B ≈ 1,875).</div></div>`,
+"16":`<div class="demo" data-demo="lora"><div class="dhead">Playground — LoRA trainable-params calculator (Llama-3-8B shapes)</div>
+<div class="drow">
+<div class="dctl"><label>rank r</label><input type="range" id="lo-r" min="1" max="128" step="1" value="16"><output id="lo-ro"></output></div>
+<div class="dctl"><label>target modules</label><div class="dchecks">
+<label><input type="checkbox" id="lo-q" checked>q_proj</label>
+<label><input type="checkbox" id="lo-k" checked>k_proj</label>
+<label><input type="checkbox" id="lo-v" checked>v_proj</label>
+<label><input type="checkbox" id="lo-o" checked>o_proj</label>
+<label><input type="checkbox" id="lo-g" checked>gate/up</label>
+<label><input type="checkbox" id="lo-dn" checked>down</label>
+</div></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="lo-tr">—</div><div class="k">trainable params</div></div>
+<div class="dstat"><div class="v" id="lo-pct">—</div><div class="k">% of the 8.03B base</div></div>
+<div class="dstat"><div class="v" id="lo-mb">—</div><div class="k">adapter file (bf16)</div></div>
+</div>
+<div class="dnote">Per matrix: r × (d_in + d_out), × 32 layers. Uncheck gate/up/down to see the paper's original attention-only setup — then recall QLoRA's finding: parity needs <strong>all</strong> linear layers.</div></div>`,
+"20":`<div class="demo" data-demo="rope"><div class="dhead">Playground — why rotation gives relative position</div>
+<div class="drow">
+<div class="dctl"><label>absolute position m</label><input type="range" id="ro-m" min="0" max="60" step="1" value="12"><output id="ro-mo"></output></div>
+<div class="dctl"><label>offset Δ = m − n</label><input type="range" id="ro-d" min="0" max="20" step="1" value="4"><output id="ro-do"></output></div>
+</div>
+<div style="display:flex; gap:26px; align-items:center; flex-wrap:wrap; margin-top:10px">
+<svg viewBox="0 0 130 130" style="width:130px; flex:none"><g id="ro-circle"></g></svg>
+<div>
+<div class="dstat"><div class="v" id="ro-dot">—</div><div class="k">q·k after rotation</div></div>
+<div class="dnote" style="margin-top:8px">Drag <strong>m</strong>: both vectors spin but q·k <em>doesn't move</em> — absolute position cancels.<br>Drag <strong>Δ</strong>: q·k changes — only the <em>relative</em> offset survives the dot product.</div>
+</div></div></div>`,
+"23":`<div class="demo" data-demo="gqa"><div class="dhead">Playground — KV bytes per token (the formula to memorize)</div>
+<div class="drow">
+<div class="dctl"><label>layers</label><input type="number" id="gq-l" value="80" min="1"></div>
+<div class="dctl"><label>query heads</label><input type="number" id="gq-q" value="64" min="1"></div>
+<div class="dctl"><label>KV heads</label><input type="range" id="gq-kv" min="0" max="6" step="1" value="3"><output id="gq-kvo"></output></div>
+<div class="dctl"><label>head dim</label><input type="number" id="gq-d" value="128" min="16" step="16"></div>
+<div class="dctl"><label>dtype</label><select id="gq-t"><option value="2" selected>bf16</option><option value="1">fp8</option></select></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="gq-tok">—</div><div class="k">KV per token</div></div>
+<div class="dstat"><div class="v" id="gq-128">—</div><div class="k">one request @ 128K ctx</div></div>
+<div class="dstat"><div class="v" id="gq-vs">—</div><div class="k">vs MHA (n_kv = n_q)</div></div>
+</div>
+<span class="dbadge ok" id="gq-badge">—</span>
+<div class="dnote">2 × layers × KV-heads × head-dim × bytes. Defaults = Llama-2-70B: slide KV heads from 64 (MHA) → 8 (GQA) → 1 (MQA) and watch serving economics move.</div></div>`,
+"24":`<div class="demo" data-demo="spec"><div class="dhead">Playground — speculative decoding speedup (the paper's formulas)</div>
+<div class="drow">
+<div class="dctl"><label>acceptance rate α</label><input type="range" id="sp-a" min="0.4" max="0.95" step="0.01" value="0.8"><output id="sp-ao"></output></div>
+<div class="dctl"><label>draft length γ</label><input type="range" id="sp-g" min="1" max="10" step="1" value="4"><output id="sp-go"></output></div>
+<div class="dctl"><label>draft cost ratio c</label><input type="range" id="sp-c" min="0.02" max="0.5" step="0.01" value="0.1"><output id="sp-co"></output></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="sp-e">—</div><div class="k">E[tokens] per target pass</div></div>
+<div class="dstat"><div class="v" id="sp-s">—</div><div class="k">walltime speedup</div></div>
+<div class="dstat"><div class="v" id="sp-opt">—</div><div class="k">optimal γ at this α, c</div></div>
+</div>
+<div style="margin-top:12px"><svg viewBox="0 0 400 74" style="max-width:400px"><g id="sp-curve"></g></svg></div>
+<div class="dnote">E[tokens] = (1−α^(γ+1))/(1−α) · speedup = E/(cγ+1). Watch α collapse (drag left) — off-distribution drafters kill the win; longer γ only helps while α stays high.</div></div>`
+,
+"36b":`<div class="demo" data-demo="s1"><div class="dhead">Playground — budget forcing (shape of s1's Fig. 1, illustrative values)</div>
+<div class="drow">
+<div class="dctl"><label>forced "Wait"s appended</label><input type="range" id="s1-w" min="0" max="6" step="1" value="2"><output id="s1-wo"></output></div>
+</div>
+<div style="display:flex; gap:26px; align-items:center; flex-wrap:wrap; margin-top:6px">
+<svg viewBox="0 0 340 120" style="width:340px; flex:none"><g id="s1-svg"></g></svg>
+<div class="dstats" style="margin-top:0">
+<div class="dstat"><div class="v" id="s1-acc">—</div><div class="k">AIME24 (illustrative)</div></div>
+<div class="dstat"><div class="v" id="s1-tok">—</div><div class="k">thinking tokens</div></div>
+</div></div>
+<span class="dbadge ok" id="s1-badge">—</span>
+<div class="dnote">Each "Wait" suppresses the end-of-thinking delimiter and often triggers self-correction. The dial saturates — the 6th Wait buys nothing. Real curve: s1 paper Fig. 1.</div></div>`
+};
+
+const UPDF = {
+s1(){
+  const w=+$('s1-w').value;
+  $('s1-wo').textContent=w+' × Wait';
+  const ACC=[40,46,50,53.5,55.5,56.5,56.8], TOK=[1.6,2.6,3.7,4.9,6.2,7.6,9.1];
+  $('s1-acc').textContent=ACC[w].toFixed(1)+'%';
+  $('s1-tok').textContent='≈ '+TOK[w].toFixed(1)+'K';
+  const X=i=>24+i*49, Y=a=>104-(a-38)/20*88;
+  let s='<polyline points="'+ACC.map((a,i)=>X(i)+','+Y(a)).join(' ')+'" fill="none" stroke="var(--accent)" stroke-width="2"/>';
+  ACC.forEach((a,i)=>{s+='<circle cx="'+X(i)+'" cy="'+Y(a)+'" r="'+(i===w?6:3.5)+'" fill="var(--accent)" '+(i===w?'stroke="var(--bg)" stroke-width="2"':'opacity=".5"')+'/>';});
+  s+='<text x="24" y="118" style="font:600 9px Inter" fill="var(--muted)">0 Waits</text><text x="318" y="118" text-anchor="end" style="font:600 9px Inter" fill="var(--muted)">6</text>';
+  $('s1-svg').innerHTML=s;
+  const b=$('s1-badge');
+  if(w<=1){b.textContent='cheap gains — the model was stopping too early'; b.className='dbadge ok';}
+  else if(w<=4){b.textContent='✓ the productive zone — each Wait still buys accuracy'; b.className='dbadge ok';}
+  else{b.textContent='saturated — the 6th Wait buys ~nothing; naive extension has a ceiling'; b.className='dbadge warn';}
+},
+gqa(){
+  const L=+$('gq-l').value, q=+$('gq-q').value, kv=Math.pow(2,+$('gq-kv').value), d=+$('gq-d').value, t=+$('gq-t').value;
+  $('gq-kvo').textContent='n_kv = '+kv;
+  const per=2*L*kv*d*t, mha=2*L*q*d*t;
+  $('gq-tok').textContent=per>=1048576?(per/1048576).toFixed(2)+' MB':(per/1024).toFixed(0)+' KB';
+  $('gq-128').textContent=(per*131072/1e9).toFixed(1)+' GB';
+  $('gq-vs').textContent='×1/'+(mha/per).toFixed(0);
+  const b=$('gq-badge');
+  if(kv>=q){b.textContent='MHA — maximum quality, maximum cache'; b.className='dbadge warn';}
+  else if(kv===1){b.textContent='MQA — maximum shrink; quality gap is why GQA won'; b.className='dbadge warn';}
+  else{b.textContent='✓ GQA-'+kv+(kv===8?' — the industry knee (Llama 2/3, Mistral, Qwen)':''); b.className='dbadge ok';}
+},
+rope(){
+  const m=+$('ro-m').value, dl=+$('ro-d').value, th=0.28, aq=0.5, ak=1.15;
+  $('ro-mo').textContent='m = '+m; $('ro-do').textContent='Δ = '+dl;
+  const qa=aq+m*th, ka=ak+(m-dl)*th, r=48, cx=65, cy=65;
+  const P=a=>[cx+r*Math.cos(-a), cy+r*Math.sin(-a)];
+  const [qx,qy]=P(qa), [kx,ky]=P(ka);
+  const dot=Math.cos(qa-ka);
+  $('ro-dot').textContent=dot.toFixed(3);
+  $('ro-circle').innerHTML=
+   `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line)"/>
+    <line x1="${cx}" y1="${cy}" x2="${qx}" y2="${qy}" stroke="var(--accent)" stroke-width="2.5"/>
+    <circle cx="${qx}" cy="${qy}" r="4" fill="var(--accent)"/><text x="${cx+(qx-cx)*1.22-4}" y="${cy+(qy-cy)*1.22+4}" style="font:700 10px Inter" fill="var(--accent-dark)">q</text>
+    <line x1="${cx}" y1="${cy}" x2="${kx}" y2="${ky}" stroke="var(--c1)" stroke-width="2.5"/>
+    <circle cx="${kx}" cy="${ky}" r="4" fill="var(--c1)"/><text x="${cx+(kx-cx)*1.22-4}" y="${cy+(ky-cy)*1.22+4}" style="font:700 10px Inter" fill="var(--c1)">k</text>`;
+},
+chin(){
+  const C=Math.pow(10,+$('ch-c').value);
+  $('ch-co').textContent='10^'+(+$('ch-c').value).toFixed(2)+' ≈ '+fnum(C)+' FLOPs';
+  const N=Math.sqrt(C/120), D=20*N;
+  $('ch-nopt').textContent=fnum(N); $('ch-dopt').textContent=fnum(D)+' tok';
+  const yrs=C/(989e12*0.4)/3.156e7;
+  $('ch-gpu').textContent=yrs<1?(yrs*365).toFixed(1)+' d':fnum(yrs)+' y';
+  const n=+$('ch-n').value*1e9, d=+$('ch-d').value*1e12, r=d/n;
+  $('ch-ratio').textContent=Math.round(r).toLocaleString();
+  const b=$('ch-badge');
+  if(r<20){b.textContent='undertrained — below the 20 tok/param floor (the GPT-3 mistake)'; b.className='dbadge warn';}
+  else{b.textContent='≥20 ✓ — '+(r>60?'deliberately overtrained: buying inference efficiency with training compute':'near Chinchilla-optimal for training compute'); b.className='dbadge ok';}
+},
+lora(){
+  const r=+$('lo-r').value; $('lo-ro').textContent='r = '+r;
+  const mats=[]; const d=4096, dff=14336, kv=1024, L=32;
+  if($('lo-q').checked)mats.push([d,d]); if($('lo-k').checked)mats.push([d,kv]);
+  if($('lo-v').checked)mats.push([d,kv]); if($('lo-o').checked)mats.push([d,d]);
+  if($('lo-g').checked){mats.push([d,dff]);mats.push([d,dff]);} if($('lo-dn').checked)mats.push([dff,d]);
+  const tr=mats.reduce((s,m)=>s+r*(m[0]+m[1]),0)*L;
+  $('lo-tr').textContent=fnum(tr);
+  $('lo-pct').textContent=(tr/8.03e9*100).toFixed(3)+'%';
+  $('lo-mb').textContent=(tr*2/1048576).toFixed(1)+' MB';
+},
+spec(){
+  const a=+$('sp-a').value, g=+$('sp-g').value, c=+$('sp-c').value;
+  $('sp-ao').textContent='α = '+a.toFixed(2); $('sp-go').textContent='γ = '+g; $('sp-co').textContent='c = '+c.toFixed(2);
+  const E=x=>(1-Math.pow(a,x+1))/(1-a), S=x=>E(x)/(c*x+1);
+  $('sp-e').textContent=E(g).toFixed(2)+' tok';
+  $('sp-s').textContent=S(g).toFixed(2)+'×';
+  let best=1,bs=0; for(let x=1;x<=12;x++){if(S(x)>bs){bs=S(x);best=x;}}
+  $('sp-opt').textContent='γ* = '+best+' ('+bs.toFixed(2)+'×)';
+  const pts=[]; let mx=0; for(let x=1;x<=10;x++){mx=Math.max(mx,S(x));}
+  for(let x=1;x<=10;x++){pts.push((20+(x-1)*40)+','+(62-S(x)/mx*48));}
+  $('sp-curve').innerHTML='<polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--accent)" stroke-width="2"/>'+
+    '<circle cx="'+(20+(g-1)*40)+'" cy="'+(62-S(g)/mx*48)+'" r="5" fill="var(--accent)" stroke="var(--bg)" stroke-width="2"/>'+
+    '<text x="20" y="72" class="lb2">γ=1</text><text x="380" y="72" text-anchor="end" class="lb2">γ=10</text><text x="200" y="12" text-anchor="middle" class="lb2">speedup vs γ</text>';
+}
+};
+const $=id=>document.getElementById(id);
+function fnum(x){if(x>=1e12)return (x/1e12).toPrecision(3)+'T'; if(x>=1e9)return (x/1e9).toPrecision(3)+'B'; if(x>=1e6)return (x/1e6).toPrecision(3)+'M'; if(x>=1e3)return (x/1e3).toPrecision(3)+'K'; return x.toPrecision(3);}
+document.addEventListener('input',e=>{const d=e.target.closest('.demo'); if(d&&UPDF[d.dataset.demo])UPDF[d.dataset.demo]();});
+
+/* build flat slide list */
+const SLIDES = [];
+SLIDES.push({type:'cover'});
+SLIDES.push({type:'howto'});
+SECTIONS.forEach((s,i)=>{ SLIDES.push({type:'lead',sec:s,idx:i}); s.slides.forEach(p=>{p.secTitle=s.title; SLIDES.push(p);}); });
+SLIDES.push({type:'map'});
+
+/* clickable timeline built from the data */
+function timelineSVG(){
+  const y0=2017, y1=2026, W=640, X=y=>36+(y-y0)*(W-70)/(y1-y0);
+  const perYear={};
+  let dots='';
+  SECTIONS.forEach(sec=>sec.slides.forEach(p=>{
+    const yr=p.year, i=(perYear[yr]=(perYear[yr]||0)+1);
+    const x=X(yr), y=96-(i-1)*8.5;
+    dots+=`<g data-goto-paper="${p.no}" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="4" fill="var(--accent)" opacity=".85"><title>#${p.no} · ${p.title} (${yr})</title></circle><circle cx="${x}" cy="${y}" r="8" fill="transparent"/></g>`;
+  }));
+  return `<svg viewBox="0 0 ${W} 130">
+  <text x="8" y="16" style="font:700 11px Inter" fill="var(--accent-dark)">TEN YEARS, CLICKABLE</text>
+  <text x="${W-24}" y="16" text-anchor="end" style="font:600 10px Inter" fill="var(--muted)">hover a dot for the paper · click to jump</text>
+  <line x1="30" y1="108" x2="${W-24}" y2="108" stroke="var(--axis)"/>
+  ${Array.from({length:10},(_,i)=>`<text x="${X(y0+i)}" y="124" text-anchor="middle" style="font:600 10px 'JetBrains Mono'" fill="var(--muted)">${String(y0+i).slice(2)}</text><line x1="${X(y0+i)}" y1="105" x2="${X(y0+i)}" y2="111" stroke="var(--axis)"/>`).join('')}
+  ${dots}</svg>`;
+}
+
+/* ============================== RENDER ============================== */
+const stage = document.getElementById('stage');
+const els = SLIDES.map((s,i)=>{
+  const d=document.createElement('div');
+  d.className='slide '+(s.type==='lead'||s.type==='cover'?'lead':'content');
+  d.dataset.i=i;
+  if(s.type==='cover'){
+    d.innerHTML=`<div class="kicker">Fast-forward · practical & complete</div>
+    <h1>LLM Foundations</h1><h2>39 papers, for readers who already know the concepts</h2>
+    <p>Each paper gets two lenses — <strong>In the paper</strong> (the ablations and appendix material everyone skips)
+    and <strong>In practice (2026)</strong> (current defaults, gotchas, what superseded what).
+    Two spines run through everything: <strong>decode is bandwidth-bound</strong> (#22) and
+    <strong>verifiability determines the post-training method</strong> (#32).</p>
+    <div class="minis">${SECTIONS.map((s,ix)=>`<span class="mini" data-go="${s.title}">${s.title.replace(/§\d+ · /,'')}</span>`).join('')}</div>`;
+  } else if(s.type==='howto'){
+    d.innerHTML=`<h1 class="gt">How to read this deck</h1>
+    <table class="neat"><tbody>
+    <tr><td style="width:210px"><strong>One slide per paper</strong></td><td>numbered to match the PDFs in this folder — the arXiv chip links to the paper</td></tr>
+    <tr><td><strong>In the paper</strong></td><td>secondary contributions, ablations, appendix material</td></tr>
+    <tr><td><strong>In practice (2026)</strong></td><td>current defaults, gotchas, what superseded what</td></tr>
+    <tr><td><strong>Navigate</strong></td><td><code>←</code>/<code>→</code> slides · <code>G</code> overview grid · <code>/</code> search · <code>T</code> contents · <code>D</code> dark mode</td></tr>
+    </tbody></table>
+    <div class="callout">Two spines to watch: ① decode is <em>bandwidth-bound</em> (#22 → #23/24/25/35) · ② post-training method = f(<em>verifiability</em>) (#13 → #30/31/32).</div>
+    <div class="viz" style="margin-top:16px">${timelineSVG()}</div>`;
+  } else if(s.type==='lead'){
+    d.innerHTML=`<div class="kicker">Section ${s.idx+1} of ${SECTIONS.length}</div>
+    <h1>${s.sec.title.replace(/§\d+ · /,'')}</h1><h2>${s.sec.sub}</h2>
+    <div class="minis">${s.sec.slides.map(p=>`<span class="mini" data-goto-paper="${p.no}">${p.no} · ${p.title.split('—')[0].trim()}</span>`).join('')}</div>`;
+  } else if(s.type==='map'){
+    d.innerHTML=`<h1 class="gt">Reading map — nine chains</h1>
+    <table class="neat"><thead><tr><th style="width:190px">Chain</th><th>Path</th><th style="width:230px">Jump</th></tr></thead><tbody>
+    ${CHAINS.map(c=>`<tr><td><strong>${c[0]}</strong></td><td>${c[1]}</td>
+      <td>${c[2].map(n=>`<span class="mapchip" data-goto-paper="${n}">${n}</span>`).join('')}</td></tr>`).join('')}
+    </tbody></table>
+    <div class="callout">Bandwidth-bound decoding (#22) explains every inference paper; verifiability (#32) explains every post-training choice.</div>`;
+  } else {
+    const ax = s.arxiv ? `<a class="chip" href="https://arxiv.org/abs/${s.arxiv}" target="_blank" rel="noopener">arXiv ${s.arxiv}</a>` : `<span class="chip">OpenAI PDF · no arXiv</span>`;
+    d.innerHTML=`<div class="pno"><span class="num">${s.no}</span><span class="yr">${s.year}</span></div>
+    <h1 class="ptitle">${s.title}</h1>
+    ${s.tl?`<p class="tl">${s.tl}</p>`:''}
+    ${VIZ[String(s.no)]?`<div class="viz">${VIZ[String(s.no)]}</div>`:''}
+    <div class="cols">
+      <div class="panel"><h3>In the paper</h3><ul>${s.paper.map((b,ix)=>`<li style="animation-delay:${ix*70}ms">${b}</li>`).join('')}</ul></div>
+      <div class="panel"><h3>In practice (2026)</h3><ul>${s.practice.map((b,ix)=>`<li style="animation-delay:${(ix+s.paper.length)*70}ms">${b}</li>`).join('')}</ul></div>
+    </div>
+    ${DEMO[String(s.no)]||''}
+    <div class="chiprow">${ax}</div>`;
+  }
+  stage.appendChild(d);
+  return d;
+});
+
+/* ============================== NAV ============================== */
+let cur = 0;
+const counter=document.getElementById('counter'), progress=document.getElementById('progress'), secname=document.getElementById('secname');
+function show(i,push=true){
+  i=Math.max(0,Math.min(SLIDES.length-1,i));
+  els.forEach((e,ix)=>{e.classList.toggle('active',ix===i); e.classList.toggle('prev',ix<i);});
+  cur=i;
+  counter.textContent=(i+1)+" / "+SLIDES.length;
+  progress.style.width=((i)/(SLIDES.length-1)*100)+"%";
+  const s=SLIDES[i];
+  secname.textContent = s.type==='paper'?s.secTitle : s.type==='lead'?s.sec.title : s.type==='map'?'Reading map':'';
+  if(push) history.replaceState(null,'','#'+(i+1));
+  document.querySelectorAll('#toc .item').forEach((it,ix)=>it.classList.toggle('now',+it.dataset.i===i));
+  els[i].scrollTop=0;
+}
+const paperIndex={};
+SLIDES.forEach((s,i)=>{ if(s.type==='paper') paperIndex[String(s.no)]=i; });
+function gotoPaper(no){ closeAll(); show(paperIndex[String(no)] ?? cur); }
+
+document.getElementById('b-prev').onclick=()=>show(cur-1);
+document.getElementById('b-next').onclick=()=>show(cur+1);
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-goto-paper]'); if(g){gotoPaper(g.dataset.gotoPaper); return;}
+  const m=e.target.closest('.mini[data-go]'); if(m){const t=m.dataset.go; const ix=SLIDES.findIndex(s=>s.type==='lead'&&s.sec.title===t); if(ix>=0){closeAll();show(ix);}}
+});
+
+/* overview */
+const overview=document.getElementById('overview'), ovgrid=document.getElementById('ovgrid');
+let ovBuilt=false;
+function buildOv(){
+  if(ovBuilt)return; ovBuilt=true;
+  let html='';
+  SLIDES.forEach((s,i)=>{
+    if(s.type==='lead') html+=`<div class="ovsec">${s.sec.title} — ${s.sec.sub}</div>`;
+    const cls = (s.type==='lead'||s.type==='cover')?'ovcard lead-card':'ovcard';
+    const t = s.type==='cover'?'LLM Foundations':s.type==='howto'?'How to read':s.type==='lead'?s.sec.title:s.type==='map'?'Reading map':s.title;
+    const n = s.type==='paper'?('#'+s.no+' · '+s.year):('slide '+(i+1));
+    const sub = s.type==='paper'?(s.tl||''):'';
+    html+=`<div class="${cls}" data-i="${i}"><div class="n">${n}</div><div class="t">${t}</div><div class="s">${sub.slice(0,90)}</div></div>`;
+  });
+  ovgrid.innerHTML=html;
+  ovgrid.addEventListener('click',e=>{const c=e.target.closest('.ovcard'); if(c){show(+c.dataset.i); toggleOv(false);}});
+}
+function toggleOv(open){ buildOv(); overview.classList.toggle('open',open);
+  if(open) ovgrid.querySelectorAll('.ovcard').forEach(c=>c.classList.toggle('now',+c.dataset.i===cur)); }
+document.getElementById('b-grid').onclick=()=>toggleOv(!overview.classList.contains('open'));
+
+/* toc */
+const toc=document.getElementById('toc');
+(function(){
+  let html='';
+  SLIDES.forEach((s,i)=>{
+    if(s.type==='cover') html+=`<div class="item" data-i="${i}"><span class="n">◈</span>Cover</div>`;
+    else if(s.type==='howto') html+=`<div class="item" data-i="${i}"><span class="n">·</span>How to read</div>`;
+    else if(s.type==='lead') html+=`<div class="sec">${s.sec.title}</div>`;
+    else if(s.type==='map') html+=`<div class="sec">Closing</div><div class="item" data-i="${i}"><span class="n">⇄</span>Reading map</div>`;
+    else html+=`<div class="item" data-i="${i}"><span class="n">${s.no}</span>${s.title}</div>`;
+  });
+  toc.innerHTML=html;
+  toc.addEventListener('click',e=>{const it=e.target.closest('.item'); if(it){show(+it.dataset.i); toc.classList.remove('open');}});
+})();
+document.getElementById('b-toc').onclick=()=>toc.classList.toggle('open');
+
+/* search */
+const search=document.getElementById('search'), sinput=document.getElementById('sinput'), sresults=document.getElementById('sresults');
+const INDEX = SLIDES.map((s,i)=>({i, no:s.no??'', t: s.type==='paper'?s.title : s.type==='lead'?s.sec.title : s.type==='map'?'Reading map': s.type==='howto'?'How to read':'Cover',
+  body:(s.type==='paper'? [s.tl,...(s.paper||[]),...(s.practice||[])].join(' ') : '').replace(/<[^>]+>/g,'').toLowerCase(),
+  sec:s.secTitle||''}));
+let sel=0, hits=[];
+function doSearch(q){
+  q=q.trim().toLowerCase();
+  hits = !q ? [] : INDEX.filter(x=> x.t.toLowerCase().includes(q) || String(x.no).toLowerCase()===q || x.body.includes(q)).slice(0,12);
+  sel=0;
+  sresults.innerHTML=hits.map((h,ix)=>`<div class="sres ${ix===0?'sel':''}" data-i="${h.i}"><span class="n">${h.no||'·'}</span><span class="t">${h.t}</span><span class="x">${h.sec.replace(/§\d+ · /,'')}</span></div>`).join('');
+}
+sinput.addEventListener('input',()=>doSearch(sinput.value));
+sresults.addEventListener('click',e=>{const r=e.target.closest('.sres'); if(r){show(+r.dataset.i); closeAll();}});
+function openSearch(){ search.classList.add('open'); sinput.value=''; doSearch(''); setTimeout(()=>sinput.focus(),30); }
+document.getElementById('b-search').onclick=openSearch;
+
+/* help / theme */
+const help=document.getElementById('help');
+document.getElementById('b-help').onclick=()=>help.classList.toggle('open');
+function setTheme(t){ document.documentElement.dataset.theme=t; localStorage.setItem('llmslides-theme',t); }
+document.getElementById('b-theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+setTheme(localStorage.getItem('llmslides-theme')|| (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+
+function closeAll(){ overview.classList.remove('open'); toc.classList.remove('open'); search.classList.remove('open'); help.classList.remove('open'); }
+
+/* keyboard */
+document.addEventListener('keydown',e=>{
+  if(search.classList.contains('open')){
+    if(e.key==='Escape'){closeAll();}
+    else if(e.key==='ArrowDown'){sel=Math.min(hits.length-1,sel+1); paint();}
+    else if(e.key==='ArrowUp'){sel=Math.max(0,sel-1); paint();}
+    else if(e.key==='Enter' && hits[sel]){show(hits[sel].i); closeAll();}
+    function paint(){[...sresults.children].forEach((c,ix)=>c.classList.toggle('sel',ix===sel));}
+    return;
+  }
+  if(e.key==='/' || ((e.metaKey||e.ctrlKey)&&e.key==='k')){e.preventDefault(); openSearch(); return;}
+  if(e.key==='Escape'){ if(toc.classList.contains('open')||help.classList.contains('open')){closeAll();} else toggleOv(!overview.classList.contains('open')); return;}
+  if(overview.classList.contains('open') && (e.key==='g'||e.key==='G')){toggleOv(false); return;}
+  switch(e.key){
+    case 'ArrowRight': case ' ': case 'PageDown': e.preventDefault(); closeAll(); show(cur+1); break;
+    case 'ArrowLeft': case 'PageUp': e.preventDefault(); closeAll(); show(cur-1); break;
+    case 'Home': show(0); break;
+    case 'End': show(SLIDES.length-1); break;
+    case 'g': case 'G': toggleOv(!overview.classList.contains('open')); break;
+    case 't': case 'T': toc.classList.toggle('open'); break;
+    case 'd': case 'D': document.getElementById('b-theme').click(); break;
+    case '?': help.classList.toggle('open'); break;
+  }
+});
+
+/* touch swipe */
+let tx=null;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(tx===null)return; const dx=e.changedTouches[0].clientX-tx; tx=null;
+  if(Math.abs(dx)>60){ dx<0?show(cur+1):show(cur-1); }
+},{passive:true});
+
+/* init from hash */
+const h=parseInt(location.hash.slice(1)); show(isNaN(h)?0:h-1,false);
+Object.values(UPDF).forEach(f=>f());
+document.querySelectorAll('.dctl').forEach(c=>{const l=c.querySelector('label'),i=c.querySelector('input,select'); if(l&&i&&!i.getAttribute('aria-label'))i.setAttribute('aria-label',l.textContent);});
+</script>
+</body>
+</html>

@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Infra — Large-Scale Training & Inference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#f7f9f8; --ink:#191e1d; --muted:#5f6b68; --accent:#2e8577; --accent-dark:#226459;
+  --accent-soft:#dcece8; --card:#eceff0; --line:#dbe2e0; --code-bg:#e4e9e8;
+  --bg:var(--cream); --fg:var(--ink); --shadow:0 18px 50px -18px rgba(25,30,29,.25);
+  --lead-bg:radial-gradient(1200px 700px at 75% -10%, #2b3634 0%, #191e1d 55%);
+}
+html[data-theme="dark"]{
+  --bg:#131717; --fg:#e5ebe9; --muted:#93a19d; --card:#1c2322; --line:#2a3432;
+  --code-bg:#232b2a; --accent:#4fb3a3; --accent-dark:#7accbf; --accent-soft:#1f3733;
+  --shadow:0 18px 50px -18px rgba(0,0,0,.6);
+  --lead-bg:radial-gradient(1200px 700px at 75% -10%, #1e2827 0%, #0c100f 55%);
+}
+*{box-sizing:border-box; margin:0}
+html,body{height:100%}
+body{background:var(--bg); color:var(--fg); font-family:"Inter",-apple-system,sans-serif;
+  overflow:hidden; transition:background .35s,color .35s;}
+code{font-family:"JetBrains Mono",monospace; font-size:.86em; background:var(--code-bg);
+  padding:.08em .38em; border-radius:5px}
+strong{color:var(--accent-dark)}
+a{color:var(--accent-dark)}
+
+/* ---------- viz (validated palette: #2a78d6 #1baf7a #eda100 #4a3aa7) ---------- */
+:root{--c1:#2a78d6; --c2:#1baf7a; --c3:#eda100; --c4:#4a3aa7; --grid:#dbe2e0; --axis:#b7c2bf}
+html[data-theme="dark"]{--c1:#3987e5; --c2:#199e70; --c3:#c98500; --c4:#9085e9; --grid:#2a3432; --axis:#46524f}
+.viz{margin:10px 0 6px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 16px 10px}
+.viz svg{width:100%; height:auto; display:block; max-height:250px}
+.viz text,.demo text{font-family:"Inter",sans-serif; fill:var(--muted)}
+.viz .lb,.demo .lb{font-size:11px; font-weight:600}
+.viz .lb2,.demo .lb2{font-size:10px}
+.viz .ink,.demo .ink{fill:var(--fg)}
+.viz .mono,.demo .mono{font-family:"JetBrains Mono",monospace}
+.gridbtns{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap}
+.gridbtn{font:600 12px "Inter"; border:1px solid var(--line); background:var(--bg); color:var(--fg);
+  border-radius:999px; padding:5px 14px; cursor:pointer; transition:all .15s}
+.gridbtn:hover{border-color:var(--accent)}
+.gridbtn.on{background:var(--accent); border-color:var(--accent); color:#fff}
+#gridcap{font-size:13px; color:var(--muted); margin-top:8px; line-height:1.5}
+
+/* ---------- interactive demos ---------- */
+.demo{margin-top:18px; border:1.5px solid var(--accent); border-radius:16px; padding:16px 20px 18px; background:transparent}
+.demo .dhead{display:flex; align-items:center; gap:8px; margin-bottom:14px;
+  font:800 11.5px "Inter"; letter-spacing:.1em; text-transform:uppercase; color:var(--accent-dark)}
+.demo .dhead::before{content:"⚡"; font-size:14px}
+.drow{display:flex; gap:18px; flex-wrap:wrap; align-items:flex-end; margin-bottom:4px}
+.dctl{display:flex; flex-direction:column; gap:5px}
+.dctl label{font:600 11px "Inter"; color:var(--muted); text-transform:uppercase; letter-spacing:.05em}
+.dctl output{font:700 13px "JetBrains Mono"; color:var(--accent-dark)}
+.dctl input[type=range]{accent-color:var(--accent); width:150px; cursor:pointer}
+.dctl input[type=number],.dctl select{border:1px solid var(--line); background:var(--card); color:var(--fg);
+  border-radius:8px; padding:6px 10px; font:600 13px "JetBrains Mono"; width:96px; outline:none}
+.dctl select{width:auto; font-family:"Inter"; font-weight:600}
+.dstats{display:flex; gap:12px; flex-wrap:wrap; margin-top:14px}
+.dstat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 16px; min-width:120px}
+.dstat .v{font:700 19px "JetBrains Mono"; color:var(--accent-dark); line-height:1.2}
+.dstat .k{font:600 10px "Inter"; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-top:3px}
+.dnote{font:500 12.5px "Inter"; color:var(--muted); margin-top:12px; line-height:1.5}
+.dbadge{display:inline-block; font:700 12px "Inter"; border-radius:999px; padding:4px 12px; margin-top:12px}
+.dbadge.ok{background:rgba(12,163,12,.12); color:#0ca30c}
+.dbadge.warn{background:rgba(208,59,59,.12); color:#d03b3b}
+.dbar{display:flex; height:24px; border-radius:7px; overflow:hidden; gap:2px; margin-top:12px; background:var(--code-bg)}
+.dbar>div{transition:width .25s; min-width:0}
+.dlegend{display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font:600 11px "Inter"; color:var(--muted)}
+.dlegend span::before{content:"■ "; font-size:12px}
+
+#progress{position:fixed; top:0; left:0; height:3px; z-index:60;
+  background:linear-gradient(90deg,var(--accent),var(--accent-dark)); width:0%;
+  transition:width .35s cubic-bezier(.4,0,.2,1)}
+#topbar{position:fixed; top:0; left:0; right:0; height:52px; z-index:50;
+  display:flex; align-items:center; gap:10px; padding:0 18px; pointer-events:none}
+#topbar>*{pointer-events:auto}
+.brand{font-weight:800; font-size:13px; letter-spacing:.04em; color:var(--muted);
+  text-transform:uppercase; user-select:none}
+.brand b{color:var(--accent-dark)}
+.spacer{flex:1}
+.btn{border:1px solid var(--line); background:var(--card); color:var(--fg);
+  border-radius:9px; padding:6px 11px; font:600 12.5px "Inter"; cursor:pointer;
+  display:inline-flex; align-items:center; gap:6px; transition:all .18s}
+.btn:hover{border-color:var(--accent); color:var(--accent-dark); transform:translateY(-1px)}
+.btn kbd{font-family:"JetBrains Mono"; font-size:10px; background:var(--code-bg);
+  border:1px solid var(--line); border-radius:4px; padding:1px 5px; color:var(--muted)}
+
+#stage{position:absolute; inset:0; display:flex; align-items:center; justify-content:center}
+.slide{position:absolute; width:min(1120px,94vw); max-height:calc(100vh - 120px);
+  overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+  padding:48px 58px; border-radius:22px;
+  opacity:0; transform:translateX(60px) scale(.985); pointer-events:none;
+  transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .45s cubic-bezier(.4,0,.2,1);}
+.slide.active{opacity:1; transform:none; pointer-events:auto}
+.slide.prev{transform:translateX(-60px) scale(.985)}
+.slide.content{background:var(--bg)}
+@media (prefers-reduced-motion:reduce){ .slide{transition:opacity .2s} .slide.prev,.slide{transform:none} }
+
+h1.ptitle{font-size:clamp(24px,3vw,34px); font-weight:800; letter-spacing:-.015em; line-height:1.12; margin-bottom:18px}
+.klabel{font:700 12px "JetBrains Mono"; color:var(--accent-dark); letter-spacing:.1em;
+  text-transform:uppercase; margin-bottom:8px}
+.body ul{list-style:none; display:flex; flex-direction:column; gap:12px; margin:4px 0 6px}
+.body li{font-size:15px; line-height:1.56; padding-left:18px; position:relative}
+.body li::before{content:""; position:absolute; left:0; top:.58em; width:7px; height:7px;
+  border-radius:2px; background:var(--accent); opacity:.75}
+.active .body li{opacity:0; transform:translateY(8px); animation:rise .45s forwards}
+@keyframes rise{to{opacity:1; transform:none}}
+
+table.neat{width:100%; border-collapse:collapse; font-size:13.5px; margin:8px 0 14px}
+table.neat th{text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--accent-dark); padding:7px 11px; border-bottom:2px solid var(--accent)}
+table.neat td{padding:8px 11px; border-bottom:1px solid var(--line); line-height:1.45; vertical-align:top}
+table.neat tbody tr{transition:background .15s}
+table.neat tbody tr:hover{background:var(--card)}
+.callout{border-left:4px solid var(--accent); background:var(--card); border-radius:0 12px 12px 0;
+  padding:13px 18px; font-size:14.5px; line-height:1.55; margin-top:16px}
+
+.chiprow{display:flex; gap:8px; margin-top:18px; flex-wrap:wrap}
+.chip{font:600 11.5px "JetBrains Mono"; color:var(--accent-dark); background:var(--card);
+  border:1px solid var(--line); border-radius:999px; padding:5px 14px}
+
+.slide.lead{background:var(--lead-bg); color:#e2e8e6; display:flex; flex-direction:column;
+  justify-content:center; min-height:min(560px,70vh); box-shadow:var(--shadow)}
+.slide.lead .kicker{font:700 13px "JetBrains Mono"; color:var(--accent); letter-spacing:.14em;
+  text-transform:uppercase; margin-bottom:14px}
+.slide.lead h1{font-size:clamp(32px,4.4vw,54px); font-weight:900; letter-spacing:-.02em;
+  color:#f0f5f3; line-height:1.06; margin-bottom:14px}
+.slide.lead h2{font-size:clamp(16px,1.9vw,22px); font-weight:600; color:var(--accent); margin-bottom:18px}
+.slide.lead p{color:#a9b6b2; font-size:15.5px; line-height:1.6; max-width:740px}
+.slide.lead .minis{display:flex; gap:8px; margin-top:26px; flex-wrap:wrap}
+.mini{font:600 12px "Inter"; color:#cfd8d5; background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.13); border-radius:999px; padding:6px 14px; cursor:pointer; transition:all .18s}
+.mini:hover{background:var(--accent); color:#fff; border-color:var(--accent)}
+.slide h1.gt{font-size:clamp(26px,3.2vw,38px); font-weight:800; letter-spacing:-.015em; margin-bottom:22px}
+
+#overview{position:fixed; inset:0; z-index:70; background:var(--bg); overflow-y:auto;
+  padding:70px 40px 40px; display:none}
+#overview.open{display:block; animation:fadein .25s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+#ovgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px; max-width:1400px; margin:0 auto}
+.ovcard{border:1px solid var(--line); background:var(--card); border-radius:14px; padding:14px 16px;
+  cursor:pointer; transition:all .18s; min-height:92px}
+.ovcard:hover{transform:translateY(-3px); box-shadow:var(--shadow); border-color:var(--accent)}
+.ovcard.now{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft)}
+.ovcard .n{font:700 11px "JetBrains Mono"; color:var(--accent-dark)}
+.ovcard .t{font:700 14px "Inter"; margin-top:4px; line-height:1.3}
+.ovcard .s{font:500 11px "Inter"; color:var(--muted); margin-top:6px}
+.ovcard.lead-card{background:var(--ink); border-color:#2b3634}
+.ovcard.lead-card .t{color:#eef3f1}
+.ovsec{grid-column:1/-1; font:800 12px "Inter"; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); margin-top:10px}
+
+#toc{position:fixed; top:0; bottom:0; left:0; width:330px; z-index:80; background:var(--bg);
+  border-right:1px solid var(--line); transform:translateX(-100%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+  overflow-y:auto; padding:64px 0 30px; box-shadow:var(--shadow)}
+#toc.open{transform:none}
+#toc .sec{font:800 11px "Inter"; letter-spacing:.1em; text-transform:uppercase; color:var(--accent-dark); padding:16px 22px 6px}
+#toc .item{display:flex; gap:10px; padding:7px 22px; font:500 13.5px "Inter"; cursor:pointer;
+  color:var(--fg); border-left:3px solid transparent; transition:all .14s}
+#toc .item:hover{background:var(--card)}
+#toc .item.now{border-left-color:var(--accent); background:var(--card); font-weight:700}
+#toc .item .n{font:600 11px "JetBrains Mono"; color:var(--muted); min-width:26px; padding-top:2px}
+
+#search{position:fixed; inset:0; z-index:90; background:rgba(15,20,19,.45); backdrop-filter:blur(6px);
+  display:none; align-items:flex-start; justify-content:center; padding-top:12vh}
+#search.open{display:flex; animation:fadein .18s}
+#sbox{width:min(640px,92vw); background:var(--bg); border:1px solid var(--line); border-radius:18px;
+  box-shadow:var(--shadow); overflow:hidden}
+#sinput{width:100%; border:none; outline:none; background:transparent; color:var(--fg);
+  font:500 17px "Inter"; padding:18px 22px; border-bottom:1px solid var(--line)}
+#sresults{max-height:46vh; overflow-y:auto}
+.sres{padding:12px 22px; cursor:pointer; display:flex; gap:12px; align-items:baseline}
+.sres:hover,.sres.sel{background:var(--card)}
+.sres .n{font:700 11px "JetBrains Mono"; color:var(--accent-dark); min-width:30px}
+.sres .t{font:600 14px "Inter"}
+.sres .x{font:400 12px "Inter"; color:var(--muted); margin-left:auto; white-space:nowrap}
+
+#navbar{position:fixed; bottom:16px; left:0; right:0; display:flex; align-items:center;
+  justify-content:center; gap:14px; z-index:50; pointer-events:none}
+#navbar>*{pointer-events:auto}
+.navbtn{width:42px; height:42px; border-radius:50%; border:1px solid var(--line); background:var(--card);
+  color:var(--fg); font-size:17px; cursor:pointer; transition:all .18s; display:flex; align-items:center; justify-content:center}
+.navbtn:hover{border-color:var(--accent); color:var(--accent-dark); transform:translateY(-2px)}
+#counter{font:600 12.5px "JetBrains Mono"; color:var(--muted); min-width:70px; text-align:center; user-select:none}
+#secname{position:fixed; bottom:26px; left:22px; font:600 11.5px "Inter"; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--muted); z-index:50; user-select:none; max-width:30vw;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+#help{position:fixed; inset:0; z-index:95; background:rgba(15,20,19,.45); backdrop-filter:blur(6px);
+  display:none; align-items:center; justify-content:center}
+#help.open{display:flex; animation:fadein .18s}
+#helpbox{background:var(--bg); border:1px solid var(--line); border-radius:18px; padding:28px 34px; width:min(460px,90vw); box-shadow:var(--shadow)}
+#helpbox h2{font-size:18px; margin-bottom:16px}
+#helpbox .row{display:flex; justify-content:space-between; padding:7px 0; font-size:14px; border-bottom:1px solid var(--line)}
+#helpbox kbd{font:600 11.5px "JetBrains Mono"; background:var(--code-bg); border:1px solid var(--line); border-radius:5px; padding:2px 8px}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="topbar">
+  <span class="brand">LLM <b>Infra</b> · training & inference</span>
+  <div class="spacer"></div>
+  <button class="btn" id="b-toc">☰ Contents</button>
+  <button class="btn" id="b-search">Search <kbd>/</kbd></button>
+  <button class="btn" id="b-grid">Grid <kbd>G</kbd></button>
+  <button class="btn" id="b-theme">◐</button>
+  <button class="btn" id="b-help">?</button>
+</div>
+
+<div id="stage"></div>
+
+<div id="navbar">
+  <button class="navbtn" id="b-prev">←</button>
+  <span id="counter">1 / 1</span>
+  <button class="navbtn" id="b-next">→</button>
+</div>
+<div id="secname"></div>
+
+<div id="overview"><div id="ovgrid"></div></div>
+<div id="toc"></div>
+<div id="search"><div id="sbox"><input id="sinput" placeholder="Search concepts, collectives, systems…  (Enter to jump, Esc to close)"><div id="sresults"></div></div></div>
+<div id="help"><div id="helpbox">
+  <h2>Keyboard shortcuts</h2>
+  <div class="row"><span>Next / previous slide</span><span><kbd>→</kbd> <kbd>←</kbd> <kbd>Space</kbd></span></div>
+  <div class="row"><span>First / last slide</span><span><kbd>Home</kbd> <kbd>End</kbd></span></div>
+  <div class="row"><span>Overview grid</span><span><kbd>G</kbd> or <kbd>Esc</kbd></span></div>
+  <div class="row"><span>Search</span><span><kbd>/</kbd> or <kbd>⌘K</kbd></span></div>
+  <div class="row"><span>Contents sidebar</span><span><kbd>T</kbd></span></div>
+  <div class="row"><span>Dark / light</span><span><kbd>D</kbd></span></div>
+  <div class="row"><span>This help</span><span><kbd>?</kbd></span></div>
+</div></div>
+
+<script>
+/* ============================== DATA ============================== */
+const C=(title,chip,bullets,opts={})=>({type:'concept',title,chip,bullets,...opts});
+
+const AXES_TABLE=`<table class="neat"><thead><tr><th>Axis</th><th>Splits</th><th>Cost (collective)</th><th>Relieves</th></tr></thead><tbody>
+<tr><td><strong>DP-replicate</strong></td><td>the batch</td><td>all-reduce grads</td><td>throughput</td></tr>
+<tr><td><strong>DP-shard</strong> (FSDP/ZeRO)</td><td>params/opt <em>storage</em></td><td>all-gather fwd · reduce-scatter bwd</td><td>param/opt memory</td></tr>
+<tr><td><strong>CP</strong> (context)</td><td>one sample's tokens</td><td>all-to-all (Ulysses) / ring P2P</td><td>activation / long-context</td></tr>
+<tr><td><strong>TP</strong></td><td>matmuls (hidden/heads)</td><td>all-reduce <em>per layer</em></td><td>single-layer size</td></tr>
+<tr><td><strong>PP</strong></td><td>layers into stages</td><td>P2P activations</td><td>depth memory; cheap inter-node</td></tr>
+<tr><td><strong>EP</strong></td><td>MoE experts</td><td>all-to-all routing</td><td>MoE capacity</td></tr>
+</tbody></table>`;
+
+const MESH_TABLE=`<table class="neat"><thead><tr><th>Sub-mesh</th><th>Answers</th><th>Comms on it</th></tr></thead><tbody>
+<tr><td><code>dp</code></td><td>“which data shard do I load?”</td><td>none (indexing only)</td></tr>
+<tr><td><code>dp_shard_cp</code></td><td>“who holds which param shard?” (FSDP)</td><td>all-gather / reduce-scatter</td></tr>
+<tr><td><code>dp_cp</code></td><td>“who do I all-reduce loss/grads with?”</td><td>all-reduce</td></tr>
+</tbody></table>`;
+
+const COST_TABLE=`<table class="neat"><thead><tr><th>Component</th><th>Params</th><th>FLOPs (fwd)</th><th>grows with N</th></tr></thead><tbody>
+<tr><td>Attn projections QKVO</td><td>4d²</td><td>8Nd²</td><td>linear</td></tr>
+<tr><td><strong>Attn scores softmax(QKᵀ)V</strong></td><td><strong>0</strong></td><td>4N²d</td><td><strong>quadratic</strong></td></tr>
+<tr><td>FFN</td><td>8d²</td><td>16Nd²</td><td>linear</td></tr>
+</tbody></table>`;
+
+const ZERO_TABLE=`<table class="neat"><thead><tr><th></th><th>params</th><th>grads</th><th>opt states</th><th>newly sharded</th></tr></thead><tbody>
+<tr><td>Vanilla DP</td><td>2Ψ</td><td>2Ψ</td><td>kΨ</td><td>—</td></tr>
+<tr><td>ZeRO-1</td><td>2Ψ</td><td>2Ψ</td><td>kΨ/N</td><td>optimizer</td></tr>
+<tr><td>ZeRO-2</td><td>2Ψ</td><td><strong>2Ψ/N</strong></td><td>kΨ/N</td><td>+ grads</td></tr>
+<tr><td>ZeRO-3 / FSDP</td><td><strong>2Ψ/N</strong></td><td>2Ψ/N</td><td>kΨ/N</td><td>+ params</td></tr>
+</tbody></table>`;
+
+const CHEAT_TABLE=`<table class="neat"><thead><tr><th>Axis</th><th>Shards</th><th>Collective</th><th>Best link</th><th>Relieves</th></tr></thead><tbody>
+<tr><td>DP</td><td>batch</td><td>all-reduce (grads)</td><td>any</td><td>throughput</td></tr>
+<tr><td>FSDP</td><td>param storage</td><td>AG fwd · RS bwd</td><td>any</td><td>param/opt memory</td></tr>
+<tr><td>TP</td><td>hidden/heads</td><td>all-reduce per layer</td><td>NVLink</td><td>layer size + KV</td></tr>
+<tr><td>CP-Ulysses</td><td>seq→heads swap</td><td>all-to-all ×2</td><td>NVLink</td><td>activation memory</td></tr>
+<tr><td>CP-Ring</td><td>sequence</td><td>P2P ring</td><td>IB</td><td>no ceiling</td></tr>
+<tr><td>PP</td><td>layers</td><td>P2P activations</td><td>inter-node</td><td>depth; cheap links</td></tr>
+<tr><td>EP</td><td>experts</td><td>all-to-all ×2</td><td>NVLink</td><td>MoE capacity</td></tr>
+<tr><td>Spatial</td><td>H/W of a volume</td><td>halo P2P</td><td>any</td><td>conv activation</td></tr>
+</tbody></table>`;
+
+const SECTIONS=[
+{title:"§1 · The foundation", sub:"Axes · collectives · the device mesh · what needs sharding · cost model", slides:[
+C("The parallelism axes — the master table","notes/00_architecture_tour.md",
+["<strong>“100 nodes, 10 copies”</strong>: 800 GPUs = <code>dp_replicate=10 × dp_shard=20 × cp=4</code> — one grid, sliced three ways",
+"Every large-scale system is a product of these <em>orthogonal</em> axes; a job is a grid of GPUs, each axis slices it differently"],
+{table:AXES_TABLE, callout:"The art of industry-level code: (a) compose axes into a device mesh, (b) insert the right collective at the right line — math stays correct, memory and comms stay bounded."}),
+C("Collectives — the vocabulary of everything","notes/concepts/collectives.md",
+["Lineage: <strong>MPI (HPC '94) → NCCL → torch.distributed</strong>. Naming decodes them: <code>all-</code> = result on every rank · <code>reduce</code> = combine (math) · <code>gather</code>/<code>scatter</code> = concat / hand out",
+"<strong>The one identity:</strong> <code>all-reduce = reduce-scatter + all-gather</code> → DDP does the full all-reduce; <strong>FSDP splits it</strong> (RS grads, AG params on demand)",
+"<strong>Ring algorithm:</strong> neighbors-only, N−1 steps per phase; per-rank traffic ~2V — <em>independent of N</em>. ZeRO-2's “half cost” = phase 1 only",
+"One-liners: all-reduce = “agree on the sum” · all-gather = “everyone gets the full picture” · reduce-scatter = “sum, keep your slice” · all-to-all = “transpose across ranks” · P2P = “pass to your neighbor”"],
+{callout:"Ulysses (all-to-all) wants NVLink; Ring (P2P) tolerates InfiniBand — the whole intra/inter-node split falls out of bandwidth."}),
+C("The device mesh — the spine of everything","notes/01_parallel_dim_teardown.md · torchtitan parallel_dims.py",
+["One flat list of <code>WORLD_SIZE</code> ranks → a named N-D <code>DeviceMesh</code>; specify N−1 degrees, <code>dp_shard=-1</code> auto-absorbs the rest; <strong>invariant: product of axes == world_size</strong>",
+"The <code>_flatten</code> trick makes sub-meshes — <em>the same 800 GPUs, reinterpreted three ways</em>:"],
+{table:MESH_TABLE, callout:"Load-bearing: cp is IN the FSDP and loss meshes but EXCLUDED from the data mesh — cp ranks split one sample, so they must load the SAME sample. Shard the loader on dp_cp and you get silent garbage."}),
+C("Which ops need sharding? — the governing principle","notes/concepts/which_ops_need_sharding.md · normalization.md",
+["<strong>The one question:</strong> <em>does this op's data dependency cross the axis I'm cutting?</em> No (elementwise) → <strong>free, rides along</strong> · reduction along the cut → <strong>all-reduce</strong> · stencil along the cut → <strong>halo exchange</strong>",
+"Cheap ≠ ignorable: a dirt-cheap op whose reduction crosses a shard boundary still <em>must</em> communicate for correctness",
+"Lifted to axis selection: <strong>independent axis</strong> (batch, heads, d_ff, experts) → clean sharding · <strong>coupled axis</strong> (sequence, layers) → pay comms with a specialized algorithm (ring/Ulysses, PP schedules)",
+"Norms in one line: <strong>a norm needs a collective iff its statistics axis == the sharded axis</strong> (LN under TP → small all-reduce; LN under SP → free; GroupNorm under spatial VAE sharding → the gotcha)"]),
+C("Transformer cost model — params vs FLOPs vs activations","notes/concepts/transformer_cost_model.md",
+["The n² part has <strong>zero parameters</strong> — it's activation×activation. “FFN holds ~2/3 of params” = a <em>memory</em> claim; “attention is expensive” = a <em>compute</em> claim at long N",
+"<strong>Crossover: N > 4d</strong> → the n² term overtakes the FFN (why long-context ⇒ CP)",
+"Who shards what: FSDP/EP → params · TP → the d² matmuls · CP → the n² · MoE grows the FFN (the params live there) and never attention"],
+{table:COST_TABLE})
+]},
+{title:"§2 · Memory & parameter sharding", sub:"DP → ZeRO → FSDP → activation checkpointing", slides:[
+C("DP = gradient accumulation across space","notes/concepts/dp_and_grad_accumulation.md",
+["Grad accumulation: sum micro-batch grads, normalize once, one optimizer step — <code>gbs = mbs × grad_acc</code>",
+"DP is the same thing with <code>+=</code> replaced by <strong>all-reduce</strong>: micro-batches run in <em>space</em> (N GPUs) instead of <em>time</em>. Addition is associative → identical to one giant batch",
+"Real training nests both: <code>gbs = mbs × grad_acc × dp_size</code> — temporal accumulation, then one spatial reduction",
+"<strong><code>no_sync()</code></strong>: skip the all-reduce on non-final micro-batches; the last backward reduces the <em>accumulated</em> sum — 3 syncs → 1, nothing lost",
+"Overlap hook: layer L's grad reduction can fire the moment L's backward ends — comm hides behind compute"]),
+C("The ZeRO ladder (Ψ params, k≈12 for Adam)","notes/concepts/zero_sharding.md",
+["Misconception to kill: replicas have <em>different</em> grads (different data) — that's <em>why</em> DP communicates. The post-average full copy is the redundancy ZeRO attacks",
+"<strong>ZeRO-1 vs 2: comm is identical</strong> (both RS grads + AG params = 2Ψ); the delta is grad <em>memory</em>. ZeRO-2 dominates — except under heavy grad accumulation",
+"ZeRO-3 adds the param all-gather in fwd <em>and</em> bwd → ~1.5× comm for max memory"],
+{table:ZERO_TABLE}),
+C("FSDP mechanics — sliced for storage, not compute","notes/concepts/fsdp_mechanics.md",
+["Every rank keeps a slice of <strong>every layer</strong>; per layer: <strong>all-gather → compute on your own batch → release</strong> (fetch-use-release). Activations never move; backward is self-contained per rank",
+"reduce-scatter at layer L does two jobs at once: <em>averages</em> grads across ranks (the DP reduction) <em>and</em> hands each rank only its shard",
+"<strong>Optimizer step needs zero comm</strong> — each slice has one owner; the reduce already happened. Updated shards flow into the next step's all-gather",
+"What FSDP <strong>cannot</strong> do: a single layer must still fit (gathered whole to compute — below that, TP) · <strong>activations are untouched</strong> (per-rank, batch×seq — that's CP + checkpointing's job)"],
+{callout:"FSDP reduces “whole model must fit” → “largest single layer must fit.”"}),
+C("Activation memory — why it exists, how to dodge it","notes/concepts/activation_memory.md",
+["It's not the nonlinearity: <code>dL/dW = upstream_grad ⊗ input</code> — the weight gradient <em>consumes the layer input</em>, even in a 100%-linear net. Nonlinearity only kills the cheap inverse-reconstruction escape (RevNets)",
+"Scale: activations ~ <code>batch × seq × hidden × layers</code> — dominates HBM at long context",
+"<strong>Full checkpointing = +33%:</strong> fwd:bwd:recompute = 1:2:1 → 4/3. <strong>Selective AC rule:</strong> store expensive-to-recompute/cheap-to-store (matmul outputs); recompute cheap/huge (scores, norms)",
+"FlashAttention already recomputes the s² block in-kernel (stores O(N) logsumexp) — the classic “70% = attention scores” saving is now free; modern SAC targets the FFN",
+"torchtitan's save-list subtlety: keep <code>topk</code> (MoE routing must match on recompute) and <strong>comm ops</strong> (don't re-run collectives during recompute)"])
+]},
+{title:"§3 · Splitting the sample & the layer", sub:"Context parallel · TP/SP · PP · halo exchange", slides:[
+C("Context parallelism — the off-diagonal problem","notes/concepts/sequence_parallel.md · oss/ringattention · oss/xDiT",
+["Split one sample's tokens P ways → the N×N attention matrix becomes a P×P grid; diagonal blocks are local & free; <strong>all of CP = how you compute the off-diagonal blocks</strong>",
+"<strong>Ulysses (all-to-all):</strong> re-shard seq→heads, compute <em>full</em> attention for your heads, shard back. Bulk bandwidth → NVLink. Ceiling: <strong>one head's full sequence must fit one GPU</strong> (P ≤ H)",
+"<strong>Ring (P2P):</strong> Q stays, K,V circulate; online softmax folds each block in — the s² matrix never materializes. Small overlapped steps → tolerates IB; no ceiling",
+"Ulysses ≠ TP: TP shards <em>weights</em> (all tokens each); Ulysses shards <em>tokens</em> (full weights each) — orthogonal, they compose",
+"<strong>UCP = both as a 2-D grid</strong> <code>cp = U × R</code>: Ulysses intra-node for bandwidth, Ring inter-node for capacity — two reasons, not one"]),
+C("CP wrinkles — causal vs video, and the K,V choice","notes/concepts/sequence_parallel.md",
+["<strong>Causal LLM ring bubble:</strong> contiguous chunks → GPU p's work ∝ p (work ratio 1:2:3:4, ~62.5% efficiency at P=4). <strong>Striped/zigzag</strong> fix: give each GPU a light-early + heavy-late pair → balanced",
+"<strong>Video DiT: attention is full/bidirectional</strong> — both triangles real, no mask bubble, but the off-diagonal cost is <em>higher</em> → CP matters more for video than text",
+"Why Q stays and K,V spin: output has Q's shape (stays local) + row-wise online softmax normalizes over keys — the natural streaming fit",
+"all-gather K,V vs ring: all-gather = simple bulk (fine short-seq/GQA/intra-node) but re-materializes O(N) K,V — un-shards what CP sharded; ring keeps O(N/P) and hides comm behind compute"]),
+C("Tensor parallel — the column→row pair","notes/concepts/tensor_pipeline_parallel.md",
+["The unit is the <strong>pair, not the matmul</strong>: column-split A (output sharded, no comm) → elementwise glue (GELU/SiLU·gate — legal on shards) → row-split B (partial sums) → <strong>one all-reduce</strong>. Order is <em>forced</em>: <code>GELU(partial) ≠ GELU(full)</code>",
+"A block = exactly <strong>two pairs</strong> (attention by <em>heads</em>, FFN by <em>d_ff</em>) = 2 all-reduces fwd. Comm happens only where a partial activation must become whole (residual, LayerNorm)",
+"Attention's natural axis = heads (self-contained softmax) → hard limit TP ≤ n_heads. <strong>GQA wrinkle:</strong> keep <strong>TP ≤ n_kv</strong> or you replicate KV heads and re-inflate the exact cache GQA shrank",
+"FFN vs attention asymmetry: d_ff sharding cuts <em>all</em> FFN cost; head sharding leaves each head's full s² → the leftover is CP's job. TP wants NVLink (all-reduce every layer)"]),
+C("Megatron-SP & pipeline parallel","notes/concepts/tensor_pipeline_parallel.md · torchtitan PP · DeepSeek DualPipe",
+["<strong>Megatron-SP</strong> (TP's partner, ≠ context parallel): norm/dropout can't shard hidden (LN needs the full vector) → shard them along <em>sequence</em>. Transitions: g = all-gather (enter matmul), g* = reduce-scatter (leave)",
+"<strong>Same total comm as plain TP</strong> (<code>AR = RS + AG</code>) but norm activations now live 1/TP — memory for free",
+"<strong>PP:</strong> stages hold layer ranges; only boundary activations move (P2P) → the cheap inter-node axis. Central problem = the <strong>bubble</strong>: fraction ≈ (P−1)/(M+P−1) → micro-batch (GPipe), 1F1B, interleaving, DualPipe drive it down",
+"Nothing must fit alone: industrial layouts stack <strong>DP × PP × TP (× CP × EP)</strong> — each axis relieves a different pressure"]),
+C("Halo exchange — spatial sharding for the video VAE","notes/concepts/halo_exchange.md · oss/Wan2.2 VAE",
+["A 3×3×3 conv needs ±1 neighbors; split H across ranks and your neighbor's row lives on another GPU → without it, <strong>a visible seam</strong> along every cut",
+"Fix: exchange thin boundary strips (<strong>halo/ghost cells</strong>, <code>(k−1)/2</code> rows) via isend/irecv with your 2 neighbors; conv on the augmented tensor; <strong>trim</strong> back to owned rows",
+"Backward is the adjoint of a copy: send halo-row grads back, neighbor <strong>accumulates</strong> (<code>+=</code>) — get it wrong and edge gradients silently drop",
+"Why cheap vs attention: conv dependency is <strong>local & fixed</strong> (a sliver, P2P with 2 neighbors); attention is <strong>global</strong> (all K,V). Classic HPC stencil-vs-dense split",
+"Wrinkle: the VAE's few attention blocks can't halo — they need all-gather → attend → re-split"])
+]},
+{title:"§4 · MoE at scale", sub:"Sparse FFN · expert parallelism · MLA — DeepSeek-V3 as the code anchor", slides:[
+C("MoE + expert parallelism","notes/concepts/moe_expert_parallel.md",
+["An expert = <strong>one FFN</strong>, not a mini-LM; MoE swaps only the FFN sublayer for {router + N experts}; attention is shared, every block. Params live here: 61 blocks × 257 experts → 671B total, <strong>~37B active</strong> (top-8)",
+"The right comparison: vs the <em>same-capacity dense</em> model MoE is ~128× cheaper compute; vs a small dense it's <em>bigger</em> — memory ≈ 671B, speed ≈ 37B. The bill: memory + all-to-all → <strong>that's why EP exists</strong>",
+"EP = experts sharded across GPUs; tokens travel: <strong>dispatch (a2a) → local experts compute → combine (a2a)</strong> — the same two-all-to-all shape as Ulysses, different axis",
+"No PP-style bubble (experts are peers, not stages); the failure mode is <strong>load imbalance</strong> — stragglers at the combine barrier + routing collapse"]),
+C("MoE balancing & the knobs","notes/concepts/moe_expert_parallel.md",
+["Top-k is <strong>per token</strong>; a batch spreads picks over ~all experts (tokens/expert ≈ B·k/E) — MoE <em>needs</em> big batches; EP size = experts/GPU is a config, independent of k",
+"Balance fixes: <strong>aux loss</strong> (classic; a second objective fighting the first) vs <strong>aux-loss-free bias</strong> (DeepSeek: per-expert bias nudged down when overloaded, applied to <em>selection only</em> — output weight uses the unbiased score)",
+"Training: balance is self-aligned with quality (collapsed MoE = tiny dense model = high loss); dead experts are a <em>training</em> necessity to avoid",
+"Inference task-skew: capacity factor (bounded worst case) + EPLB/redundant hot experts. Residual imbalance ≈ 10–30% overhead — dwarfed by the ~128× win",
+"Top-k ≠ trimming a dense model: trained-sparse, gate is peaky → router-ranked k is <em>on-design</em>; forcing arbitrary experts compounds garbage over 61 blocks"]),
+C("DeepSeek-V3 teardown ① — MLA: cache the latent","notes/08_deepseek_teardown.md · oss/DeepSeek-V3 inference/model.py",
+["The KV path: <code>wkv_a</code> <strong>down-projects</strong> to a 512-d latent + 64-d rotary piece; <code>wkv_b</code> up-projects back to per-head K,V. Under <code>absorb</code> the cache stores <strong>the latent + rope key only</strong> — that shrinkage <em>is</em> the MLA win (>90% smaller than MHA)",
+"The <strong>absorb trick</strong>: fold <code>wkv_b</code> into the query → attention runs <em>directly against the cached latent</em>; full K,V are never materialized; the up-projection applies once, to the small output",
+"Decoupled RoPE: the latent can't carry rotation cleanly → K splits into a “nope” part (from latent) + a “pe” part (rotary), cached separately",
+"TP is baked into the weights: heads sharded (<code>n_local_heads = n_heads/world_size</code>), <code>wo</code> is RowParallel → all-reduce across head shards"]),
+C("DeepSeek-V3 teardown ② — MoE inference & the collectives map","notes/08_deepseek_teardown.md",
+["Each rank instantiates <strong>only its slice</strong> of 256 experts (rest are <code>None</code>); shared expert runs on every token",
+"<strong>Where's the all-to-all?</strong> This <em>inference</em> file replicates activations (attention's <code>wo</code> already all-reduced) → each rank runs its local experts, zeros elsewhere, and one <code>dist.all_reduce(y)</code> <strong>substitutes for dispatch+combine</strong>. A token-sharded <em>training</em> stack would use the real a2a",
+"Aux-loss-free bias in code: <code>Gate.bias</code> added for top-k <em>selection</em>; output weight gathered from <code>original_scores</code> (unbiased)",
+"Every distributed op in the ~800-line file: embedding all-reduce · RowParallel all-reduce (TP) · MoE all-reduce (EP combine) · logits all-gather · prompt broadcast — <strong>five ops, fully auditable</strong>"])
+]},
+{title:"§5 · The systems side", sub:"Feeding the GPUs · booting the job", slides:[
+C("Data pipeline — decouple compute from storage","notes/concepts/data_pipeline.md",
+["Streaming per step from S3 = tail latency on the hot path; <strong>cache locally</strong> (node SSD), pay the network up front / in the background. Thread pool of 16–32 downloaders — object stores reward concurrency",
+"Per-DP-rank shard assignment: round-robin (<code>samples[rank::P]</code>, simple) vs hash (<code>hash(key)%P</code>, stable as the dataset grows)",
+"<strong>Two-phase prefetch:</strong> shard→download→validate before step 0; background prefetcher warms the next epoch; cache-miss falls back to remote",
+"<strong>The load-bearing subtlety:</strong> shard the loader on <strong><code>dp</code>, never <code>dp_cp</code></strong> — all cp ranks in a group must read the <em>same sample</em> (they split its tokens). Get it wrong → attention over mismatched tokens, silent garbage",
+"Production analogues: WebDataset (sharded tars), MosaicML Streaming (this note as a library)"]),
+C("How a multi-node job boots — SLURM → torchrun → mesh","notes/concepts/multinode_launch.md · torchtitan run_train.sh",
+["torch.distributed sees only <strong>N flat ranks</strong>; the bootstrap's whole job is 5 env vars: <code>WORLD_SIZE · RANK · LOCAL_RANK · MASTER_ADDR · MASTER_PORT</code>",
+"<strong><code>RANK</code> picks your data/param shard; <code>LOCAL_RANK</code> picks your GPU</strong> — rank 9 and rank 1 both run on <code>cuda:1</code> of different nodes",
+"The chain: <code>sbatch</code> (allocate) → <code>srun</code> 1 task/node → <code>torchrun</code> per node (spawns workers, runs the <strong>rendezvous</strong>) → <code>init_process_group()</code> → <code>ParallelDims(world_size).build_mesh()</code>",
+"<code>MASTER_ADDR</code> = <code>scontrol show hostnames $SLURM_JOB_NODELIST | head -1</code> — every node computes it <em>identically</em>",
+"Debug knobs when it hangs: <code>NCCL_DEBUG=INFO</code>, <code>NCCL_SOCKET_IFNAME</code> (wrong NIC = hang at init), <code>NCCL_IB_DISABLE=0</code>, blocking-wait/timeouts"])
+]},
+{title:"§6 · Inference & serving", sub:"The KV cache is the whole game — vLLM as the code anchor", slides:[
+C("Prefill vs decode — two phases, opposite shapes","notes/concepts/inference_serving.md",
+["<strong>Prefill</strong>: all N prompt tokens at once — compute-bound, like a training forward. <strong>Decode</strong>: 1 token/step, hundreds of steps — <strong>memory-bandwidth-bound</strong> (stream all weights + KV per token)",
+"Where did s² go at decode? Score is <code>[1, N]</code> — one new row per step; the cache holds the <em>columns</em> (K,V). Only K,V need caching: they're the <strong>only</strong> information future tokens ever read from the past",
+"KV bytes = <code>2 × layers × n_kv × d_head × seq × dtype</code> — grows with context <em>and</em> concurrency; <strong>the cache, not the weights, runs you out of memory</strong> and caps the batch",
+"Decode alone barely uses the GPU → throughput comes <em>only</em> from batching many requests' steps → the serving problem = pack KV caches into HBM with no waste"]),
+C("vLLM ① — the scheduler is continuous batching","notes/07_vllm_teardown.md · vllm/v1/core/sched/scheduler.py",
+["v1's key idea: <strong>there is no prefill phase and no decode phase</strong> — every request just has <code>num_computed_tokens</code> catching up to what it owes; a prefill chunk is a big <code>num_new_tokens</code>, a decode is 1. Chunked prefill, prefix caching, spec decode all fall out of one loop",
+"<code>schedule()</code> each step: serve RUNNING first (clamp to token budget) → <strong>allocate-or-preempt</strong> (<code>allocate_slots</code> returns <code>None</code> → evict lowest-priority, retry) → admit WAITING while <code>len(running) < max_num_seqs</code> and blocks fit",
+"Bounded by three budgets: request cap, per-step token budget, and ultimately <strong>free KV blocks</strong> — preemption is admission control on the cache, not a crash",
+"Diffusion hook: <code>num_sampled_tokens_per_step = 0</code> — a denoising step samples no token"]),
+C("vLLM ② — paged KV: block manager + kernel","notes/07_vllm_teardown.md · vllm block_pool.py, flash_attn.py",
+["Two layers: <code>KVCacheManager</code> (per-request bookkeeping, watermark headroom) over <code>BlockPool</code> (the global free list — the OS free-frame list; per-request block lists = page tables; <code>ref_cnt</code> = shared-page counting)",
+"Naive serving reserves <code>max_model_len</code> contiguously per request → fragmentation; paged blocks (≈16 tokens) waste at most one partial block",
+"PagedAttention isn't one file — it's two ops threaded through the layer: <strong>scatter-write</strong> (<code>reshape_and_cache_flash</code> + slot mapping) and <strong>gather-read</strong> (<code>flash_attn_varlen_func(block_table=…)</code>); <code>cu_seqlens</code> lets one kernel serve mixed-length sequences — the continuous-batch shape",
+"TP at serve time: Column/RowParallelLinear with the per-layer all-reduce; KV heads split too → <strong>TP buys KV capacity, not just weights</strong>. PP: <code>send_tensor_dict</code> between stages; bubble hidden by in-flight requests"]),
+C("Prefix caching — why it's prefix-only","notes/concepts/inference_serving.md §3b",
+["A hit = your request's <strong>prefix</strong> exactly matches cached blocks → skip prefill for that run (providers bill cache reads ~0.1×). Matching is exact-token, block-granular, longest leading run — never fuzzy",
+"Two independent blockers kill mid-sequence reuse: <strong>① causal absorption</strong> — layer-2+ K,V depend on the <em>entire</em> preceding context · <strong>② RoPE</strong> — K,V depend on <em>absolute position</em>; a shifted shared segment rotates differently",
+"Reuse is valid only where both hold: identical predecessors AND identical positions = a common prefix from token 0; stops permanently at the first mismatch",
+"Engineering consequence: <strong>stable content first</strong> (system prompt, RAG doc, codebase), variable content last. Hits come from structure (multi-turn chat, shared sys prompts), not coincidence"]),
+C("KV compression & the precision budget","notes/inference/kv_cache_and_precision.md",
+["Two lever types — <strong>architectural</strong> (shop for it: GQA/MQA 8–16×, <strong>MLA 10–20× and often better quality</strong>, sliding-window, hybrid linear attn = no growing KV) vs <strong>serving-time</strong> (configure it: KV quant FP8/INT4 2–4×, paged, prefix caching, lossy eviction)",
+"<strong>FP8 weights, the equal-memory argument:</strong> capability scales with param <em>count</em> far more than bits/param (down to ~4 bits) → 428B@FP8 beats 215B@FP16 at the same HBM. Decode is bandwidth-bound → FP8 also halves bytes/token: a Pareto win",
+"Worked example (8×H100, 637 GiB): 428B MoE @ MXFP8 ≈ 413 GiB weights → ~130 GiB KV pool; 120 KiB/token (GQA-4, BF16) → <strong>~1.1M-token budget: one node serves 1M context at batch 1</strong>. The engine's startup <code>GPU KV cache size</code> line is ground truth"]),
+C("FlashAttention & the kernel toolbox","notes/concepts/flash_attention_and_kernels.md · oss/flash-attention",
+["Attention is <strong>HBM-bandwidth-bound, not compute-bound</strong>: tiling into SRAM + online softmax + kernel fusion → same FLOPs, O(N) HBM traffic, exact",
+"Backward <em>does</em> need the s² matrix — FlashAttention <strong>recomputes it block-by-block</strong> from Q,K,V + the O(N) logsumexp. It's activation checkpointing built into the kernel, always on — this is <em>why</em> “scores are never stored” and why CP is viable at all",
+"What to reach for (2026): attention → <code>F.scaled_dot_product_attention</code> / FlexAttention · general → <code>torch.compile</code> + Liger Kernel · FP8/Hopper → Transformer Engine · custom → Triton · serving → vLLM / TensorRT-LLM",
+"Unifying theme: nearly all of it is <strong>memory-bandwidth wins</strong> — fuse to avoid HBM round-trips, tile into SRAM, recompute cheap things instead of storing them"]),
+C("Diffusion serving ≠ autoregressive serving","notes/concepts/inference_serving.md §6 · notes/00_architecture_tour.md",
+["LLM decode: variable steps (until EOS), each appends to a <strong>growing KV cache</strong> → the whole paged/preemption machinery. Diffusion: <strong>fixed steps</strong> (e.g. 30), each refines the <em>whole latent</em> with full bidirectional attention — <strong>no KV cache to grow</strong>",
+"Consequences: deterministic latency, near-static batching, no EOS-exit, no cache-pressure preemption — the PagedAttention problem mostly evaporates; the bottleneck is raw attention compute over the latent",
+"Parallelism shifts to <strong>CP</strong> (the latent is one big token grid): sequence-sharded generation, all-gather before VAE decode; at inference the mesh degenerates to <code>dp_replicate=1, cp=world_size</code> — <em>all</em> GPUs cooperate on one sample",
+"The symmetry is the payoff of the mesh abstraction: the same ParallelDims class describes training and inference by changing two numbers"])
+]},
+{title:"§7 · The map", sub:"One table to rule the axes", slides:[
+C("Cheat sheet — every axis, its collective, its home","the whole notes tree",
+["Read each row as: what it shards → the collective it pays → the link tier it wants → the memory pressure it relieves"],
+{table:CHEAT_TABLE, callout:"Two closing invariants: training shards to FIT, serving shards for LATENCY/THROUGHPUT — and every sharded op must prove itself equal to the single-GPU result to atol."})
+]}
+];
+
+/* ===== inline SVG diagrams (keyed by slide title) ===== */
+const GPU=(x,y,r,fill)=>`<g><rect x="${x}" y="${y}" width="56" height="40" rx="8" fill="${fill}" opacity=".8" data-r="${r}" class="gpu"/><text x="${x+28}" y="${y+25}" text-anchor="middle" class="lb ink">r${r}</text></g>`;
+const VIZI={
+"The parallelism axes — the master table":`<svg viewBox="0 0 660 118">
+<rect x="8" y="14" width="644" height="92" rx="12" fill="none" stroke="var(--axis)"/><text x="16" y="30" class="lb2">world_size = 800 (100 nodes × 8)</text>
+${[0,1].map(rep=>`<rect x="${20+rep*318}" y="38" width="300" height="58" rx="9" fill="var(--c1)" opacity=".10"/><rect x="${20+rep*318}" y="38" width="300" height="58" rx="9" fill="none" stroke="var(--c1)"/><text x="${28+rep*318}" y="52" class="lb2" fill="var(--c1)">replica ${rep}${rep===1?' … ×10 (dp_replicate)':''}</text>
+${[0,1,2].map(sh=>`<rect x="${30+rep*318+sh*92}" y="58" width="84" height="30" rx="6" fill="var(--c2)" opacity=".14"/><rect x="${30+rep*318+sh*92}" y="58" width="84" height="30" rx="6" fill="none" stroke="var(--c2)"/><text x="${72+rep*318+sh*92}" y="70" text-anchor="middle" class="lb2" fill="var(--c2)">${sh<2?'shard '+sh:'… ×20'}</text>
+${[0,1,2,3].map(cp=>`<rect x="${35+rep*318+sh*92+cp*19}" y="74" width="16" height="10" rx="2" fill="var(--c3)" opacity=".8"/>`).join('')}`).join('')}`).join('')}
+<text x="16" y="113" class="lb2">yellow cells = cp=4 (one sample's tokens split 4 ways) · green = dp_shard=20 (FSDP) · blue = dp_replicate=10 · 10 × 20 × 4 = 800 ✓</text>
+</svg>`,
+"Collectives — the vocabulary of everything":`<svg viewBox="0 0 660 170">
+${[["all-gather","[A][B][C][D]","[ABCD] ×4","everyone gets the full picture",0],
+   ["reduce-scatter","[A][B][C][D]","[S₀][S₁][S₂][S₃]","sum, keep your slice",1],
+   ["all-reduce","[A][B][C][D]","[S][S][S][S]","= RS + AG — agree on the sum",2],
+   ["all-to-all","rank i's chunk j","→ rank j's chunk i","transpose across ranks",3]].map((p,i)=>{
+ const x=8+i*163;
+ return `<rect x="${x}" y="10" width="152" height="128" rx="10" fill="none" stroke="var(--line)"/>
+ <text x="${x+76}" y="30" text-anchor="middle" class="lb" fill="var(--accent-dark)">${p[0]}</text>
+ <text x="${x+76}" y="58" text-anchor="middle" class="lb2 mono ink">${p[1]}</text>
+ <path d="M${x+76} 68 v18" stroke="var(--axis)"/><path d="M${x+72} 82 l4 8 4-8z" fill="var(--axis)"/>
+ <text x="${x+76}" y="106" text-anchor="middle" class="lb2 mono ink">${p[2]}</text>
+ <text x="${x+76}" y="126" text-anchor="middle" class="lb2">${p[3]}</text>`;}).join('')}
+<text x="330" y="160" text-anchor="middle" class="lb2">4 ranks, each holding one chunk — every distributed trick in this deck is one of these five ops placed on one mesh axis</text>
+</svg>`,
+"The device mesh — the spine of everything":`<div class="gridbtns">
+<button class="gridbtn on" data-view="dp">dp — “which sample do I load?”</button>
+<button class="gridbtn" data-view="fsdp">dp_shard_cp — “who holds my param shard?”</button>
+<button class="gridbtn" data-view="loss">dp_cp — “who averages the loss?”</button></div>
+<svg id="meshgrid" viewBox="0 0 660 96">
+${Array.from({length:8},(_,r)=>GPU(14+r*80,8,r,'var(--c1)')).join('')}
+<text x="14" y="72" class="lb2 mono">world_size=8 · dp_replicate=2 · dp_shard=2 · cp=2   (rank = rep·4 + shard·2 + cp)</text>
+<text x="14" y="90" class="lb2">same 8 ranks — click the three questions above and watch the grouping change</text>
+</svg>
+<div id="gridcap"></div>`,
+"The ZeRO ladder (Ψ params, k≈12 for Adam)":`<svg viewBox="0 0 660 190">
+<text x="14" y="16" class="lb ink">memory per GPU (N=4 shown) —</text>
+<rect x="212" y="6" width="11" height="11" rx="2" fill="var(--c1)"/><text x="228" y="16" class="lb2">params 2Ψ</text>
+<rect x="304" y="6" width="11" height="11" rx="2" fill="var(--c2)"/><text x="320" y="16" class="lb2">grads 2Ψ</text>
+<rect x="390" y="6" width="11" height="11" rx="2" fill="var(--c3)"/><text x="406" y="16" class="lb2">optimizer kΨ≈12Ψ</text>
+${[["Vanilla DP",2,2,12],["ZeRO-1",2,2,3],["ZeRO-2",2,.5,3],["ZeRO-3 / FSDP",.5,.5,3]].map((row,i)=>{
+ const y=30+i*36, u=31; let x=118;
+ let s=`<text x="110" y="${y+15}" text-anchor="end" class="lb ink">${row[0]}</text>`;
+ s+=`<rect x="${x}" y="${y}" width="${row[1]*u}" height="21" rx="4" fill="var(--c1)"/>`; x+=row[1]*u+2;
+ s+=`<rect x="${x}" y="${y}" width="${row[2]*u}" height="21" rx="4" fill="var(--c2)"/>`; x+=row[2]*u+2;
+ s+=`<rect x="${x}" y="${y}" width="${row[3]*u}" height="21" rx="4" fill="var(--c3)"/>`; x+=row[3]*u+8;
+ s+=`<text x="${x}" y="${y+15}" class="lb2 ink">${(row[1]+row[2]+row[3]).toFixed(1).replace('.0','')}Ψ${i===3?' — “largest single layer must fit” is what remains':''}</text>`;
+ return s;}).join('')}
+<text x="14" y="184" class="lb2">Z1→Z2 shrinks only the grad bar at identical comm (both RS + AG = 2Ψ); Z3 shards params too, paying the fwd+bwd all-gather (~1.5× comm)</text>
+</svg>`,
+"FSDP mechanics — sliced for storage, not compute":`<svg viewBox="0 0 660 118">
+<text x="14" y="18" class="lb ink">forward, per layer — fetch, use, release:</text>
+${[0,1,2].map(i=>{const x=14+i*212;
+ return `<rect x="${x}" y="28" width="60" height="26" rx="6" fill="var(--c1)" opacity=".75"/><text x="${x+30}" y="45" text-anchor="middle" class="lb2 ink">AG L${i}</text>
+ <rect x="${x+64}" y="28" width="76" height="26" rx="6" fill="var(--accent)" opacity=".7"/><text x="${x+102}" y="45" text-anchor="middle" class="lb2 ink">compute L${i}</text>
+ <rect x="${x+144}" y="28" width="54" height="26" rx="6" fill="none" stroke="var(--axis)" stroke-dasharray="3 3"/><text x="${x+171}" y="45" text-anchor="middle" class="lb2">free</text>`;}).join('')}
+<path d="M78 76 h120" stroke="var(--c1)" stroke-dasharray="4 3"/><text x="204" y="80" class="lb2" fill="var(--c1)">prefetch L1 while computing L0 — comm hides behind compute</text>
+<text x="14" y="106" class="lb ink">backward adds one op per layer: <tspan fill="var(--c2)">reduce-scatter grads</tspan> — averages across ranks AND hands you only your shard; optimizer step then needs zero comm</text>
+</svg>`,
+"Context parallelism — the off-diagonal problem":`<svg viewBox="0 0 660 176">
+<text x="14" y="16" class="lb ink">P=4 ranks → attention becomes a 4×4 block grid</text>
+${Array.from({length:16},(_,i)=>{const r=Math.floor(i/4),c=i%4,x=40+c*38,y=28+r*32;
+ const diag=r===c;
+ return `<rect x="${x}" y="${y}" width="34" height="28" rx="4" fill="${diag?'var(--accent)':'none'}" opacity="${diag?'.75':'1'}" stroke="${diag?'none':'var(--axis)'}" stroke-dasharray="${diag?'0':'3 3'}"/><text x="${x+17}" y="${y+18}" text-anchor="middle" class="lb2 ${diag?'ink':''}">${diag?'local':'?'}</text>`;}).join('')}
+${[0,1,2,3].map(r=>`<text x="30" y="${46+r*32}" text-anchor="end" class="lb2 mono">Q${r}</text><text x="${57+r*38}" y="166" text-anchor="middle" class="lb2 mono">K${r}</text>`).join('')}
+<text x="230" y="60" class="lb ink">all of CP = the “?” blocks:</text>
+<text x="230" y="82" class="lb2"><tspan class="lb" fill="var(--c1)">Ulysses</tspan> — 2 all-to-alls swap seq↔heads;</text>
+<text x="230" y="97" class="lb2">full attention per head, locally. NVLink. P ≤ H</text>
+<text x="230" y="122" class="lb2"><tspan class="lb" fill="var(--c2)">Ring</tspan> — Q stays, K,V hop neighbor-to-neighbor;</text>
+<text x="230" y="137" class="lb2">online softmax folds each block in. IB. No ceiling</text>
+<circle cx="580" cy="90" r="46" fill="none" stroke="var(--c2)" stroke-width="1.5" stroke-dasharray="5 4"/>
+${[0,1,2,3].map(i=>{const a=i*Math.PI/2-Math.PI/4, x=580+46*Math.cos(a), y=90+46*Math.sin(a);
+ return `<rect x="${x-16}" y="${y-11}" width="32" height="22" rx="5" fill="var(--card)" stroke="var(--c2)"/><text x="${x}" y="${y+4}" text-anchor="middle" class="lb2 mono ink">KV${i}</text>`;}).join('')}
+<path d="M614 47 a46 46 0 0 1 12 43" stroke="var(--c2)" fill="none" stroke-width="2"/><path d="M628 84l-2 10-7-7z" fill="var(--c2)"/>
+<text x="580" y="160" text-anchor="middle" class="lb2">K,V rotate; Q fixed</text>
+</svg>`,
+"Tensor parallel — the column→row pair":`<svg viewBox="0 0 660 168">
+<text x="26" y="88" text-anchor="middle" class="lb ink">X</text><text x="26" y="102" text-anchor="middle" class="lb2">replicated</text>
+<path d="M40 84 h28" stroke="var(--axis)"/><path d="M62 80l8 4-8 4z" fill="var(--axis)"/>
+<text x="150" y="24" text-anchor="middle" class="lb" fill="var(--c1)">column-split A (no comm)</text>
+<rect x="90" y="36" width="120" height="38" rx="8" fill="var(--c1)" opacity=".16"/><rect x="90" y="36" width="120" height="38" rx="8" fill="none" stroke="var(--c1)"/><text x="150" y="59" text-anchor="middle" class="lb2 ink">GPU0: Z₀ = X·A₁</text>
+<rect x="90" y="96" width="120" height="38" rx="8" fill="var(--c1)" opacity=".16"/><rect x="90" y="96" width="120" height="38" rx="8" fill="none" stroke="var(--c1)"/><text x="150" y="119" text-anchor="middle" class="lb2 ink">GPU1: Z₁ = X·A₂</text>
+${[55,115].map(y=>`<path d="M214 ${y} h30" stroke="var(--axis)"/><path d="M238 ${y-4}l8 4-8 4z" fill="var(--axis)"/>`).join('')}
+<rect x="250" y="36" width="86" height="38" rx="8" fill="none" stroke="var(--axis)"/><text x="293" y="59" text-anchor="middle" class="lb2 ink">GELU(Z₀)</text>
+<rect x="250" y="96" width="86" height="38" rx="8" fill="none" stroke="var(--axis)"/><text x="293" y="119" text-anchor="middle" class="lb2 ink">GELU(Z₁)</text>
+<text x="293" y="89" text-anchor="middle" class="lb2">elementwise · no comm</text>
+${[55,115].map(y=>`<path d="M340 ${y} h30" stroke="var(--axis)"/><path d="M364 ${y-4}l8 4-8 4z" fill="var(--axis)"/>`).join('')}
+<text x="436" y="24" text-anchor="middle" class="lb" fill="var(--c2)">row-split B → partials</text>
+<rect x="376" y="36" width="120" height="38" rx="8" fill="var(--c2)" opacity=".16"/><rect x="376" y="36" width="120" height="38" rx="8" fill="none" stroke="var(--c2)"/><text x="436" y="59" text-anchor="middle" class="lb2 ink">Y₀ = ·B₁ (partial)</text>
+<rect x="376" y="96" width="120" height="38" rx="8" fill="var(--c2)" opacity=".16"/><rect x="376" y="96" width="120" height="38" rx="8" fill="none" stroke="var(--c2)"/><text x="436" y="119" text-anchor="middle" class="lb2 ink">Y₁ = ·B₂ (partial)</text>
+<path d="M500 55 C 530 55 530 85 544 85" stroke="var(--axis)" fill="none"/><path d="M500 115 C 530 115 530 85 544 85" stroke="var(--axis)" fill="none"/>
+<circle cx="566" cy="85" r="20" fill="var(--accent)" opacity=".85"/><text x="566" y="82" text-anchor="middle" class="lb2" fill="#fff">all-</text><text x="566" y="93" text-anchor="middle" class="lb2" fill="#fff">reduce</text>
+<path d="M588 85 h30" stroke="var(--axis)"/><path d="M612 81l8 4-8 4z" fill="var(--axis)"/><text x="636" y="89" class="lb ink">Y</text>
+<text x="330" y="158" text-anchor="middle" class="lb2">the unit = the pair, not the matmul — one all-reduce per pair; GELU(partial) ≠ GELU(full) forces column-first</text>
+</svg>`,
+"Megatron-SP & pipeline parallel":`<svg viewBox="0 0 660 156">
+<text x="14" y="16" class="lb ink">GPipe schedule — 3 stages, 4 micro-batches</text>
+${[0,1,2].map(st=>`<text x="60" y="${46+st*30}" text-anchor="end" class="lb2 mono">stage ${st}</text>`).join('')}
+${(()=>{const cols=['#86b6ef','#5598e7','#2a78d6','#184f95']; let s='';
+ for(let st=0;st<3;st++) for(let m=0;m<4;m++){const x=70+(m+st)*72, y=30+st*30;
+  s+=`<rect x="${x}" y="${y}" width="66" height="22" rx="5" fill="${cols[m]}"/><text x="${x+33}" y="${y+15}" text-anchor="middle" class="lb2" fill="#fff">m${m}</text>`;}
+ return s;})()}
+<rect x="70" y="60" width="140" height="52" rx="5" fill="var(--axis)" opacity=".14"/><text x="140" y="90" text-anchor="middle" class="lb2">bubble</text>
+<rect x="502" y="30" width="140" height="52" rx="5" fill="var(--axis)" opacity=".14"/><text x="572" y="60" text-anchor="middle" class="lb2">bubble</text>
+<text x="14" y="140" class="lb2">bubble fraction ≈ (P−1)/(M+P−1) → more micro-batches shrink it; 1F1B / interleaving / DualPipe drive it further. Between stages: one P2P activation send — the cheap inter-node axis</text>
+</svg>`,
+"Halo exchange — spatial sharding for the video VAE":`<svg viewBox="0 0 660 148">
+<text x="14" y="16" class="lb ink">3×3 conv needs ±1 row — split H across 2 ranks:</text>
+<text x="52" y="52" text-anchor="end" class="lb2 mono">rank0</text>
+${[0,1,2,3].map(i=>`<rect x="${60+i*44}" y="34" width="40" height="26" rx="5" fill="var(--c1)" opacity=".6"/><text x="${80+i*44}" y="51" text-anchor="middle" class="lb2 ink">${i}</text>`).join('')}
+<text x="52" y="104" text-anchor="end" class="lb2 mono">rank1</text>
+${[4,5,6,7].map((v,i)=>`<rect x="${60+i*44}" y="86" width="40" height="26" rx="5" fill="var(--c2)" opacity=".6"/><text x="${80+i*44}" y="103" text-anchor="middle" class="lb2 ink">${v}</text>`).join('')}
+<path d="M212 62 C 230 70 230 76 212 84" stroke="var(--accent)" stroke-width="2" fill="none"/><path d="M214 80l-4 8 10-2z" fill="var(--accent)"/>
+<path d="M96 84 C 78 76 78 70 96 62" stroke="var(--accent)" stroke-width="2" fill="none"/><path d="M94 66l4-8-10 2z" fill="var(--accent)"/>
+<text x="154" y="76" text-anchor="middle" class="lb2" fill="var(--accent-dark)">exchange edge rows (P2P ×2)</text>
+<text x="300" y="52" class="lb2 mono ink">rank1 augmented:  [ 3 | 4 5 6 7 | 8 ]</text>
+<text x="300" y="70" class="lb2">halo = (k−1)/2 rows · conv · then trim back to owned rows</text>
+<text x="300" y="96" class="lb2">backward = mirror exchange; neighbor <tspan class="mono ink">+=</tspan> the halo grads</text>
+<text x="300" y="114" class="lb2">(miss it → edge gradients silently dropped, a visible seam)</text>
+<text x="14" y="140" class="lb2">stencil dependency is local & fixed → a sliver of bytes to 2 neighbors; attention's is global → the heavy CP machinery instead</text>
+</svg>`,
+"MoE + expert parallelism":`<svg viewBox="0 0 660 168">
+${[0,1,2,3].map(g=>{const x=20+g*162;
+ return `<rect x="${x}" y="52" width="146" height="58" rx="10" fill="none" stroke="var(--line)"/><text x="${x+73}" y="68" text-anchor="middle" class="lb2">GPU ${g}</text>
+ <rect x="${x+12}" y="76" width="56" height="24" rx="6" fill="var(--accent)" opacity=".7"/><text x="${x+40}" y="92" text-anchor="middle" class="lb2 ink">E${g*2}</text>
+ <rect x="${x+78}" y="76" width="56" height="24" rx="6" fill="var(--accent)" opacity=".7"/><text x="${x+106}" y="92" text-anchor="middle" class="lb2 ink">E${g*2+1}</text>
+ <rect x="${x+34}" y="10" width="78" height="20" rx="5" fill="var(--c3)" opacity=".55"/><text x="${x+73}" y="24" text-anchor="middle" class="lb2 ink">tokens @${g}</text>`;}).join('')}
+${[[93,260],[255,110],[417,580],[579,420]].map(p=>`<path d="M${p[0]} 32 C ${p[0]} 44 ${p[1]} 40 ${p[1]} 50" stroke="var(--c1)" stroke-width="1.5" fill="none"/><path d="M${p[1]-4} 44l4 8 4-8z" fill="var(--c1)"/>`).join('')}
+<text x="330" y="130" text-anchor="middle" class="lb" fill="var(--c1)">dispatch (all-to-all #1) → all expert GPUs compute at once → combine (all-to-all #2)</text>
+<text x="330" y="152" text-anchor="middle" class="lb2">experts are peers, not stages — no pipeline bubble; the failure mode is load imbalance (stragglers at the combine barrier)</text>
+</svg>`,
+"DeepSeek-V3 teardown ① — MLA: cache the latent":`<svg viewBox="0 0 660 140">
+<rect x="14" y="30" width="150" height="30" rx="7" fill="var(--axis)" opacity=".3"/><text x="89" y="49" text-anchor="middle" class="lb2 ink">hidden h — 7168-d</text>
+<path d="M168 45 h34" stroke="var(--axis)"/><path d="M196 41l8 4-8 4z" fill="var(--axis)"/><text x="185" y="34" text-anchor="middle" class="lb2">wkv_a ↓</text>
+<rect x="210" y="34" width="72" height="22" rx="6" fill="var(--accent)" opacity=".85"/><text x="246" y="49" text-anchor="middle" class="lb2" fill="#fff">latent 512</text>
+<rect x="288" y="34" width="40" height="22" rx="6" fill="var(--c3)" opacity=".8"/><text x="308" y="49" text-anchor="middle" class="lb2 ink">pe 64</text>
+<rect x="204" y="26" width="130" height="38" rx="9" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="0"/>
+<text x="269" y="80" text-anchor="middle" class="lb" fill="var(--accent-dark)">← the ENTIRE KV cache (per token)</text>
+<path d="M338 45 h34" stroke="var(--axis)" stroke-dasharray="4 3"/><path d="M366 41l8 4-8 4z" fill="var(--axis)"/><text x="355" y="34" text-anchor="middle" class="lb2">wkv_b ↑</text>
+<rect x="380" y="18" width="176" height="54" rx="9" fill="none" stroke="var(--axis)" stroke-dasharray="5 4"/>
+<text x="468" y="40" text-anchor="middle" class="lb2">per-head K (“nope”) + V</text>
+<text x="468" y="58" text-anchor="middle" class="lb" fill="var(--accent-dark)">never materialized</text>
+<text x="14" y="106" class="lb2">the “absorb” trick: fold wkv_b into the query (einsum) → attention runs directly against the cached latent; the up-projection applies once, to the small output</text>
+<text x="14" y="126" class="lb2">cache width = 512 + 64 per token vs 2 × heads × head-dim for MHA → >90% smaller — that shrinkage IS the MLA win</text>
+</svg>`,
+"Prefill vs decode — two phases, opposite shapes":`<svg viewBox="0 0 660 168">
+<text x="14" y="16" class="lb ink">prefill — all N rows at once (compute-bound)</text>
+${(()=>{let s='';for(let r=0;r<6;r++)for(let c=0;c<=r;c++){s+=`<rect x="${20+c*26}" y="${26+r*20}" width="23" height="17" rx="3" fill="var(--c1)" opacity=".65"/>`;}return s;})()}
+<text x="240" y="16" class="lb ink">decode — one [1×N] row per step (bandwidth-bound)</text>
+${Array.from({length:7},(_,c)=>`<rect x="${246+c*26}" y="60" width="23" height="17" rx="3" fill="${c<6?'var(--axis)':'var(--accent)'}" opacity="${c<6?'.3':'.9'}"/>`).join('')}
+<text x="436" y="73" class="lb2">← new query vs all cached K,V</text>
+${Array.from({length:7},(_,c)=>`<rect x="${246+c*26}" y="84" width="23" height="17" rx="3" fill="var(--c2)" opacity=".55"/>`).join('')}
+<text x="436" y="97" class="lb2">the columns = the KV cache (grows +1/step)</text>
+<text x="246" y="130" class="lb2">no s² at decode: score is [1,N] — the cost is <tspan class="ink">reading</tspan> the cache each step, not computing it</text>
+<text x="14" y="156" class="lb2">KV bytes = 2 × layers × n_kv × d_head × seq × dtype × concurrent requests — the cache, not the weights, caps the batch</text>
+</svg>`,
+"vLLM ② — paged KV: block manager + kernel":`<svg viewBox="0 0 660 158">
+<text x="10" y="16" class="lb ink">block tables (page tables)</text>
+<text x="10" y="40" class="lb2 mono">req A → #7 #2 #9</text>
+<text x="10" y="60" class="lb2 mono">req B → #7 #5</text>
+<text x="10" y="82" class="lb2" fill="var(--accent-dark)">#7 shared — same prompt prefix, ref_cnt=2 (copy-on-write)</text>
+<text x="356" y="16" class="lb ink">BlockPool (free-frame list)</text>
+${Array.from({length:10},(_,i)=>{const x=356+(i%5)*58, y=26+Math.floor(i/5)*34;
+ const used={7:'var(--c1)',2:'var(--c1)',9:'var(--c1)',5:'var(--c2)'}[i];
+ return `<rect x="${x}" y="${y}" width="50" height="26" rx="5" fill="${used||'var(--axis)'}" opacity="${used?'.6':'.12'}"/><text x="${x+25}" y="${y+17}" text-anchor="middle" class="lb2 mono ${used?'ink':''}">#${i}</text>`;}).join('')}
+<text x="10" y="112" class="lb2">write path: <tspan class="mono ink">reshape_and_cache_flash</tspan> scatters the new token's K,V to its slot</text>
+<text x="10" y="130" class="lb2">read path: <tspan class="mono ink">flash_attn_varlen_func(block_table=…)</tspan> gathers from scattered blocks; <tspan class="mono ink">cu_seqlens</tspan> = one kernel, mixed lengths</text>
+<text x="10" y="150" class="lb2">allocate_slots → None = the capacity wall → scheduler preempts instead of OOM</text>
+</svg>`,
+"Prefix caching — why it's prefix-only":`<svg viewBox="0 0 660 140">
+<text x="60" y="30" text-anchor="end" class="lb2 mono">req 1</text>
+${['SYS','SYS','DOC','Q1…'].map((t,i)=>`<rect x="${70+i*96}" y="14" width="88" height="24" rx="6" fill="${i<3?'var(--accent)':'var(--axis)'}" opacity="${i<3?'.6':'.25'}"/><text x="${114+i*96}" y="30" text-anchor="middle" class="lb2 mono ink">${t}</text>`).join('')}
+<text x="60" y="72" text-anchor="end" class="lb2 mono">req 2</text>
+${['SYS','SYS','DOC','Q2…'].map((t,i)=>`<rect x="${70+i*96}" y="56" width="88" height="24" rx="6" fill="${i<3?'var(--accent)':'var(--axis)'}" opacity="${i<3?'.6':'.25'}"/><text x="${114+i*96}" y="72" text-anchor="middle" class="lb2 mono ink">${t}</text>`).join('')}
+${[0,1,2].map(i=>`<path d="M${114+i*96} 40 v14" stroke="var(--accent)" stroke-width="2"/>`).join('')}
+<text x="210" y="50" text-anchor="middle" class="lb2" fill="var(--accent-dark)">exact-match blocks → HIT (skip prefill, ~0.1× billing)</text>
+<line x1="446" y1="10" x2="446" y2="86" stroke="#d03b3b" stroke-dasharray="4 3"/>
+<text x="454" y="50" class="lb2" fill="#d03b3b">first mismatch — reuse stops, permanently</text>
+<text x="14" y="108" class="lb2">blocker ① causal absorption: layer-2+ K,V encode the entire preceding context · blocker ② RoPE: K,V depend on absolute position</text>
+<text x="14" y="126" class="lb2">⇒ engineering rule: stable content FIRST (system prompt, RAG doc, codebase), variable content LAST</text>
+</svg>`,
+"Diffusion serving ≠ autoregressive serving":`<svg viewBox="0 0 660 140">
+<text x="14" y="18" class="lb ink">autoregressive — cache grows, length unknown</text>
+${Array.from({length:6},(_,i)=>`<rect x="${14+i*40}" y="28" width="36" height="22" rx="5" fill="var(--c1)" opacity="${.25+i*.11}"/><text x="${32+i*40}" y="43" text-anchor="middle" class="lb2 ink">t${i+1}</text>`).join('')}
+<text x="262" y="43" class="lb2">… until EOS → paging, preemption, continuous batching</text>
+<text x="14" y="86" class="lb ink">diffusion — fixed steps over one latent, no growing cache</text>
+<rect x="14" y="96" width="80" height="34" rx="8" fill="var(--c2)" opacity=".5"/><text x="54" y="117" text-anchor="middle" class="lb2 ink">latent</text>
+<path d="M102 104 a22 16 0 1 1 0 18" stroke="var(--c2)" stroke-width="2" fill="none"/><path d="M104 118l-3 9 9-3z" fill="var(--c2)"/>
+<text x="160" y="116" class="lb2">× 30 denoising steps — deterministic latency, near-static batching</text>
+<text x="160" y="132" class="lb2">parallelism shifts to CP: <tspan class="mono ink">dp_replicate=1, cp=world_size</tspan>, all-gather before VAE decode</text>
+</svg>`
+};
+
+/* ===== interactive playgrounds (keyed by slide title) ===== */
+const DEMOI = {
+"The device mesh — the spine of everything":`<div class="demo" data-demo="mesh"><div class="dhead">Playground — mesh planner (parallel_dim.py as a calculator)</div>
+<div class="drow">
+<div class="dctl"><label>nodes</label><input type="number" id="me-n" value="100" min="1"></div>
+<div class="dctl"><label>GPUs / node</label><input type="number" id="me-g" value="8" min="1"></div>
+<div class="dctl"><label>dp_replicate</label><input type="number" id="me-r" value="10" min="1"></div>
+<div class="dctl"><label>cp</label><input type="number" id="me-cp" value="4" min="1"></div>
+<div class="dctl"><label>tp</label><input type="number" id="me-tp" value="1" min="1"></div>
+<div class="dctl"><label>pp</label><input type="number" id="me-pp" value="1" min="1"></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="me-w">—</div><div class="k">world_size</div></div>
+<div class="dstat"><div class="v" id="me-sh">—</div><div class="k">dp_shard (auto = −1)</div></div>
+<div class="dstat"><div class="v" id="me-dp">—</div><div class="k">distinct data streams (dp)</div></div>
+<div class="dstat"><div class="v" id="me-fs">—</div><div class="k">FSDP group (dp_shard×cp)</div></div>
+<div class="dstat"><div class="v" id="me-ls">—</div><div class="k">loss all-reduce group</div></div>
+</div>
+<span class="dbadge ok" id="me-badge">—</span>
+<div class="dnote">dp_shard absorbs the remainder: world ÷ (dp_replicate × cp × tp × pp). Set dp_replicate=1 and cp=world and you've written the diffusion-inference config — same class, two numbers.</div></div>`,
+"The ZeRO ladder (Ψ params, k≈12 for Adam)":`<div class="demo" data-demo="zero"><div class="dhead">Playground — per-GPU training memory (4P+A, live)</div>
+<div class="drow">
+<div class="dctl"><label>params (B)</label><input type="number" id="ze-p" value="14" min="0.1" step="0.5"></div>
+<div class="dctl"><label>shard degree N</label><input type="range" id="ze-n" min="1" max="64" step="1" value="8"><output id="ze-no"></output></div>
+<div class="dctl"><label>ZeRO stage</label><select id="ze-s"><option value="0">DDP (none)</option><option value="1">ZeRO-1</option><option value="2">ZeRO-2</option><option value="3" selected>ZeRO-3 / FSDP</option></select></div>
+<div class="dctl"><label>layers</label><input type="number" id="ze-l" value="40" min="1"></div>
+<div class="dctl"><label>hidden</label><input type="number" id="ze-h" value="5120" min="128" step="128"></div>
+<div class="dctl"><label>seq (K tok)</label><input type="number" id="ze-sq" value="32" min="1"></div>
+<div class="dctl"><label>activation ckpt</label><select id="ze-ac"><option value="full" selected>full (block inputs only)</option><option value="none">none</option></select></div>
+<div class="dctl"><label>GPU HBM</label><select id="ze-hbm"><option value="80" selected>80 GB</option><option value="96">96 GB</option><option value="141">141 GB</option></select></div>
+</div>
+<div class="dbar" id="ze-bar"></div>
+<div class="dlegend"><span style="color:var(--c1)">params</span><span style="color:var(--c2)">grads</span><span style="color:var(--c3)">optimizer</span><span style="color:var(--accent)">activations (mbs=1)</span></div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="ze-t">—</div><div class="k">total / GPU</div></div>
+<div class="dstat"><div class="v" id="ze-a">—</div><div class="k">activations share</div></div>
+</div>
+<span class="dbadge ok" id="ze-badge">—</span>
+<div class="dnote">bf16 params 2P + grads 2P + Adam fp32 states 12P, sharded per stage; activations ≈ layers × seq × hidden × (2 B checkpointed / 34 B not — post-FlashAttention). Watch what ZeRO can't touch: crank seq and only checkpointing or CP saves you.</div></div>`,
+"Transformer cost model — params vs FLOPs vs activations":`<div class="demo" data-demo="cost"><div class="dhead">Playground — the N > 4d crossover, live</div>
+<div class="drow">
+<div class="dctl"><label>hidden d</label><input type="range" id="co-d" min="1024" max="16384" step="1024" value="4096"><output id="co-do"></output></div>
+<div class="dctl"><label>sequence N (K tok)</label><input type="range" id="co-n" min="0" max="9" step="0.5" value="3"><output id="co-no"></output></div>
+</div>
+<div class="dbar" id="co-bar"></div>
+<div class="dlegend"><span style="color:var(--c1)">attn projections 8Nd²</span><span style="color:var(--accent)">attn scores 4N²d (0 params!)</span><span style="color:var(--c2)">FFN 16Nd²</span></div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="co-pct">—</div><div class="k">n² share of FLOPs</div></div>
+<div class="dstat"><div class="v" id="co-x">—</div><div class="k">crossover N = 4d</div></div>
+</div>
+<span class="dbadge ok" id="co-badge">—</span>
+<div class="dnote">Params never move (FFN stays 2/3) — only the FLOPs mix shifts with N. Past the crossover, CP and FlashAttention are carrying the workload.</div></div>`,
+"Context parallelism — the off-diagonal problem":`<div class="demo" data-demo="cp"><div class="dhead">Playground — Ulysses vs Ring comms comparator</div>
+<div class="drow">
+<div class="dctl"><label>sequence (K tok)</label><input type="range" id="cp-s" min="3" max="10" step="0.5" value="6"><output id="cp-so"></output></div>
+<div class="dctl"><label>hidden d</label><input type="number" id="cp-d" value="5120" step="256" min="512"></div>
+<div class="dctl"><label>heads H</label><input type="number" id="cp-h" value="40" min="1"></div>
+<div class="dctl"><label>CP degree P</label><input type="range" id="cp-p" min="2" max="32" step="1" value="8"><output id="cp-po"></output></div>
+<div class="dctl"><label>link</label><select id="cp-l"><option value="450">NVLink (~450 GB/s)</option><option value="50">InfiniBand (~50 GB/s)</option></select></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="cp-ub">—</div><div class="k">Ulysses bytes/rank</div></div>
+<div class="dstat"><div class="v" id="cp-rb">—</div><div class="k">Ring bytes/rank</div></div>
+<div class="dstat"><div class="v" id="cp-ut">—</div><div class="k">Ulysses time (bulk)</div></div>
+<div class="dstat"><div class="v" id="cp-rt">—</div><div class="k">Ring time (overlappable)</div></div>
+</div>
+<span class="dbadge ok" id="cp-badge">—</span>
+<div class="dnote">Ulysses ≈ 4·s·d·2B/P per rank in two bulk all-to-alls (must finish before compute). Ring circulates K,V P−1 hops ≈ (P−1)× more bytes — but in slivers hidden behind compute. That asymmetry, plus the P ≤ H ceiling, is the whole UCP story.</div></div>`,
+"Tensor parallel — the column→row pair":`<div class="demo" data-demo="tpq"><div class="dhead">Playground — GQA under TP: the KV replication trap</div>
+<div class="drow">
+<div class="dctl"><label>query heads n_q</label><input type="number" id="tq-q" value="32" min="1"></div>
+<div class="dctl"><label>KV heads n_kv</label><input type="number" id="tq-kv" value="8" min="1"></div>
+<div class="dctl"><label>TP degree</label><input type="range" id="tq-tp" min="0" max="6" step="1" value="2"><output id="tq-tpo"></output></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="tq-qg">—</div><div class="k">Q heads / GPU</div></div>
+<div class="dstat"><div class="v" id="tq-kg">—</div><div class="k">KV heads / GPU</div></div>
+<div class="dstat"><div class="v" id="tq-cache">—</div><div class="k">cluster-wide KV cache</div></div>
+</div>
+<span class="dbadge ok" id="tq-badge">—</span>
+<div class="dnote">Slide TP past n_kv and watch the cache column re-inflate toward MHA — the exact win GQA exists for, spent on parallelism. Practical rule: keep TP ≤ n_kv.</div></div>`,
+"Megatron-SP & pipeline parallel":`<div class="demo" data-demo="bubble"><div class="dhead">Playground — pipeline bubble simulator</div>
+<div class="drow">
+<div class="dctl"><label>stages P</label><input type="range" id="bu-p" min="2" max="16" step="1" value="4"><output id="bu-po"></output></div>
+<div class="dctl"><label>micro-batches M</label><input type="range" id="bu-m" min="1" max="64" step="1" value="8"><output id="bu-mo"></output></div>
+</div>
+<div class="dbar" id="bu-bar"></div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="bu-f">—</div><div class="k">bubble fraction (P−1)/(M+P−1)</div></div>
+<div class="dstat"><div class="v" id="bu-e">—</div><div class="k">pipeline efficiency</div></div>
+</div>
+<span class="dbadge ok" id="bu-badge">—</span>
+<div class="dnote">Drag M up and watch the bubble drain — this is why PP wants a big global batch (and why serving hides the bubble with many in-flight requests). 1F1B/DualPipe attack the same fraction from the schedule side.</div></div>`,
+"MoE + expert parallelism":`<div class="demo" data-demo="moe"><div class="dhead">Playground — total vs active params (DeepSeek-V3 defaults)</div>
+<div class="drow">
+<div class="dctl"><label>experts E</label><input type="number" id="mo-e" value="256" min="2"></div>
+<div class="dctl"><label>top-k</label><input type="range" id="mo-k" min="1" max="16" step="1" value="8"><output id="mo-ko"></output></div>
+<div class="dctl"><label>shared</label><input type="number" id="mo-s" value="1" min="0"></div>
+<div class="dctl"><label>hidden d</label><input type="number" id="mo-d" value="7168" min="256" step="128"></div>
+<div class="dctl"><label>expert d_ff</label><input type="number" id="mo-f" value="2048" min="64" step="64"></div>
+<div class="dctl"><label>MoE layers</label><input type="number" id="mo-l" value="58" min="1"></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="mo-tot">—</div><div class="k">total FFN params</div></div>
+<div class="dstat"><div class="v" id="mo-act">—</div><div class="k">active FFN / token</div></div>
+<div class="dstat"><div class="v" id="mo-ratio">—</div><div class="k">compute vs same-capacity dense</div></div>
+<div class="dstat"><div class="v" id="mo-tok">—</div><div class="k">tokens/expert @ batch 8K</div></div>
+</div>
+<div class="dnote">SwiGLU expert = 3·d·d_ff. Add attention+embeddings (~14B here) to both columns for the headline numbers (671B/37B). The last tile is why MoE needs big batches — shrink E or grow k and watch per-expert GEMMs fatten.</div></div>`,
+"CP wrinkles — causal vs video, and the K,V choice":`<div class="demo" data-demo="ring"><div class="dhead">Playground — ring attention, one hop at a time</div>
+<div class="drow" style="align-items:center">
+<button class="gridbtn" data-anim="ring-step">▶ step</button>
+<button class="gridbtn" data-anim="ring-reset">⟲ reset</button>
+<div class="dchecks"><label><input type="checkbox" id="ri-causal">causal mask (LLM) — watch the bubble</label></div>
+</div>
+<svg viewBox="0 0 660 190"><g id="ri-svg"></g></svg>
+<div class="dnote" id="ri-cap"></div></div>`,
+"DP = gradient accumulation across space":`<div class="demo" data-demo="ga"><div class="dhead">Playground — global batch & the no_sync() saving</div>
+<div class="drow">
+<div class="dctl"><label>micro-batch mbs</label><input type="number" id="ga-m" value="2" min="1"></div>
+<div class="dctl"><label>grad_acc steps</label><input type="range" id="ga-a" min="1" max="32" step="1" value="8"><output id="ga-ao"></output></div>
+<div class="dctl"><label>dp ranks</label><input type="range" id="ga-d" min="1" max="256" step="1" value="64"><output id="ga-do"></output></div>
+<div class="dctl"><label>params (B)</label><input type="number" id="ga-p" value="14" min="0.1" step="0.5"></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="ga-gbs">—</div><div class="k">global batch (samples/step)</div></div>
+<div class="dstat"><div class="v" id="ga-naive">—</div><div class="k">grad traffic, naive (per opt step)</div></div>
+<div class="dstat"><div class="v" id="ga-sync">—</div><div class="k">with no_sync()</div></div>
+<div class="dstat"><div class="v" id="ga-save">—</div><div class="k">traffic saved</div></div>
+</div>
+<div class="dnote">gbs = mbs × grad_acc × dp. Naive DP all-reduces every micro-batch backward (grad_acc × 2Ψ); no_sync() defers and folds them into one — same gradients, 1/grad_acc of the traffic.</div></div>`,
+"Prefix caching — why it's prefix-only":`<div class="demo" data-demo="px"><div class="dhead">Playground — what prefix caching is worth</div>
+<div class="drow">
+<div class="dctl"><label>stable prefix (tok)</label><input type="number" id="px-s" value="8000" min="0" step="500"></div>
+<div class="dctl"><label>variable tail (tok)</label><input type="number" id="px-q" value="300" min="1" step="50"></div>
+<div class="dctl"><label>requests / day</label><input type="number" id="px-r" value="50000" min="1" step="1000"></div>
+<div class="dctl"><label>$ / M input tok</label><input type="number" id="px-c" value="3" min="0.01" step="0.5"></div>
+<div class="dctl"><label>cache-read price</label><select id="px-d"><option value="0.1" selected>0.1×</option><option value="0.25">0.25×</option><option value="0">free</option></select></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="px-hit">—</div><div class="k">prefix share of prefill</div></div>
+<div class="dstat"><div class="v" id="px-n">—</div><div class="k">input cost/day, no cache</div></div>
+<div class="dstat"><div class="v" id="px-y">—</div><div class="k">with prefix caching</div></div>
+<div class="dstat"><div class="v" id="px-sv">—</div><div class="k">saved</div></div>
+</div>
+<div class="dnote">Assumes the prefix is byte-identical every request (system prompt, RAG doc) — which is exactly why stable content goes first. One token of drift at position 0 and the entire saving evaporates.</div></div>`,
+"Activation memory — why it exists, how to dodge it":`<div class="demo" data-demo="ac"><div class="dhead">Playground — the recompute dial (memory vs FLOPs)</div>
+<div class="drow">
+<div class="dctl"><label>policy</label><select id="ac-p"><option value="none">store everything</option><option value="sel" selected>selective (keep matmul outputs)</option><option value="full">full (block inputs only)</option></select></div>
+<div class="dctl"><label>layers</label><input type="number" id="ac-l" value="40" min="1"></div>
+<div class="dctl"><label>hidden</label><input type="number" id="ac-h" value="5120" min="128" step="128"></div>
+<div class="dctl"><label>seq (K tok)</label><input type="range" id="ac-s" min="1" max="9" step="0.5" value="5"><output id="ac-so"></output></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="ac-mem">—</div><div class="k">activation memory (mbs=1)</div></div>
+<div class="dstat"><div class="v" id="ac-cmp">—</div><div class="k">extra compute per step</div></div>
+<div class="dstat"><div class="v" id="ac-sv">—</div><div class="k">memory vs store-everything</div></div>
+</div>
+<div class="dnote">Post-FlashAttention factors: ~34 bytes/token/hidden/layer stored → ~10 selective → 2 full-checkpoint; compute +0% → ~+5% → ~+33% (fwd:bwd:recompute = 1:2:1). Crank seq to see why long-context training always runs checkpointed — then remember ZeRO never touches this bar.</div></div>`,
+"Data pipeline — decouple compute from storage":`<div class="demo" data-demo="dpipe"><div class="dhead">Playground — who loads which sample (dp vs dp_cp, live)</div>
+<div class="drow">
+<div class="dctl"><label>dp (data streams)</label><input type="range" id="dpp-d" min="1" max="8" step="1" value="4"><output id="dpp-do"></output></div>
+<div class="dctl"><label>cp (per sample)</label><input type="range" id="dpp-c" min="1" max="4" step="1" value="2"><output id="dpp-co"></output></div>
+</div>
+<svg viewBox="0 0 660 120"><g id="dpp-svg"></g></svg>
+<div class="dnote" id="dpp-cap"></div></div>`,
+"Halo exchange — spatial sharding for the video VAE":`<div class="demo" data-demo="halo"><div class="dhead">Playground — the exchange, one phase at a time</div>
+<div class="drow" style="align-items:center">
+<button class="gridbtn" data-anim="halo-step">▶ next phase</button>
+<button class="gridbtn" data-anim="halo-reset">⟲ reset</button>
+</div>
+<svg viewBox="0 0 660 132"><g id="ha-svg"></g></svg>
+<div class="dnote" id="ha-cap"></div></div>`,
+"MoE balancing & the knobs":`<div class="demo" data-demo="mcap"><div class="dhead">Playground — capacity factor vs token drops</div>
+<div class="drow">
+<div class="dctl"><label>routing skew</label><input type="range" id="mc-k" min="0" max="1" step="0.05" value="0.35"><output id="mc-ko"></output></div>
+<div class="dctl"><label>capacity factor</label><input type="range" id="mc-c" min="1" max="2" step="0.05" value="1.25"><output id="mc-co"></output></div>
+</div>
+<svg viewBox="0 0 660 130"><g id="mc-svg"></g></svg>
+<div class="dstats">
+<div class="dstat"><div class="v" id="mc-drop">—</div><div class="k">tokens dropped</div></div>
+<div class="dstat"><div class="v" id="mc-idle">—</div><div class="k">capacity wasted (idle slots)</div></div>
+</div>
+<span class="dbadge ok" id="mc-badge">—</span>
+<div class="dnote">8 experts, fixed batch. Skew = what a learned router does without balancing; the capacity line is the fixed buffer. Dropped tokens pass by residual only (quality cost); idle slots are wasted compute — the aux-loss / bias controller exists to keep both near zero.</div></div>`,
+"vLLM ① — the scheduler is continuous batching":`<div class="demo" data-demo="vb"><div class="dhead">Playground — step the scheduler yourself</div>
+<div class="drow" style="align-items:center">
+<button class="gridbtn" data-anim="vb-step">▶ step</button>
+<button class="gridbtn" data-anim="vb-play">▶▶ play</button>
+<button class="gridbtn" data-anim="vb-reset">⟲ reset</button>
+</div>
+<svg viewBox="0 0 660 168"><g id="vb-svg"></g></svg>
+<div class="dnote" id="vb-cap"></div></div>`,
+"KV compression & the precision budget":`<div class="demo" data-demo="kv"><div class="dhead">Playground — serving capacity calculator (KV pool → concurrency)</div>
+<div class="drow">
+<div class="dctl"><label>preset</label><select id="kv-pre">
+<option value="32,8,128,16" selected>Llama-3-8B (GQA-8)</option>
+<option value="80,8,128,140">Llama-2-70B (GQA-8)</option>
+<option value="32,32,128,14">7B MHA (worst case)</option>
+<option value="mla">DeepSeek-V3 (MLA latent)</option></select></div>
+<div class="dctl"><label>KV dtype</label><select id="kv-dt"><option value="2" selected>bf16</option><option value="1">fp8</option></select></div>
+<div class="dctl"><label>context (K tok)</label><input type="range" id="kv-ctx" min="2" max="10" step="0.25" value="5"><output id="kv-ctxo"></output></div>
+<div class="dctl"><label>GPUs × 80 GB</label><input type="range" id="kv-g" min="1" max="8" step="1" value="1"><output id="kv-go"></output></div>
+<div class="dctl"><label>weights (GB)</label><input type="number" id="kv-w" value="16" min="1"></div>
+</div>
+<div class="dstats">
+<div class="dstat"><div class="v" id="kv-tok">—</div><div class="k">KV per token</div></div>
+<div class="dstat"><div class="v" id="kv-pool">—</div><div class="k">KV pool (0.9 util − weights)</div></div>
+<div class="dstat"><div class="v" id="kv-max">—</div><div class="k">total token budget</div></div>
+<div class="dstat"><div class="v" id="kv-con">—</div><div class="k">concurrent @ context</div></div>
+</div>
+<span class="dbadge ok" id="kv-badge">—</span>
+<div class="dnote">KV/token = 2 × layers × n_kv × d_head × bytes (MLA: (512+64) × layers × bytes — no head factor at all). Flip bf16→fp8 or GQA→MLA and watch concurrency move: this is the whole architectural-vs-serving-lever slide, live.</div></div>`
+};
+
+/* ===== animation state machines ===== */
+let ringS=0, vbS=0, vbTimer=null;
+function drawRing(){
+  const causal=$('ri-causal')&&$('ri-causal').checked, P=4;
+  let s='';
+  for(let p=0;p<P;p++){
+    const x=40+p*70;
+    s+=`<rect x="${x}" y="14" width="56" height="26" rx="6" fill="var(--accent)" opacity=".75"/><text x="${x+28}" y="31" text-anchor="middle" class="lb2 ink">Q${p}</text>`;
+    const kv=((p-ringS)%P+P)%P;
+    s+=`<rect x="${x}" y="48" width="56" height="24" rx="6" fill="var(--card)" stroke="var(--c2)"/><text x="${x+28}" y="64" text-anchor="middle" class="lb2 mono ink">KV${kv}</text>`;
+    if(p<P-1)s+=`<path d="M${x+58} 84 h10" stroke="var(--c2)" stroke-width="1.5"/><path d="M${x+64} 80l8 4-8 4z" fill="var(--c2)"/>`;
+  }
+  s+=`<path d="M258 84 C 258 100 40 100 40 86" stroke="var(--c2)" stroke-width="1.5" fill="none" stroke-dasharray="4 3"/>`;
+  s+=`<text x="160" y="112" text-anchor="middle" class="lb2">K,V hop right each step (P2P)</text>`;
+  let idle=[];
+  for(let p=0;p<P;p++)for(let c=0;c<P;c++){
+    const x=360+c*46, y=14+p*36;
+    const hop=((p-c)%P+P)%P, masked=causal&&c>p;
+    const done=!masked&&hop<=ringS, now=!masked&&hop===ringS;
+    s+=`<rect x="${x}" y="${y}" width="42" height="30" rx="4" fill="${masked?'none':done?'var(--accent)':'none'}" opacity="${done?(now?'.95':'.45'):'1'}" stroke="${masked?'var(--grid)':done?'none':'var(--axis)'}" stroke-dasharray="${masked?'2 3':'0'}"/>`;
+    if(masked)s+=`<text x="${x+21}" y="${y+19}" text-anchor="middle" class="lb2">mask</text>`;
+    else if(done)s+=`<text x="${x+21}" y="${y+19}" text-anchor="middle" class="lb2 ink">Q${p}K${c}</text>`;
+    if(causal&&((p-ringS)%P+P)%P>p&&c===0&&hop===ringS&&masked===false){}
+  }
+  for(let p=0;p<P;p++){const c=((p-ringS)%P+P)%P; if(causal&&c>p)idle.push('rank '+p);}
+  $('ri-svg').innerHTML=s;
+  $('ri-cap').innerHTML='<strong>step '+(ringS+1)+' / 4</strong> — each rank computes its Q against the K,V block it currently holds. '+
+   (causal?(idle.length?idle.join(', ')+' idle this step (masked upper-triangle) — the 1:2:3:4 imbalance striped/zigzag placement fixes.':'no rank idle this step.'):'full/bidirectional (video DiT): every block is real, the ring stays perfectly balanced.');
+}
+const VBROWS=[['A',[1,1,1,1,1,1]],['B',[1,1,2,0,0,0]],['C',[3,3,1,1,1,1]],['E',[0,0,0,3,1,1]]];
+const VBCAP=[
+ 'step k — A,B decode; C is mid-prefill: its chunk shares the same token budget as the decodes. No separate phases.',
+ 'k+1 — C still prefilling. The scheduler simply gives every running request num_new_tokens until the budget runs out.',
+ 'k+2 — B emits EOS and leaves <em>immediately</em>; its KV blocks go back to the pool the same step.',
+ 'k+3 — the freed blocks admit E from the waiting queue; it starts with a prefill chunk. Requests join mid-flight.',
+ 'k+4 — E decodes. The running set was rebuilt every single step; the GPU never waited for the slowest request.',
+ 'k+5 — steady state. This is what “dynamic batch size” means: a set, not a number — bounded by free KV blocks.'];
+function drawVB(){
+  let s='<text x="14" y="14" class="lb ink">one row per request · one column per scheduler step</text>';
+  ['k','k+1','k+2','k+3','k+4','k+5'].forEach((t,i)=>{s+=`<text x="${118+i*88}" y="32" text-anchor="middle" class="lb2 mono" ${i===vbS?'fill="var(--accent-dark)" font-weight="700"':''}>${t}</text>`;});
+  VBROWS.forEach((row,r)=>{const y=42+r*30;
+    s+=`<text x="66" y="${y+15}" text-anchor="end" class="lb2 mono ink">req ${row[0]}</text>`;
+    row[1].forEach((v,c)=>{const x=76+c*88, dim=c>vbS?0.18:1, cur=c===vbS;
+      if(v===0){s+=`<rect x="${x}" y="${y}" width="84" height="22" rx="5" fill="none" stroke="var(--grid)" stroke-dasharray="3 3" opacity="${dim}"/>`;}
+      else{const fill=v===3?'var(--c1)':'var(--accent)', lab=v===3?'prefill chunk':v===2?'EOS ✓ leave':'decode +1';
+        s+=`<g opacity="${dim}"><rect x="${x}" y="${y}" width="84" height="22" rx="5" fill="${fill}" opacity="${v===3?'.85':'.55'}" ${cur?'stroke="var(--fg)" stroke-width="1.5"':''}/><text x="${x+42}" y="${y+15}" text-anchor="middle" class="lb2 ${v===3?'':'ink'}" ${v===3?'fill="#fff"':''}>${lab}</text></g>`;}
+    });});
+  $('vb-svg').innerHTML=s;
+  $('vb-cap').innerHTML='<strong>'+(vbS+1)+' / 6</strong> — '+VBCAP[vbS];
+}
+let haloS=0;
+const HALOCAP=[
+ 'phase 1 — <strong>split</strong>: H is sharded across 2 ranks. The boundary rows (red) each need a neighbor row that now lives on the other GPU — conv here would be wrong: a visible seam.',
+ 'phase 2 — <strong>exchange</strong>: each rank isend/irecvs one edge row (the halo). Tensors grow by (k−1)/2 rows per side. Bytes moved: a sliver, independent of interior size.',
+ 'phase 3 — <strong>conv + trim</strong>: each rank convolves its augmented tensor, then crops back to owned rows. Result == single-GPU conv, seam-free ✓. Backward mirrors the exchange, with += accumulation.'];
+function drawHalo(){
+  const P=haloS; let s='';
+  const cell=(x,y,v,fill,op,dash)=>`<rect x="${x}" y="${y}" width="40" height="26" rx="5" fill="${fill}" opacity="${op}" ${dash?'stroke="#d03b3b" stroke-dasharray="3 3" stroke-width="1.5"':''}/><text x="${x+20}" y="${y+17}" text-anchor="middle" class="lb2 ink">${v}</text>`;
+  s+=`<text x="50" y="30" text-anchor="end" class="lb2 mono">rank0</text><text x="50" y="86" text-anchor="end" class="lb2 mono">rank1</text>`;
+  for(let i=0;i<4;i++) s+=cell(60+i*44,14,i,'var(--c1)', .55, P===0&&i===3);
+  for(let i=0;i<4;i++) s+=cell(60+i*44,70,i+4,'var(--c2)', .55, P===0&&i===0);
+  if(P===0){s+=`<text x="250" y="31" class="lb2" fill="#d03b3b">← out[3] needs in[4] (other GPU!)</text><text x="250" y="87" class="lb2" fill="#d03b3b">← out[4] needs in[3]</text>`;}
+  if(P>=1){
+    s+=cell(240,14,'4ʰ','var(--c2)', .35);
+    s+=cell(16,70,'3ʰ','var(--c1)', .35);
+    s+=`<path d="M104 44 C 80 56 60 56 46 66" stroke="var(--accent)" stroke-width="2" fill="none"/><path d="M50 60l-6 8 10-1z" fill="var(--accent)"/>`;
+    s+=`<path d="M216 66 C 232 56 244 52 254 44" stroke="var(--accent)" stroke-width="2" fill="none"/><path d="M250 48l6-8-10 1z" fill="var(--accent)"/>`;
+    s+=`<text x="330" y="31" class="lb2">rank0 augmented: [0 1 2 3 | 4ʰ]</text><text x="330" y="87" class="lb2">rank1 augmented: [3ʰ | 4 5 6 7]</text>`;
+  }
+  if(P===2){
+    s+=`<text x="330" y="51" class="lb2" fill="var(--accent-dark)">conv → trim halo-born rows → owns out[0..3] ✓</text>`;
+    s+=`<text x="330" y="107" class="lb2" fill="var(--accent-dark)">conv → trim → owns out[4..7] ✓  ·  seam-free == single-GPU</text>`;
+  }
+  $('ha-svg').innerHTML=s;
+  $('ha-cap').innerHTML=HALOCAP[P];
+}
+function drawDPipe(){
+  const dp=+$('dpp-d').value, cp=+$('dpp-c').value, R=dp*cp;
+  $('dpp-do').textContent='dp = '+dp; $('dpp-co').textContent='cp = '+cp;
+  const cols=['var(--c1)','var(--c2)','var(--c3)','var(--c4)'];
+  let s='';
+  const perRow=Math.min(R,16), w=Math.min(38, 620/perRow-4);
+  for(let r=0;r<Math.min(R,32);r++){
+    const x=14+(r%16)*(w+4), y=10+Math.floor(r/16)*46, samp=Math.floor(r/cp);
+    s+=`<rect x="${x}" y="${y}" width="${w}" height="24" rx="5" fill="${cols[samp%4]}" opacity=".8"/><text x="${x+w/2}" y="${y+16}" text-anchor="middle" class="lb2 ink">r${r}</text>`;
+    s+=`<text x="${x+w/2}" y="${y+36}" text-anchor="middle" class="lb2 mono">s${samp}</text>`;
+  }
+  $('dpp-svg').innerHTML=s;
+  $('dpp-cap').innerHTML='<strong>'+dp+' distinct samples</strong> per step, each replicated across its '+cp+' cp ranks (same color = same sample — those ranks split its tokens). The loader reads <code>mesh["dp"]</code>; shard it on <code>dp_cp</code> instead and every rank gets a different sample — attention over mismatched tokens, silent garbage.';
+}
+function drawMcap(){
+  const k=+$('mc-k').value, cf=+$('mc-c').value, E=8, T=800;
+  $('mc-ko').textContent=k.toFixed(2); $('mc-co').textContent=cf.toFixed(2)+'×';
+  const g=[3.2,1.8,1.2,.8,.5,.3,.15,.05], gs=g.reduce((a,b)=>a+b,0);
+  const tok=g.map(x=>T*((1-k)/E + k*x/gs));
+  const cap=cf*T/E;
+  let dropped=0, idle=0, s='';
+  const ymax=Math.max(...tok,cap)*1.15;
+  for(let e=0;e<E;e++){
+    const x=40+e*74, t=tok[e], hFull=t/ymax*92, hCap=Math.min(t,cap)/ymax*92;
+    dropped+=Math.max(0,t-cap); idle+=Math.max(0,cap-t);
+    s+=`<rect x="${x}" y="${106-hCap}" width="52" height="${hCap}" rx="3" fill="var(--accent)" opacity=".7"/>`;
+    if(t>cap){const hOver=hFull-hCap; s+=`<rect x="${x}" y="${106-hCap-hOver}" width="52" height="${hOver}" rx="3" fill="#d03b3b" opacity=".75"/>`;}
+    s+=`<text x="${x+26}" y="118" text-anchor="middle" class="lb2 mono">E${e}</text>`;
+  }
+  const capY=106-cap/ymax*92;
+  s+=`<line x1="34" y1="${capY}" x2="640" y2="${capY}" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="6 4"/><text x="640" y="${capY-5}" text-anchor="end" class="lb2 ink">capacity = CF × T/E</text>`;
+  $('mc-svg').innerHTML=s;
+  $('mc-drop').textContent=(dropped/T*100).toFixed(1)+'%';
+  $('mc-idle').textContent=(idle/(cap*E)*100).toFixed(1)+'%';
+  const b=$('mc-badge');
+  if(dropped/T>0.05){b.textContent='✗ >5% of tokens skipping their expert — quality cost; rebalance or raise CF'; b.className='dbadge warn';}
+  else if(idle/(cap*E)>0.4){b.textContent='△ balanced but padded — high CF wastes compute on empty slots'; b.className='dbadge warn';}
+  else{b.textContent='✓ healthy: few drops, little padding — what the bias controller maintains'; b.className='dbadge ok';}
+}
+const ANIM={
+ 'halo-step':()=>{haloS=(haloS+1)%3; drawHalo();},
+ 'halo-reset':()=>{haloS=0; drawHalo();},
+ 'ring-step':()=>{ringS=(ringS+1)%4; drawRing();},
+ 'ring-reset':()=>{ringS=0; drawRing();},
+ 'vb-step':()=>{vbS=(vbS+1)%6; drawVB();},
+ 'vb-reset':()=>{vbS=0; drawVB();},
+ 'vb-play':()=>{if(vbTimer){clearInterval(vbTimer);vbTimer=null;return;}
+   if(matchMedia('(prefers-reduced-motion: reduce)').matches){vbS=(vbS+1)%6; drawVB(); return;}
+   vbTimer=setInterval(()=>{vbS=(vbS+1)%6; drawVB(); if(vbS===5){clearInterval(vbTimer);vbTimer=null;}},1100);}
+};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-anim]'); if(b&&ANIM[b.dataset.anim])ANIM[b.dataset.anim]();});
+
+const UPDI = {
+ring(){drawRing();},
+vb(){drawVB();},
+halo(){drawHalo();},
+dpipe(){drawDPipe();},
+mcap(){drawMcap();},
+ac(){
+  const p=$('ac-p').value, L=+$('ac-l').value, h=+$('ac-h').value, sk=Math.pow(2,+$('ac-s').value);
+  $('ac-so').textContent=sk>=1024?(sk/1024)+'M':sk+'K';
+  const f=p==='none'?34:p==='sel'?10:2, base=34;
+  const mem=L*sk*1024*h*f;
+  $('ac-mem').textContent=gb(mem);
+  $('ac-cmp').textContent=p==='none'?'+0%':p==='sel'?'≈ +5%':'≈ +33%';
+  $('ac-sv').textContent='−'+((1-f/base)*100).toFixed(0)+'%';
+},
+ga(){
+  const m=+$('ga-m').value, a=+$('ga-a').value, d=+$('ga-d').value, P=(+$('ga-p').value)*1e9;
+  $('ga-ao').textContent='× '+a; $('ga-do').textContent='× '+d;
+  $('ga-gbs').textContent=(m*a*d).toLocaleString();
+  const naive=a*2*P, sync=2*P;
+  $('ga-naive').textContent=gb(naive*d)+' cluster'; $('ga-sync').textContent=gb(sync*d)+' cluster';
+  $('ga-save').textContent=((1-1/a)*100).toFixed(0)+'%';
+},
+px(){
+  const sp=+$('px-s').value, q=+$('px-q').value, r=+$('px-r').value, c=+$('px-c').value, disc=+$('px-d').value;
+  $('px-hit').textContent=(sp/(sp+q)*100).toFixed(1)+'%';
+  const naive=(sp+q)*r/1e6*c, cached=(sp*disc+q)*r/1e6*c;
+  $('px-n').textContent='$'+naive.toFixed(0); $('px-y').textContent='$'+cached.toFixed(0);
+  $('px-sv').textContent='$'+(naive-cached).toFixed(0)+' ('+((1-cached/naive)*100).toFixed(0)+'%)';
+},
+cost(){
+  const d=+$('co-d').value, nk=Math.pow(2,+$('co-n').value), N=nk*1024;
+  $('co-do').textContent='d = '+d.toLocaleString();
+  $('co-no').textContent=nk>=1024?(nk/1024)+'M':(nk<1?Math.round(nk*1024)+'':Math.round(nk)+'K');
+  const proj=8*N*d*d, sc=4*N*N*d, ffn=16*N*d*d, tot=proj+sc+ffn;
+  $('co-bar').innerHTML=[[proj,'var(--c1)'],[sc,'var(--accent)'],[ffn,'var(--c2)']]
+    .map(s=>`<div style="width:${(s[0]/tot*100).toFixed(2)}%;background:${s[1]}"></div>`).join('');
+  $('co-pct').textContent=(sc/tot*100).toFixed(1)+'%';
+  const xk=4*d/1024;
+  $('co-x').textContent=(xk>=1024?(xk/1024)+'M':xk+'K')+' tok';
+  const b=$('co-badge');
+  if(N>4*d){b.textContent='past the crossover — the parameter-free n² term dominates compute'; b.className='dbadge warn';}
+  else{b.textContent='below the crossover — the FFN still dominates compute'; b.className='dbadge ok';}
+},
+cp(){
+  const s=Math.pow(2,+$('cp-s').value)*1024, d=+$('cp-d').value, H=+$('cp-h').value, P=+$('cp-p').value, bw=(+$('cp-l').value)*1e9;
+  $('cp-so').textContent=(s/1024>=1024?(s/1048576)+'M':(s/1024)+'K'); $('cp-po').textContent='P = '+P;
+  const uly=4*s*d*2/P, ring=2*s*d*2*(P-1)/P;
+  $('cp-ub').textContent=gb(uly); $('cp-rb').textContent=gb(ring);
+  $('cp-ut').textContent=(uly/bw*1000).toFixed(2)+' ms'; $('cp-rt').textContent=(ring/bw*1000).toFixed(2)+' ms';
+  const b=$('cp-badge');
+  if(P>H){b.textContent='✗ Ulysses invalid here: P > H ('+P+' > '+H+') — one head cannot be split; go Ring (or UCP: Ulysses×Ring)'; b.className='dbadge warn';}
+  else if(+$('cp-l').value>200){b.textContent='✓ NVLink: bulk all-to-all saturates the fat link — Ulysses wins intra-node'; b.className='dbadge ok';}
+  else{b.textContent='✓ InfiniBand: Ulysses stalls on the thin link; Ring hides its slivers behind compute — Ring wins inter-node'; b.className='dbadge ok';}
+},
+tpq(){
+  const q=+$('tq-q').value, kv=+$('tq-kv').value, tp=Math.pow(2,+$('tq-tp').value);
+  $('tq-tpo').textContent='TP = '+tp;
+  const b=$('tq-badge');
+  if(q%tp!==0&&tp<=q){$('tq-qg').textContent='—';$('tq-kg').textContent='—';$('tq-cache').textContent='—';
+    b.textContent='✗ n_q not divisible by TP'; b.className='dbadge warn'; return;}
+  if(tp>q){$('tq-qg').textContent='<1';$('tq-kg').textContent='—';$('tq-cache').textContent='—';
+    b.textContent='✗ TP > n_q — cannot split within a head (softmax needs the full row); that is CP territory'; b.className='dbadge warn'; return;}
+  $('tq-qg').textContent=q/tp;
+  if(tp<=kv){$('tq-kg').textContent=(kv/tp)+' (clean)'; $('tq-cache').textContent='×1 — GQA intact';
+    b.textContent='✓ TP ≤ n_kv: each GPU owns whole groups — attention fully local, cache win preserved'; b.className='dbadge ok';}
+  else{const rep=tp/kv; $('tq-kg').textContent='1, replicated ×'+rep; $('tq-cache').textContent='×'+rep+' — win eroded';
+    b.textContent='✗ n_kv < TP ≤ n_q: KV heads replicated ×'+rep+' — cluster-wide cache back to '+(kv*rep)+' head-equivalents'+(kv*rep>=q?' = full MHA footprint':''); b.className='dbadge warn';}
+},
+mesh(){
+  const w=(+$('me-n').value)*(+$('me-g').value), r=+$('me-r').value, cp=+$('me-cp').value, tp=+$('me-tp').value, pp=+$('me-pp').value;
+  $('me-w').textContent=w.toLocaleString();
+  const den=r*cp*tp*pp, b=$('me-badge');
+  if(w%den!==0){['me-sh','me-dp','me-fs','me-ls'].forEach(i=>$(i).textContent='—');
+    b.textContent='✗ assert fails: '+w+' not divisible by '+r+'×'+cp+'×'+tp+'×'+pp+' = '+den; b.className='dbadge warn'; return;}
+  const sh=w/den;
+  $('me-sh').textContent=sh.toLocaleString();
+  $('me-dp').textContent=(r*sh).toLocaleString();
+  $('me-fs').textContent=(sh*cp).toLocaleString()+' GPUs';
+  $('me-ls').textContent=(w/(tp*pp)).toLocaleString()+' ranks';
+  b.textContent='✓ '+r+' × '+sh+' × '+cp+(tp>1?' × tp'+tp:'')+(pp>1?' × pp'+pp:'')+' = '+w; b.className='dbadge ok';
+},
+zero(){
+  const P=(+$('ze-p').value)*1e9, N=+$('ze-n').value, st=$('ze-s').value;
+  $('ze-no').textContent='N = '+N;
+  let pa=2*P, gr=2*P, op=12*P;
+  if(st>=1)op/=N; if(st>=2)gr/=N; if(st>=3)pa/=N;
+  const act=(+$('ze-l').value)*(+$('ze-sq').value)*1024*(+$('ze-h').value)*($('ze-ac').value==='full'?2:34);
+  const tot=pa+gr+op+act, hbm=(+$('ze-hbm').value)*1e9;
+  const seg=[[pa,'var(--c1)'],[gr,'var(--c2)'],[op,'var(--c3)'],[act,'var(--accent)']];
+  const scale=Math.max(tot,hbm);
+  $('ze-bar').innerHTML=seg.map(s=>`<div style="width:${(s[0]/scale*100).toFixed(2)}%;background:${s[1]}" title="${gb(s[0])}"></div>`).join('');
+  $('ze-t').textContent=gb(tot); $('ze-a').textContent=(act/tot*100).toFixed(0)+'%';
+  const b=$('ze-badge');
+  if(tot<=hbm){b.textContent='✓ fits — '+gb(hbm-tot)+' headroom on '+$('ze-hbm').value+' GB'; b.className='dbadge ok';}
+  else{b.textContent='✗ OOM by '+gb(tot-hbm)+' — raise ZeRO stage, add checkpointing, shard wider, or split the sequence (CP)'; b.className='dbadge warn';}
+},
+bubble(){
+  const P=+$('bu-p').value, M=+$('bu-m').value;
+  $('bu-po').textContent='P = '+P; $('bu-mo').textContent='M = '+M;
+  const f=(P-1)/(M+P-1);
+  $('bu-f').textContent=(f*100).toFixed(1)+'%'; $('bu-e').textContent=((1-f)*100).toFixed(1)+'%';
+  $('bu-bar').innerHTML=`<div style="width:${((1-f)*100).toFixed(1)}%;background:var(--accent)"></div><div style="width:${(f*100).toFixed(1)}%;background:var(--axis);opacity:.5"></div>`;
+  const b=$('bu-badge');
+  if(f<=0.2){b.textContent='✓ bubble ≤ 20% — M ≥ 4P rule satisfied'; b.className='dbadge ok';}
+  else{b.textContent='✗ '+(f*100).toFixed(0)+'% of step time idle — raise M (or interleave/1F1B/DualPipe)'; b.className='dbadge warn';}
+},
+moe(){
+  const E=+$('mo-e').value, k=+$('mo-k').value, sh=+$('mo-s').value, d=+$('mo-d').value, f=+$('mo-f').value, L=+$('mo-l').value;
+  $('mo-ko').textContent='k = '+k;
+  const per=3*d*f, tot=L*E*per, act=L*(k+sh)*per;
+  $('mo-tot').textContent=fnum(tot); $('mo-act').textContent=fnum(act);
+  $('mo-ratio').textContent='≈ '+(E/k).toFixed(0)+'× cheaper';
+  $('mo-tok').textContent=Math.round(8192*k/E).toLocaleString();
+},
+kv(){
+  const pre=$('kv-pre').value, bytes=+$('kv-dt').value;
+  const ctxK=Math.pow(2,+$('kv-ctx').value), ctx=ctxK*1024;
+  $('kv-ctxo').textContent=ctxK>=1024?(ctxK/1024)+'M':Math.round(ctxK)+'K';
+  const g=+$('kv-g').value; $('kv-go').textContent=g+' × 80 GB';
+  let kvtok, wdef;
+  if(pre==='mla'){kvtok=576*61*bytes; wdef=671;}
+  else{const [L,nkv,dh,w]=pre.split(',').map(Number); kvtok=2*L*nkv*dh*bytes; wdef=w;}
+  if($('kv-pre').dataset.last!==pre){$('kv-w').value=wdef; $('kv-pre').dataset.last=pre;}
+  const pool=g*80e9*0.9-(+$('kv-w').value)*1e9;
+  $('kv-tok').textContent=(kvtok/1024).toFixed(0)+' KB';
+  const b=$('kv-badge');
+  if(pool<=0){$('kv-pool').textContent='—'; $('kv-max').textContent='—'; $('kv-con').textContent='—';
+    b.textContent='✗ weights alone exceed 0.9 × HBM — add GPUs or quantize weights'; b.className='dbadge warn'; return;}
+  const maxtok=pool/kvtok, con=maxtok/ctx;
+  $('kv-pool').textContent=gb(pool); $('kv-max').textContent=fnum(maxtok)+' tok';
+  $('kv-con').textContent=con>=1?Math.floor(con).toLocaleString():con.toFixed(2);
+  if(con>=1){b.textContent='✓ serves '+Math.floor(con).toLocaleString()+' concurrent requests at '+$('kv-ctxo').textContent+' context'; b.className='dbadge ok';}
+  else{b.textContent='✗ one request at this context does not fit — quantize KV, shrink context, or add GPUs'; b.className='dbadge warn';}
+}
+};
+const $=id=>document.getElementById(id);
+function fnum(x){if(x>=1e12)return (x/1e12).toPrecision(3)+'T'; if(x>=1e9)return (x/1e9).toPrecision(3)+'B'; if(x>=1e6)return (x/1e6).toPrecision(3)+'M'; if(x>=1e3)return (x/1e3).toPrecision(3)+'K'; return x.toPrecision(3);}
+function gb(b){return b>=1e12?(b/1e12).toFixed(2)+' TB':(b/1e9).toFixed(1)+' GB';}
+document.addEventListener('input',e=>{const d=e.target.closest('.demo'); if(d&&UPDI[d.dataset.demo])UPDI[d.dataset.demo]();});
+
+/* interactive mesh grid */
+const MESHVIEWS={
+ dp:{f:r=>r>>1, cap:"<strong>dp = dp_replicate × dp_shard (cp excluded)</strong> — 4 data groups; the two cp ranks inside each group load the <em>same</em> sample (they split its tokens). This is the mesh the data loader reads — no communication ever happens on it."},
+ fsdp:{f:r=>r>>2, cap:"<strong>dp_shard_cp = dp_shard × cp</strong> — 2 groups of 4: each replica's parameters are FSDP-sharded across its 4 GPUs (all-gather forward, reduce-scatter backward). cp is included so params spread thinner."},
+ loss:{f:r=>0, cap:"<strong>dp_cp = everyone</strong> — every rank that saw a piece of any sample joins the loss/gradient all-reduce. One group; the math is only correct if nobody is left out."}};
+function paintGrid(view){
+ const svg=document.getElementById('meshgrid'); if(!svg)return;
+ const cols=['var(--c1)','var(--c2)','var(--c3)','var(--c4)'];
+ svg.querySelectorAll('.gpu').forEach(rc=>{rc.setAttribute('fill',cols[MESHVIEWS[view].f(+rc.dataset.r)%4]);});
+ const cap=document.getElementById('gridcap'); if(cap)cap.innerHTML=MESHVIEWS[view].cap;
+ document.querySelectorAll('.gridbtn').forEach(b=>b.classList.toggle('on',b.dataset.view===view));
+}
+document.addEventListener('click',e=>{const b=e.target.closest('.gridbtn'); if(b)paintGrid(b.dataset.view);});
+
+/* build flat slide list */
+const SLIDES=[];
+SLIDES.push({type:'cover'});
+SLIDES.push({type:'howto'});
+SECTIONS.forEach((s,i)=>{ SLIDES.push({type:'lead',sec:s,idx:i}); s.slides.forEach(c=>{c.secTitle=s.title; SLIDES.push(c);}); });
+
+/* ============================== RENDER ============================== */
+const stage=document.getElementById('stage');
+const els=SLIDES.map((s,i)=>{
+  const d=document.createElement('div');
+  d.className='slide '+(s.type==='lead'||s.type==='cover'?'lead':'content');
+  if(s.type==='cover'){
+    d.innerHTML=`<div class="kicker">infra_learning · OSS track</div>
+    <h1>LLM Infra</h1><h2>Large-scale training &amp; inference — the engineering</h2>
+    <p>Distilled from the <code>notes/</code> teardowns and concept files. Code anchors:
+    <strong>torchtitan · vLLM · DeepSeek-V3 · flash-attention · ringattention · xDiT · Wan2.2</strong>.
+    The mental model: <em>“100 nodes train 10 copies”</em> → <code>dp_replicate=10</code>, each replica sharded across the rest.
+    The one skill: name the collective at every arrow, and prove sharded == single-GPU to <code>atol</code>.</p>
+    <div class="minis">${SECTIONS.map(s=>`<span class="mini" data-go="${s.title}">${s.title.replace(/§\d+ · /,'')}</span>`).join('')}</div>`;
+  } else if(s.type==='howto'){
+    d.innerHTML=`<h1 class="gt">How to read this deck</h1>
+    <table class="neat"><tbody>
+    <tr><td style="width:220px"><strong>One slide per concept</strong></td><td>chip at bottom = the note/code anchor in the repo</td></tr>
+    <tr><td><strong>The one diagram</strong></td><td>every system = a product of orthogonal parallelism axes over one GPU grid</td></tr>
+    <tr><td><strong>Two objectives</strong></td><td>training shards to <em>fit</em> (model+batch) · serving shards for <em>latency+throughput</em> — same collectives, opposite goals</td></tr>
+    <tr><td><strong>Navigate</strong></td><td><code>←</code>/<code>→</code> slides · <code>G</code> overview · <code>/</code> search · <code>T</code> contents · <code>D</code> dark mode</td></tr>
+    </tbody></table>
+    <div class="callout">The art of industry-level code: (a) compose axes into a device mesh, (b) insert the right collective at the right line — math stays correct, memory and comms stay bounded.</div>`;
+  } else if(s.type==='lead'){
+    d.innerHTML=`<div class="kicker">Section ${s.idx+1} of ${SECTIONS.length}</div>
+    <h1>${s.sec.title.replace(/§\d+ · /,'')}</h1><h2>${s.sec.sub}</h2>
+    <div class="minis">${s.sec.slides.map((c,ix)=>`<span class="mini" data-go-title="${c.title}">${c.title.split('—')[0].trim()}</span>`).join('')}</div>`;
+  } else {
+    d.innerHTML=`<div class="klabel">${s.secTitle.replace(/§\d+ · /,'')}</div>
+    <h1 class="ptitle">${s.title}</h1>
+    <div class="body"><ul>${s.bullets.map((b,ix)=>`<li style="animation-delay:${ix*80}ms">${b}</li>`).join('')}</ul></div>
+    ${VIZI[s.title]?`<div class="viz">${VIZI[s.title]}</div>`:''}
+    ${s.table||''}
+    ${s.callout?`<div class="callout">${s.callout}</div>`:''}
+    ${DEMOI[s.title]||''}
+    <div class="chiprow"><span class="chip">${s.chip}</span></div>`;
+  }
+  stage.appendChild(d);
+  return d;
+});
+
+/* ============================== NAV (same engine) ============================== */
+let cur=0;
+const counter=document.getElementById('counter'), progress=document.getElementById('progress'), secname=document.getElementById('secname');
+function show(i,push=true){
+  i=Math.max(0,Math.min(SLIDES.length-1,i));
+  els.forEach((e,ix)=>{e.classList.toggle('active',ix===i); e.classList.toggle('prev',ix<i);});
+  cur=i;
+  counter.textContent=(i+1)+" / "+SLIDES.length;
+  progress.style.width=((i)/(SLIDES.length-1)*100)+"%";
+  const s=SLIDES[i];
+  secname.textContent=s.secTitle||(s.type==='lead'?s.sec.title:'');
+  if(push) history.replaceState(null,'','#'+(i+1));
+  document.querySelectorAll('#toc .item').forEach(it=>it.classList.toggle('now',+it.dataset.i===i));
+  els[i].scrollTop=0;
+}
+document.getElementById('b-prev').onclick=()=>show(cur-1);
+document.getElementById('b-next').onclick=()=>show(cur+1);
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go-title]'); if(g){const ix=SLIDES.findIndex(s=>s.title===g.dataset.goTitle); if(ix>=0){closeAll();show(ix);} return;}
+  const m=e.target.closest('.mini[data-go]'); if(m){const ix=SLIDES.findIndex(s=>s.type==='lead'&&s.sec.title===m.dataset.go); if(ix>=0){closeAll();show(ix);}}
+});
+
+const overview=document.getElementById('overview'), ovgrid=document.getElementById('ovgrid');
+let ovBuilt=false;
+function buildOv(){
+  if(ovBuilt)return; ovBuilt=true;
+  let html='';
+  SLIDES.forEach((s,i)=>{
+    if(s.type==='lead') html+=`<div class="ovsec">${s.sec.title} — ${s.sec.sub}</div>`;
+    const cls=(s.type==='lead'||s.type==='cover')?'ovcard lead-card':'ovcard';
+    const t=s.type==='cover'?'LLM Infra':s.type==='howto'?'How to read':s.type==='lead'?s.sec.title:s.title;
+    const sub=s.type==='concept'?(s.chip||''):'';
+    html+=`<div class="${cls}" data-i="${i}"><div class="n">slide ${i+1}</div><div class="t">${t}</div><div class="s">${sub.slice(0,80)}</div></div>`;
+  });
+  ovgrid.innerHTML=html;
+  ovgrid.addEventListener('click',e=>{const c=e.target.closest('.ovcard'); if(c){show(+c.dataset.i); toggleOv(false);}});
+}
+function toggleOv(open){ buildOv(); overview.classList.toggle('open',open);
+  if(open) ovgrid.querySelectorAll('.ovcard').forEach(c=>c.classList.toggle('now',+c.dataset.i===cur)); }
+document.getElementById('b-grid').onclick=()=>toggleOv(!overview.classList.contains('open'));
+
+const toc=document.getElementById('toc');
+(function(){
+  let html='';
+  SLIDES.forEach((s,i)=>{
+    if(s.type==='cover') html+=`<div class="item" data-i="${i}"><span class="n">◈</span>Cover</div>`;
+    else if(s.type==='howto') html+=`<div class="item" data-i="${i}"><span class="n">·</span>How to read</div>`;
+    else if(s.type==='lead') html+=`<div class="sec">${s.sec.title}</div>`;
+    else html+=`<div class="item" data-i="${i}"><span class="n">${i+1}</span>${s.title}</div>`;
+  });
+  toc.innerHTML=html;
+  toc.addEventListener('click',e=>{const it=e.target.closest('.item'); if(it){show(+it.dataset.i); toc.classList.remove('open');}});
+})();
+document.getElementById('b-toc').onclick=()=>toc.classList.toggle('open');
+
+const search=document.getElementById('search'), sinput=document.getElementById('sinput'), sresults=document.getElementById('sresults');
+const INDEX=SLIDES.map((s,i)=>({i, t:s.type==='concept'?s.title:s.type==='lead'?s.sec.title:s.type==='howto'?'How to read':'Cover',
+  body:(s.type==='concept'?(s.bullets.join(' ')+' '+(s.callout||'')):'').replace(/<[^>]+>/g,'').toLowerCase(),
+  sec:s.secTitle||''}));
+let sel=0, hits=[];
+function doSearch(q){
+  q=q.trim().toLowerCase();
+  hits=!q?[]:INDEX.filter(x=>x.t.toLowerCase().includes(q)||x.body.includes(q)).slice(0,12);
+  sel=0;
+  sresults.innerHTML=hits.map((h,ix)=>`<div class="sres ${ix===0?'sel':''}" data-i="${h.i}"><span class="n">${h.i+1}</span><span class="t">${h.t}</span><span class="x">${h.sec.replace(/§\d+ · /,'')}</span></div>`).join('');
+}
+sinput.addEventListener('input',()=>doSearch(sinput.value));
+sresults.addEventListener('click',e=>{const r=e.target.closest('.sres'); if(r){show(+r.dataset.i); closeAll();}});
+function openSearch(){ search.classList.add('open'); sinput.value=''; doSearch(''); setTimeout(()=>sinput.focus(),30); }
+document.getElementById('b-search').onclick=openSearch;
+
+const help=document.getElementById('help');
+document.getElementById('b-help').onclick=()=>help.classList.toggle('open');
+function setTheme(t){ document.documentElement.dataset.theme=t; localStorage.setItem('infraslides-theme',t); }
+document.getElementById('b-theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+setTheme(localStorage.getItem('infraslides-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+
+function closeAll(){ overview.classList.remove('open'); toc.classList.remove('open'); search.classList.remove('open'); help.classList.remove('open'); }
+
+document.addEventListener('keydown',e=>{
+  if(search.classList.contains('open')){
+    if(e.key==='Escape'){closeAll();}
+    else if(e.key==='ArrowDown'){sel=Math.min(hits.length-1,sel+1); paint();}
+    else if(e.key==='ArrowUp'){sel=Math.max(0,sel-1); paint();}
+    else if(e.key==='Enter'&&hits[sel]){show(hits[sel].i); closeAll();}
+    function paint(){[...sresults.children].forEach((c,ix)=>c.classList.toggle('sel',ix===sel));}
+    return;
+  }
+  if(e.key==='/'||((e.metaKey||e.ctrlKey)&&e.key==='k')){e.preventDefault(); openSearch(); return;}
+  if(e.key==='Escape'){ if(toc.classList.contains('open')||help.classList.contains('open')){closeAll();} else toggleOv(!overview.classList.contains('open')); return;}
+  switch(e.key){
+    case 'ArrowRight': case ' ': case 'PageDown': e.preventDefault(); closeAll(); show(cur+1); break;
+    case 'ArrowLeft': case 'PageUp': e.preventDefault(); closeAll(); show(cur-1); break;
+    case 'Home': show(0); break;
+    case 'End': show(SLIDES.length-1); break;
+    case 'g': case 'G': toggleOv(!overview.classList.contains('open')); break;
+    case 't': case 'T': toc.classList.toggle('open'); break;
+    case 'd': case 'D': document.getElementById('b-theme').click(); break;
+    case '?': help.classList.toggle('open'); break;
+  }
+});
+
+let tx=null;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(tx===null)return; const dx=e.changedTouches[0].clientX-tx; tx=null;
+  if(Math.abs(dx)>60){ dx<0?show(cur+1):show(cur-1); }
+},{passive:true});
+
+const h=parseInt(location.hash.slice(1)); show(isNaN(h)?0:h-1,false);
+paintGrid('dp');
+Object.values(UPDI).forEach(f=>f());
+document.querySelectorAll('.dctl').forEach(c=>{const l=c.querySelector('label'),i=c.querySelector('input,select'); if(l&&i&&!i.getAttribute('aria-label'))i.setAttribute('aria-label',l.textContent);});
+</script>
+</body>
+</html>
