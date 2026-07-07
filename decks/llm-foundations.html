@@ -81,6 +81,9 @@ html[data-theme="dark"]{--c1:#3987e5; --c2:#199e70; --c3:#c98500; --c4:#9085e9; 
 .brand{font-weight:800; font-size:13px; letter-spacing:.04em; color:var(--muted);
   text-transform:uppercase; user-select:none}
 .brand b{color:var(--accent-dark)}
+.brand a.author{color:var(--accent-dark); text-decoration:none}
+.brand a.author:hover{text-decoration:underline}
+
 .spacer{flex:1}
 .btn{border:1px solid var(--line); background:var(--card); color:var(--fg);
   border-radius:9px; padding:6px 11px; font:600 12.5px "Inter"; cursor:pointer;
@@ -235,7 +238,7 @@ table.neat tbody tr:hover{background:var(--card)}
 <body>
 <div id="progress"></div>
 <div id="topbar">
-  <span class="brand">LLM <b>Foundations</b> · 39 papers</span>
+  <span class="brand">LLM <b>Foundations</b> · 39 papers · <a class="author" href="https://mikelmh025.github.io/Minghao-web-page/" target="_blank" rel="noopener">Minghao Liu</a></span>
   <div class="spacer"></div>
   <button class="btn" id="b-toc">☰ Contents</button>
   <button class="btn" id="b-search">Search <kbd>/</kbd></button>
@@ -975,6 +978,7 @@ const els = SLIDES.map((s,i)=>{
     and <strong>In practice (2026)</strong> (current defaults, gotchas, what superseded what).
     Two spines run through everything: <strong>decode is bandwidth-bound</strong> (#22) and
     <strong>verifiability determines the post-training method</strong> (#32).</p>
+    <p style="margin-top:16px;font-weight:600">by <a href="https://mikelmh025.github.io/Minghao-web-page/" target="_blank" rel="noopener" style="color:var(--accent)">Minghao Liu</a></p>
     <div class="minis">${SECTIONS.map((s,ix)=>`<span class="mini" data-go="${s.title}">${s.title.replace(/§\d+ · /,'')}</span>`).join('')}</div>`;
   } else if(s.type==='howto'){
     d.innerHTML=`<h1 class="gt">How to read this deck</h1>
