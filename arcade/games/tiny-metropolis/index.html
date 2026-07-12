@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Tiny Metropolis</title>
+<style>
+  :root{
+    --bg:#12121a; --panel:#1a1a26; --panel2:#20202e; --ink:#e8e8f2; --dim:#9a9ab0;
+    --gold:#ffd45e; --green:#7ce88a; --red:#ff7a7a; --blue:#6db3f2; --line:#2b2b3d;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex; flex-direction:column; height:100dvh;
+    -webkit-user-select:none; user-select:none;
+  }
+  header{
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    padding-top:max(8px, env(safe-area-inset-top));
+    background:var(--panel); border-bottom:1px solid var(--line); flex:0 0 auto; z-index:20;
+  }
+  header a{ color:var(--dim); text-decoration:none; font-size:13px; white-space:nowrap; }
+  header a:hover{ color:var(--ink); }
+  #gtitle{ font-weight:900; letter-spacing:1px; font-size:14px; flex:1; text-align:center;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pill{
+    background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+    border-radius:999px; padding:7px 12px; font-size:13px; font-weight:700;
+    cursor:pointer; min-height:34px; display:inline-flex; align-items:center; gap:5px;
+    text-decoration:none !important; font-variant-numeric:tabular-nums;
+  }
+  .pill:active{ transform:scale(.96); }
+  #stats{
+    display:flex; align-items:center; gap:10px; padding:6px 12px; background:var(--panel);
+    border-bottom:1px solid var(--line); flex:0 0 auto; flex-wrap:wrap; z-index:20;
+  }
+  #cashBig{ font-size:22px; font-weight:900; color:var(--gold); font-variant-numeric:tabular-nums; }
+  .stat{ font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .stat b{ color:var(--ink); font-size:13px; }
+  #boostPill{ display:none; background:#3a2f10; border-color:#6b5518; color:var(--gold);
+    font-size:12px; padding:4px 10px; min-height:26px; animation:pulse 1s infinite alternate; }
+  @keyframes pulse{ from{ opacity:.75; } to{ opacity:1; } }
+  #wrap{ position:relative; flex:1 1 auto; min-height:120px; background:#000; overflow:hidden; }
+  #cv{ position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  #panel{
+    flex:0 0 auto; background:var(--panel); border-top:1px solid var(--line);
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:8px; z-index:20;
+  }
+  #actions{ display:flex; gap:8px; align-items:stretch; }
+  #actions .pill{ flex:1; justify-content:center; min-height:44px; font-size:13px; text-align:center; }
+  #exportBtn{ background:#14301c; border-color:#2a5a37; color:var(--green); }
+  #exportBtn:disabled{ opacity:.55; color:var(--dim); background:var(--panel2); border-color:var(--line); }
+  #prestigeBtn{ background:#2c2410; border-color:#5c4a1c; color:var(--gold); }
+  #prestigeBtn.ready{ animation:pulse .8s infinite alternate; box-shadow:0 0 14px rgba(255,212,94,.35); }
+  #qtyBtn{ flex:0 0 auto; min-width:60px; }
+  #cards{
+    display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; padding-bottom:4px;
+    -webkit-overflow-scrolling:touch; touch-action:pan-x; scrollbar-width:thin;
+  }
+  .card{
+    flex:0 0 148px; background:var(--panel2); border:1px solid var(--line); border-radius:12px;
+    padding:8px; display:flex; flex-direction:column; gap:5px;
+  }
+  .card.locked{ opacity:.6; }
+  .card .top{ display:flex; align-items:center; gap:6px; }
+  .card .icon{ font-size:22px; }
+  .card .name{ font-weight:800; font-size:13px; flex:1; }
+  .card .cnt{ font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .card .inc{ font-size:11px; color:var(--green); font-variant-numeric:tabular-nums; min-height:13px; }
+  .card button{
+    background:#26263a; border:1px solid #3a3a55; color:var(--ink); border-radius:9px;
+    padding:8px 6px; font-size:12px; font-weight:800; cursor:pointer; min-height:40px;
+    font-variant-numeric:tabular-nums; width:100%;
+  }
+  .card button:active{ transform:scale(.97); }
+  .card button:disabled{ opacity:.4; }
+  .card button.buy{ background:#1c3326; border-color:#2f5a41; color:var(--green); }
+  .card button.up{ background:#1c2a3a; border-color:#2f4a6a; color:var(--blue); }
+  .card .lockmsg{ font-size:11px; color:var(--dim); line-height:1.4; }
+  /* toasts */
+  #toasts{ position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:40;
+    display:flex; flex-direction:column; gap:6px; align-items:center; pointer-events:none; width:92%; }
+  .toast{
+    background:rgba(20,20,32,.92); border:1px solid var(--line); color:var(--ink);
+    border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700;
+    box-shadow:0 6px 20px rgba(0,0,0,.5); animation:tin .3s ease-out; max-width:100%; text-align:center;
+  }
+  .toast.gold{ border-color:#6b5518; color:var(--gold); }
+  @keyframes tin{ from{ opacity:0; transform:translateY(-12px);} to{ opacity:1; transform:translateY(0);} }
+  .toast.out{ opacity:0; transform:translateY(-10px); transition:all .4s; }
+  .floaty{ position:absolute; z-index:45; font-weight:900; font-size:18px; pointer-events:none;
+    text-shadow:0 2px 6px rgba(0,0,0,.8); animation:floatup 1.5s ease-out forwards; white-space:nowrap; }
+  @keyframes floatup{ from{ opacity:1; transform:translate(-50%,0);} to{ opacity:0; transform:translate(-50%,-80px);} }
+  /* modals */
+  .modal-back{ position:fixed; inset:0; background:rgba(6,6,12,.7); z-index:60;
+    display:none; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(3px); }
+  .modal-back.show{ display:flex; }
+  .modal{
+    background:var(--panel); border:1px solid #3a3a55; border-radius:16px; padding:22px 20px;
+    max-width:360px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.7);
+    animation:min .25s ease-out;
+  }
+  @keyframes min{ from{ opacity:0; transform:scale(.92);} to{ opacity:1; transform:scale(1);} }
+  .modal h2{ margin:0 0 8px; font-size:19px; }
+  .modal p{ color:var(--dim); font-size:13px; line-height:1.5; margin:6px 0; }
+  .modal .big{ font-size:30px; font-weight:900; color:var(--gold); margin:10px 0; font-variant-numeric:tabular-nums; }
+  .modal .btnrow{ display:flex; gap:10px; margin-top:14px; }
+  .modal .btnrow .pill{ flex:1; justify-content:center; min-height:46px; font-size:14px; }
+  .mainbtn{ background:#2c5a3a !important; border-color:#3f7d52 !important; color:#dfffe8 !important; }
+  .warnbtn{ background:#4a2020 !important; border-color:#7a3535 !important; color:#ffd0d0 !important; }
+  @media (max-width:480px){
+    #gtitle{ font-size:12px; }
+    .stat .lbl{ display:none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <a href="../../arcade.html">← Arcade</a>
+  <div id="gtitle">🏙️ TINY METROPOLIS</div>
+  <div class="pill" id="walletPill" title="Arcade Coins"><span id="walletNum">0</span>🪙</div>
+  <button class="pill" id="muteBtn" title="Sound">🔊</button>
+  <a href="../../vault.html" class="pill" title="Card Vault">🎴</a>
+</header>
+
+<div id="stats">
+  <span id="cashBig">$0</span>
+  <span class="stat"><span class="lbl">income </span><b id="incLbl">$0/s</b></span>
+  <span class="stat">👥 <b id="popLbl">0</b></span>
+  <span class="stat">⭐ <b id="starLbl">0</b> <span id="multLbl">(×1.0)</span></span>
+  <span class="pill" id="boostPill">⚡×2 <span id="boostLbl">60s</span></span>
+</div>
+
+<div id="wrap"><canvas id="cv"></canvas><div id="toasts"></div></div>
+
+<div id="panel">
+  <div id="actions">
+    <button class="pill" id="qtyBtn">×1</button>
+    <button class="pill" id="exportBtn">📦 Export Goods</button>
+    <button class="pill" id="prestigeBtn">📜 New Charter</button>
+  </div>
+  <div id="cards"></div>
+</div>
+
+<!-- intro modal -->
+<div class="modal-back" id="introBack">
+  <div class="modal">
+    <h2>🏙️ Tiny Metropolis</h2>
+    <p>Found a tiny city and watch it come alive. Buildings earn <b style="color:var(--gold)">City Cash</b> every second — <b>even while you're away</b> (up to 8h).</p>
+    <p>🏠 Buy &amp; upgrade buildings · 📦 Export Goods for arcade 🪙 every 10 min · ✨ Tap the golden blimp for ×2 · 📜 Prestige for permanent ⭐ multipliers.</p>
+    <p style="font-size:12px">Tap the city for little surprises. 🎈🐈</p>
+    <div class="btnrow"><button class="pill mainbtn" id="introGo">Found the City</button></div>
+  </div>
+</div>
+
+<!-- welcome back modal -->
+<div class="modal-back" id="wbBack">
+  <div class="modal">
+    <h2>🌇 Welcome back, Mayor!</h2>
+    <p id="wbAway">While you were away (2h 14m):</p>
+    <p style="margin-bottom:0">your city earned</p>
+    <div class="big" id="wbAmount">$0</div>
+    <p id="wbNote" style="font-size:12px"></p>
+    <div class="btnrow"><button class="pill mainbtn" id="wbGo">Collect</button></div>
+  </div>
+</div>
+
+<!-- prestige modal -->
+<div class="modal-back" id="pgBack">
+  <div class="modal">
+    <h2>📜 New City Charter</h2>
+    <p>Demolish the city and refound it under a new charter. You keep your ⭐ Charter Stars forever — each star grants <b>+10% income</b>.</p>
+    <div class="big" id="pgGain">+1 ⭐</div>
+    <p id="pgDetail"></p>
+    <div class="btnrow">
+      <button class="pill" id="pgNo">Not yet</button>
+      <button class="pill warnbtn" id="pgYes">Refound City</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+ * TINY METROPOLIS — an idle city-builder diorama.
+ * Part 1: DOM-free economy core (headless-testable).
+ * Part 2: living-city renderer + UI (guarded by typeof window).
+ * ===================================================================== */
+
+var TM = (function () {
+
+  var TYPES = [
+    { id:'house',   name:'House',   icon:'🏠', baseCost:15,      baseIncome:0.6,   pop:4, unlock:0,      cap:3  },
+    { id:'shop',    name:'Shop',    icon:'🏪', baseCost:150,     baseIncome:4,     pop:3, unlock:300,    cap:2  },
+    { id:'office',  name:'Office',  icon:'🏢', baseCost:1200,    baseIncome:24,    pop:6, unlock:2500,   cap:11 },
+    { id:'factory', name:'Factory', icon:'🏭', baseCost:9000,    baseIncome:130,   pop:8, unlock:18000,  cap:3  },
+    { id:'park',    name:'Park',    icon:'🌳', baseCost:60000,   baseIncome:650,   pop:2, unlock:110000, cap:4  },
+    { id:'cinema',  name:'Cinema',  icon:'🎬', baseCost:350000,  baseIncome:2800,  pop:5, unlock:600000, cap:2  },
+    { id:'bank',    name:'Bank',    icon:'🏦', baseCost:2e6,     baseIncome:12000, pop:4, unlock:3.5e6,  cap:7  },
+    { id:'lab',     name:'Lab',     icon:'🔬', baseCost:1.2e7,   baseIncome:55000, pop:7, unlock:2e7,    cap:5  }
+  ];
+  var BY_ID = {};
+  TYPES.forEach(function (t) { BY_ID[t.id] = t; });
+
+  var COST_G = 1.18;            // building cost growth per purchase
+  var UP_MULT = 30;             // upgrade base = baseCost * 30
+  var UP_G = 8;                 // upgrade cost growth per level
+  var STAR_BONUS = 0.10;        // +10% income per star
+  var OFFLINE_CAP = 8 * 3600;   // seconds
+  var EXPORT_CD = 600000;       // 10 minutes (ms)
+  var START_CASH = 20;
+
+  var POP_MILESTONES = [
+    { pop:25,     msg:'👋 First neighbors move in!' },
+    { pop:100,    msg:'🏘️ Population 100 — a real village now!' },
+    { pop:250,    msg:'🚌 Population 250! The bus line opens.' },
+    { pop:500,    msg:'🎪 500 citizens — the street fair arrives!' },
+    { pop:1000,   msg:'🧳 Population hit 1,000! Tourists arrive.' },
+    { pop:2500,   msg:'📰 2,500 strong — the Tiny Times starts printing!' },
+    { pop:5000,   msg:'🏛️ 5,000 citizens — official city status!' },
+    { pop:10000,  msg:'🎆 Population 10,000! Fireworks over the skyline.' },
+    { pop:25000,  msg:'🚇 25,000! Plans drawn for a tiny subway.' },
+    { pop:50000,  msg:'🌐 50,000 — Tiny Metropolis makes the world map!' },
+    { pop:100000, msg:'👑 100,000 citizens. A true metropolis!' }
+  ];
+
+  function mulberry32(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function num(v, d) { v = Number(v); return isFinite(v) ? v : d; }
+
+  function newState() {
+    return {
+      v: 1,
+      cash: START_CASH,
+      lifetime: 0,
+      stars: 0,
+      counts: {},
+      levels: {},
+      lastSeen: 0,
+      lastExport: 0,
+      boostUntil: 0,
+      muted: false,
+      seenIntro: false,
+      seen: {},          // milestone flags
+      city: [],          // view layer: [{t,lot,fl,q}]
+      exported: 0
+    };
+  }
+
+  function countOf(s, id) { return num(s.counts[id], 0); }
+  function levelOf(s, id) { return num(s.levels[id], 0); }
+
+  function buildingCost(id, count) {
+    return BY_ID[id].baseCost * Math.pow(COST_G, count);
+  }
+  function costOf(s, id) { return buildingCost(id, countOf(s, id)); }
+
+  // total cost of buying k buildings starting from `count` owned (geometric sum)
+  function bulkCost(id, count, k) {
+    if (k <= 0) return 0;
+    var c0 = buildingCost(id, count);
+    return c0 * (Math.pow(COST_G, k) - 1) / (COST_G - 1);
+  }
+  // max buildings affordable with `cash` given `count` owned
+  function maxAffordable(id, count, cash) {
+    var c0 = buildingCost(id, count);
+    if (cash < c0) return 0;
+    var k = Math.floor(Math.log(cash * (COST_G - 1) / c0 + 1) / Math.log(COST_G));
+    while (bulkCost(id, count, k + 1) <= cash) k++;   // guard fp
+    while (k > 0 && bulkCost(id, count, k) > cash) k--;
+    return k;
+  }
+
+  function upgradeCost(s, id) {
+    return BY_ID[id].baseCost * UP_MULT * Math.pow(UP_G, levelOf(s, id));
+  }
+
+  function typeIncome(s, id) {
+    return countOf(s, id) * BY_ID[id].baseIncome * Math.pow(2, levelOf(s, id));
+  }
+  function starMult(stars) { return 1 + num(stars, 0) * STAR_BONUS; }
+  function baseIncomePerSec(s) {
+    var sum = 0;
+    for (var i = 0; i < TYPES.length; i++) sum += typeIncome(s, TYPES[i].id);
+    return sum * starMult(s.stars);
+  }
+  // `now` (ms) optional: when provided and < boostUntil, x2 boost applies.
+  function incomePerSec(s, now) {
+    var boost = (now !== undefined && now < num(s.boostUntil, 0)) ? 2 : 1;
+    return baseIncomePerSec(s) * boost;
+  }
+
+  function tick(s, dt, now) {
+    if (!(dt > 0)) return 0;
+    var e = incomePerSec(s, now) * dt;
+    if (!isFinite(e) || e < 0) e = 0;
+    s.cash += e;
+    s.lifetime += e;
+    return e;
+  }
+
+  // Deterministic offline earnings: no boost, capped at 8h.
+  function offlineEarnings(s, awaySec) {
+    var t = Math.max(0, Math.min(num(awaySec, 0), OFFLINE_CAP));
+    return baseIncomePerSec(s) * t;
+  }
+
+  function isUnlocked(s, id) {
+    return s.lifetime >= BY_ID[id].unlock || countOf(s, id) > 0;
+  }
+  function unlockedTypes(s) {
+    return TYPES.filter(function (t) { return isUnlocked(s, t.id); });
+  }
+
+  function buy(s, id, k) {
+    k = k || 1;
+    if (!BY_ID[id] || !isUnlocked(s, id)) return 0;
+    var have = countOf(s, id);
+    if (k > 1) k = Math.min(k, maxAffordable(id, have, s.cash));
+    if (k < 1) k = (s.cash >= buildingCost(id, have)) ? 1 : 0;
+    if (k < 1) return 0;
+    var cost = bulkCost(id, have, k);
+    if (s.cash < cost) return 0;
+    s.cash -= cost;
+    s.counts[id] = have + k;
+    return k;
+  }
+
+  function upgrade(s, id) {
+    if (!BY_ID[id] || countOf(s, id) < 1) return false;
+    var c = upgradeCost(s, id);
+    if (s.cash < c) return false;
+    s.cash -= c;
+    s.levels[id] = levelOf(s, id) + 1;
+    return true;
+  }
+
+  /* ---- prestige ---- */
+  function starsFor(lifetime) {
+    return Math.floor(Math.sqrt(Math.max(0, num(lifetime, 0)) / 1e6));
+  }
+  function prestigeGain(s) { return Math.max(0, starsFor(s.lifetime) - num(s.stars, 0)); }
+  function doPrestige(s) {
+    var g = prestigeGain(s);
+    if (g < 1) return 0;
+    s.stars = num(s.stars, 0) + g;
+    s.cash = START_CASH;
+    s.counts = {};
+    s.levels = {};
+    s.city = [];
+    s.boostUntil = 0;
+    return g;
+  }
+
+  /* ---- arcade export ---- */
+  // coins = min(120, log10(lifetime)*8) * (1+bonusPct/100), then lucky mult.
+  function exportBase(lifetime, bonusPct) {
+    var lg = Math.log(Math.max(1, num(lifetime, 0))) / Math.LN10;
+    var base = Math.min(120, lg * 8);
+    return Math.max(1, Math.round(base * (1 + num(bonusPct, 0) / 100)));
+  }
+  function luckyMult(r) { return r < 0.01 ? 5 : r < 0.04 ? 3 : r < 0.14 ? 2 : 1; }
+  function canExport(lastExport, now) { return now - num(lastExport, 0) >= EXPORT_CD; }
+  function exportResult(lifetime, bonusPct, rLucky, rTicket) {
+    var base = exportBase(lifetime, bonusPct);
+    var lucky = luckyMult(num(rLucky, 1));
+    return { base: base, lucky: lucky, n: base * lucky, ticket: num(rTicket, 1) < 0.03 };
+  }
+
+  function population(s) {
+    var p = 0;
+    for (var i = 0; i < TYPES.length; i++) p += countOf(s, TYPES[i].id) * TYPES[i].pop;
+    return p;
+  }
+
+  /* ---- save / load ---- */
+  function serialize(s) {
+    return {
+      v: 1, cash: s.cash, lifetime: s.lifetime, stars: s.stars,
+      counts: s.counts, levels: s.levels, lastSeen: s.lastSeen,
+      lastExport: s.lastExport, boostUntil: s.boostUntil, muted: !!s.muted,
+      seenIntro: !!s.seenIntro, seen: s.seen, city: s.city, exported: s.exported
+    };
+  }
+  function deserialize(raw) {
+    var s = newState();
+    if (!raw || typeof raw !== 'object') return s;
+    s.cash = Math.max(0, num(raw.cash, START_CASH));
+    s.lifetime = Math.max(0, num(raw.lifetime, 0));
+    s.stars = Math.max(0, Math.floor(num(raw.stars, 0)));
+    s.lastSeen = num(raw.lastSeen, 0);
+    s.lastExport = num(raw.lastExport, 0);
+    s.boostUntil = num(raw.boostUntil, 0);
+    s.muted = !!raw.muted;
+    s.seenIntro = !!raw.seenIntro;
+    s.exported = Math.max(0, num(raw.exported, 0));
+    if (raw.seen && typeof raw.seen === 'object') s.seen = raw.seen;
+    var i, t;
+    for (i = 0; i < TYPES.length; i++) {
+      t = TYPES[i].id;
+      if (raw.counts) s.counts[t] = Math.max(0, Math.floor(num(raw.counts[t], 0)));
+      if (raw.levels) s.levels[t] = Math.max(0, Math.floor(num(raw.levels[t], 0)));
+    }
+    if (Array.isArray(raw.city)) {
+      for (i = 0; i < raw.city.length; i++) {
+        var b = raw.city[i];
+        if (b && BY_ID[b.t] && isFinite(b.lot)) {
+          s.city.push({ t: b.t, lot: Math.floor(b.lot), fl: Math.max(0, Math.floor(num(b.fl, 0))), q: Math.max(0, Math.floor(num(b.q, 0))) });
+        }
+      }
+    }
+    return s;
+  }
+
+  /* ---- number formatting ---- */
+  var SUFF = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc'];
+  function fmt(n) {
+    n = num(n, 0);
+    var neg = n < 0 ? '-' : '';
+    n = Math.abs(n);
+    if (n < 1000) {
+      if (n === Math.floor(n)) return neg + String(n);
+      return neg + (n < 10 ? n.toFixed(1) : String(Math.floor(n)));
+    }
+    var tier = Math.min(SUFF.length - 1, Math.floor(Math.log10(n) / 3));
+    var v = n / Math.pow(10, tier * 3);
+    return neg + (v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + SUFF[tier];
+  }
+
+  return {
+    TYPES: TYPES, BY_ID: BY_ID,
+    COST_G: COST_G, UP_G: UP_G, UP_MULT: UP_MULT,
+    OFFLINE_CAP: OFFLINE_CAP, EXPORT_CD: EXPORT_CD, START_CASH: START_CASH,
+    POP_MILESTONES: POP_MILESTONES,
+    mulberry32: mulberry32,
+    newState: newState, serialize: serialize, deserialize: deserialize,
+    countOf: countOf, levelOf: levelOf,
+    buildingCost: buildingCost, costOf: costOf, bulkCost: bulkCost, maxAffordable: maxAffordable,
+    upgradeCost: upgradeCost, typeIncome: typeIncome, starMult: starMult,
+    baseIncomePerSec: baseIncomePerSec, incomePerSec: incomePerSec, tick: tick,
+    offlineEarnings: offlineEarnings,
+    isUnlocked: isUnlocked, unlockedTypes: unlockedTypes,
+    buy: buy, upgrade: upgrade,
+    starsFor: starsFor, prestigeGain: prestigeGain, doPrestige: doPrestige,
+    exportBase: exportBase, luckyMult: luckyMult, canExport: canExport, exportResult: exportResult,
+    population: population, fmt: fmt
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) { module.exports = TM; }
+
+/* =====================================================================
+ * Part 2 — the living city (browser only)
+ * ===================================================================== */
+if (typeof window !== 'undefined') (function () {
+
+  var SAVE_KEY = 'arcade-tiny-metropolis';
+  var WALLET_KEY = 'arcade-wallet';
+  var GAME_ID = 'tiny-metropolis';
+
+  /* ---------------- state ---------------- */
+  var S;
+  try { S = TM.deserialize(JSON.parse(localStorage.getItem(SAVE_KEY) || 'null')); }
+  catch (e) { S = TM.newState(); }
+
+  function persist() {
+    S.lastSeen = Date.now();
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(TM.serialize(S))); } catch (e) {}
+  }
+  function loadWallet() {
+    var w = null;
+    try { w = JSON.parse(localStorage.getItem(WALLET_KEY)); } catch (e) {}
+    if (!w || typeof w !== 'object') w = {};
+    if (!isFinite(Number(w.coins))) w.coins = 0;
+    if (!w.earned || typeof w.earned !== 'object') w.earned = {};
+    return w;
+  }
+  function saveWallet(w) { try { localStorage.setItem(WALLET_KEY, JSON.stringify(w)); } catch (e) {} }
+
+  /* ---------------- world geometry ---------------- */
+  var LOTS = 24, LOT_W = 64, PAD = 60;
+  var WORLD_W = PAD * 2 + LOTS * LOT_W;   // 1656
+  var WORLD_H = 430;
+  var BASE_Y = 340;                        // buildings stand here
+  var lotOrder = (function () {            // fill center-outward
+    var o = [], c = (LOTS - 1) / 2, i;
+    for (i = 0; i < LOTS; i++) o.push(i);
+    o.sort(function (a, b) { return Math.abs(a - c) - Math.abs(b - c) || a - b; });
+    return o;
+  })();
+  function lotX(lot) { return PAD + lot * LOT_W; }
+
+  /* ---------------- city view model ---------------- */
+  function cityCap(id) { return TM.BY_ID[id].cap; }
+  function citySum(id) {
+    var n = 0;
+    for (var i = 0; i < S.city.length; i++) if (S.city[i].t === id) n += S.city[i].fl + S.city[i].q;
+    return n;
+  }
+  function freeLot() {
+    var used = {};
+    for (var i = 0; i < S.city.length; i++) used[S.city[i].lot] = 1;
+    for (var j = 0; j < lotOrder.length; j++) if (!used[lotOrder[j]]) return lotOrder[j];
+    return -1;
+  }
+  function cityAddFloor(id, instant) {
+    var cap = cityCap(id), best = null, i, b;
+    for (i = 0; i < S.city.length; i++) {
+      b = S.city[i];
+      if (b.t === id && b.fl + b.q < cap && (!best || b.fl + b.q < best.fl + best.q)) best = b;
+    }
+    if (!best) {
+      var lot = freeLot();
+      if (lot < 0) return;                     // city full: pure density, no new visuals
+      best = { t: id, lot: lot, fl: 0, q: 0 };
+      S.city.push(best);
+    }
+    if (instant) best.fl++; else best.q++;
+  }
+  function reconcileCity() {
+    // make skyline match counts (handles fresh loads / old saves)
+    var mismatch = false, i;
+    for (i = 0; i < TM.TYPES.length; i++) {
+      var id = TM.TYPES[i].id, want = TM.countOf(S, id), have = citySum(id);
+      if (have > want) { mismatch = true; break; }
+    }
+    if (mismatch) S.city = [];
+    for (i = 0; i < TM.TYPES.length; i++) {
+      var id2 = TM.TYPES[i].id, need = TM.countOf(S, id2) - citySum(id2);
+      while (need-- > 0) cityAddFloor(id2, true);
+    }
+    // complete anything that was mid-construction while away
+    for (i = 0; i < S.city.length; i++) { S.city[i].fl += S.city[i].q; S.city[i].q = 0; }
+  }
+
+  /* ---------------- canvas ---------------- */
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var cw = 0, chh = 0, dpr = 1;
+  function resize() {
+    var r = cv.parentNode.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    cw = Math.max(1, r.width); chh = Math.max(1, r.height);
+    cv.width = Math.round(cw * dpr); cv.height = Math.round(chh * dpr);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* ---------------- audio ---------------- */
+  var AC = null, master = null, ambGain = null, rainGain = null, muted = !!S.muted;
+  var lastBlip = 0, lastHammer = 0;
+  function initAudio() {
+    if (AC) return;
+    try {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      master = AC.createGain();
+      master.gain.value = muted ? 0 : 1;
+      master.connect(AC.destination);
+      // noise buffer
+      var len = AC.sampleRate * 2, buf = AC.createBuffer(1, len, AC.sampleRate);
+      var d = buf.getChannelData(0), last = 0;
+      for (var i = 0; i < len; i++) { last = (last + (Math.random() * 2 - 1) * 0.04) * 0.98; d[i] = last * 6; }
+      // city hum (lowpassed noise, gentle swell)
+      var src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+      var lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260;
+      ambGain = AC.createGain(); ambGain.gain.value = 0.04;
+      src.connect(lp); lp.connect(ambGain); ambGain.connect(master); src.start();
+      var lfo = AC.createOscillator(), lg = AC.createGain();
+      lfo.frequency.value = 0.07; lg.gain.value = 0.015;
+      lfo.connect(lg); lg.connect(ambGain.gain); lfo.start();
+      // rain layer (highpassed noise)
+      var src2 = AC.createBufferSource(); src2.buffer = buf; src2.loop = true;
+      var hp = AC.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2800;
+      rainGain = AC.createGain(); rainGain.gain.value = 0;
+      src2.connect(hp); hp.connect(rainGain); rainGain.connect(master); src2.start();
+    } catch (e) { AC = null; }
+  }
+  function tone(freq, dur, type, vol, when) {
+    if (!AC || muted) return;
+    var t0 = (when || AC.currentTime);
+    var o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.08, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  function sfxBlip() {
+    var n = performance.now();
+    if (n - lastBlip < 4500) return;
+    lastBlip = n;
+    tone(880, 0.07, 'sine', 0.022);
+  }
+  function sfxCoin() { tone(988, 0.08, 'sine', 0.09); tone(1319, 0.14, 'sine', 0.09, AC && AC.currentTime + 0.07); }
+  function sfxBuy() { tone(523, 0.08, 'triangle', 0.1); tone(784, 0.12, 'triangle', 0.09, AC && AC.currentTime + 0.06); }
+  function sfxHammer() {
+    if (!AC || muted) return;
+    var n = performance.now();
+    if (n - lastHammer < 350) return;
+    lastHammer = n;
+    var t0 = AC.currentTime;
+    var src = AC.createBufferSource();
+    var len = AC.sampleRate * 0.09, buf = AC.createBuffer(1, len, AC.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    src.buffer = buf;
+    var bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 1.5;
+    var g = AC.createGain(); g.gain.setValueAtTime(0.14, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.1);
+    src.connect(bp); bp.connect(g); g.connect(master); src.start(t0);
+  }
+  function sfxHorn() {
+    tone(220, 0.55, 'sawtooth', 0.05);
+    tone(277, 0.55, 'sawtooth', 0.05);
+  }
+  function sfxFanfare() {
+    if (!AC || muted) return;
+    var seq = [523, 659, 784, 1047];
+    for (var i = 0; i < seq.length; i++) tone(seq[i], 0.16, 'triangle', 0.09, AC.currentTime + i * 0.09);
+  }
+  var muteBtn = document.getElementById('muteBtn');
+  function syncMute() { muteBtn.textContent = muted ? '🔇' : '🔊'; if (master) master.gain.value = muted ? 0 : 1; }
+  muteBtn.addEventListener('click', function () { muted = !muted; S.muted = muted; syncMute(); persist(); });
+  syncMute();
+  window.addEventListener('pointerdown', function () { initAudio(); if (AC && AC.state === 'suspended') AC.resume(); }, { passive: true });
+
+  /* ---------------- toasts / floaties ---------------- */
+  var toastBox = document.getElementById('toasts');
+  function toast(msg, gold) {
+    var el = document.createElement('div');
+    el.className = 'toast' + (gold ? ' gold' : '');
+    el.textContent = msg;
+    toastBox.appendChild(el);
+    while (toastBox.children.length > 3) toastBox.removeChild(toastBox.firstChild);
+    setTimeout(function () { el.classList.add('out'); setTimeout(function () { el.remove(); }, 450); }, 3400);
+  }
+  function floaty(text, x, y) {
+    // x,y in viewport coords; convert into #wrap's local space
+    var wrap = document.getElementById('wrap');
+    var wr = wrap.getBoundingClientRect();
+    var el = document.createElement('div');
+    el.className = 'floaty';
+    el.textContent = text;
+    el.style.left = (x - wr.left) + 'px';
+    el.style.top = Math.max(8, Math.min(wr.height - 30, y - wr.top)) + 'px';
+    wrap.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1500);
+  }
+
+  /* ---------------- living details state ---------------- */
+  var DAY_LEN = 180;   // seconds per full day
+  function dayT() { return ((Date.now() / 1000) / DAY_LEN + 0.32) % 1; }
+  function smooth(a, b, x) { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
+  function daylight(t) { return smooth(0.21, 0.30, t) * (1 - smooth(0.76, 0.86, t)); }
+
+  var rng = TM.mulberry32(Date.now() & 0xffffff);
+  var stars = [];
+  for (var si = 0; si < 130; si++) stars.push({ x: rng(), y: rng() * 0.55, s: 0.6 + rng() * 1.4, p: rng() * 6.28 });
+
+  var clouds = [];
+  for (var ci = 0; ci < 5; ci++) clouds.push({ x: rng() * WORLD_W, y: 30 + rng() * 90, s: 0.7 + rng() * 0.9, v: 3 + rng() * 5 });
+
+  var weather = { mode: 'clear', level: 0, next: 20 + rng() * 40 }; // level: rain intensity 0..1
+  var rainDrops = [];
+  for (var ri = 0; ri < 130; ri++) rainDrops.push({ x: Math.random(), y: Math.random(), v: 0.9 + Math.random() * 0.5 });
+
+  var peds = [], cars = [], birds = [], balloons = [], puffs = [], cats = [];
+  var busTimer = 20 + rng() * 30, carTimer = 2, birdTimer = 8 + rng() * 20;
+  var PED_COLORS = ['#e8a87c', '#c38d9e', '#85cdca', '#e27d60', '#b1cbbb', '#f6d186', '#9ad3bc', '#f5b971'];
+  var CAR_COLORS = ['#d64545', '#4573d6', '#45d68a', '#d6b845', '#9a45d6', '#e8e8f0', '#606a75'];
+
+  var blimp = null, nextBlimpAt = performance.now() + 65000 + rng() * 40000;
+  var construction = [];   // active builds {b, prog}
+  var camX = 0, camAuto = true, camUserUntil = 0, camDrift = rng() * 100;
+
+  function spawnPed() {
+    var dir = rng() < 0.5 ? 1 : -1;
+    peds.push({
+      x: dir > 0 ? -10 : WORLD_W + 10, dir: dir,
+      v: 12 + rng() * 14, lane: rng() < 0.55 ? 352 : 406,
+      c: PED_COLORS[(rng() * PED_COLORS.length) | 0],
+      c2: PED_COLORS[(rng() * PED_COLORS.length) | 0],
+      ph: rng() * 6.28, umb: rng()
+    });
+  }
+  function spawnCar(isBus) {
+    var dir = rng() < 0.5 ? 1 : -1;
+    cars.push({
+      x: dir > 0 ? -60 : WORLD_W + 60, dir: dir,
+      v: (isBus ? 55 : 70 + rng() * 50),
+      y: dir > 0 ? 384 : 364,
+      c: isBus ? '#e8b830' : CAR_COLORS[(rng() * CAR_COLORS.length) | 0],
+      bus: !!isBus, w: isBus ? 52 : 24 + rng() * 8
+    });
+  }
+  function spawnBirds() {
+    var y = 60 + rng() * 100, dir = rng() < 0.5 ? 1 : -1, n = 3 + (rng() * 3 | 0);
+    for (var i = 0; i < n; i++) {
+      birds.push({ x: (dir > 0 ? -20 : WORLD_W + 20) - dir * i * 14, y: y + (rng() - 0.5) * 20, dir: dir, v: 40 + rng() * 20, ph: rng() * 6.28 });
+    }
+  }
+  function spawnDelight(wx, wy) {
+    var r = Math.random();
+    if (r < 0.55 || S.city.length === 0) {
+      var n = 4 + (Math.random() * 3 | 0);
+      for (var i = 0; i < n; i++) {
+        balloons.push({
+          x: wx + (Math.random() - 0.5) * 30, y: Math.min(wy, BASE_Y) + Math.random() * 10,
+          hue: (Math.random() * 360) | 0, v: 22 + Math.random() * 18,
+          ph: Math.random() * 6.28, life: 5 + Math.random() * 2
+        });
+      }
+      tone(660 + Math.random() * 200, 0.12, 'sine', 0.05);
+    } else if (r < 0.85) {
+      var built = S.city.filter(function (b) { return b.fl > 0; });
+      if (built.length) {
+        var b = built[(Math.random() * built.length) | 0];
+        cats.push({ b: b, life: 9 + Math.random() * 4, ph: Math.random() * 6.28 });
+        toast('🐈 A cat appears on a roof!');
+      }
+    } else {
+      spawnBirds();
+    }
+  }
+
+  /* ---------------- input on canvas ---------------- */
+  var pDown = null;
+  cv.addEventListener('pointerdown', function (e) {
+    pDown = { x: e.clientX, y: e.clientY, cx: camX, moved: false, t: performance.now() };
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!pDown) return;
+    var dx = e.clientX - pDown.x;
+    if (Math.abs(dx) > 8) pDown.moved = true;
+    if (pDown.moved) {
+      var scale = chh / WORLD_H;
+      camX = pDown.cx - dx / scale;
+      camUserUntil = performance.now() + 6000;
+    }
+  });
+  cv.addEventListener('pointerup', function (e) {
+    if (!pDown) return;
+    var wasTap = !pDown.moved && performance.now() - pDown.t < 500;
+    pDown = null;
+    if (!wasTap) return;
+    var rect = cv.getBoundingClientRect();
+    var scale = chh / WORLD_H;
+    var wx = (e.clientX - rect.left) / scale + camX;
+    var wy = (e.clientY - rect.top) / scale;
+    if (blimp && Math.abs(wx - blimp.x) < 65 && Math.abs(wy - blimp.y) < 45) {
+      S.boostUntil = Date.now() + 60000;
+      blimp.tapped = true;
+      sfxHorn(); sfxFanfare();
+      toast('⚡ Golden blimp! ×2 income for 60s!', true);
+      persist();
+      return;
+    }
+    spawnDelight(wx, wy);
+  });
+  cv.addEventListener('pointercancel', function () { pDown = null; });
+
+  /* ---------------- UI: cards / actions ---------------- */
+  var cardsBox = document.getElementById('cards');
+  var qtyBtn = document.getElementById('qtyBtn');
+  var exportBtn = document.getElementById('exportBtn');
+  var prestigeBtn = document.getElementById('prestigeBtn');
+  var QTYS = [1, 10, -1];  // -1 = MAX
+  var qtyIdx = 0;
+  qtyBtn.addEventListener('click', function () {
+    qtyIdx = (qtyIdx + 1) % QTYS.length;
+    qtyBtn.textContent = QTYS[qtyIdx] === -1 ? 'MAX' : '×' + QTYS[qtyIdx];
+    refreshCards(true);
+  });
+
+  var cardEls = {}, unlockSig = '';
+  function buildCards() {
+    cardsBox.innerHTML = '';
+    cardEls = {};
+    var shownLocked = 0;
+    TM.TYPES.forEach(function (t) {
+      var un = TM.isUnlocked(S, t.id);
+      if (!un && shownLocked >= 1) return;   // show only the next locked type as teaser
+      if (!un) shownLocked++;
+      var el = document.createElement('div');
+      el.className = 'card' + (un ? '' : ' locked');
+      if (un) {
+        el.innerHTML =
+          '<div class="top"><span class="icon">' + t.icon + '</span><span class="name">' + t.name +
+          '</span><span class="cnt" data-r="cnt"></span></div>' +
+          '<div class="inc" data-r="inc"></div>' +
+          '<button class="buy" data-r="buy"></button>' +
+          '<button class="up" data-r="up"></button>';
+        el.querySelector('[data-r=buy]').addEventListener('click', function () { doBuy(t.id); });
+        el.querySelector('[data-r=up]').addEventListener('click', function () { doUpgrade(t.id); });
+      } else {
+        el.innerHTML =
+          '<div class="top"><span class="icon">🔒</span><span class="name">' + t.name + '</span></div>' +
+          '<div class="lockmsg">Unlocks at<br><b style="color:var(--gold)">$' + TM.fmt(t.unlock) + '</b> lifetime earnings</div>';
+      }
+      cardsBox.appendChild(el);
+      cardEls[t.id] = { el: el, unlocked: un };
+    });
+  }
+  function refreshCards(force) {
+    var sig = TM.unlockedTypes(S).map(function (t) { return t.id; }).join(',');
+    if (sig !== unlockSig || force === 'rebuild') {
+      var newTypes = sig.split(',').filter(function (id) {
+        return id && unlockSig.indexOf(id) === -1 && unlockSig !== '';
+      });
+      unlockSig = sig;
+      buildCards();
+      newTypes.forEach(function (id) {
+        toast(TM.BY_ID[id].icon + ' ' + TM.BY_ID[id].name + ' unlocked!', true);
+        sfxFanfare();
+      });
+    }
+    TM.TYPES.forEach(function (t) {
+      var ce = cardEls[t.id];
+      if (!ce || !ce.unlocked) return;
+      var el = ce.el, cnt = TM.countOf(S, t.id), lv = TM.levelOf(S, t.id);
+      var q = QTYS[qtyIdx];
+      var k = q === -1 ? Math.max(1, TM.maxAffordable(t.id, cnt, S.cash)) : q;
+      var cost = TM.bulkCost(t.id, cnt, k);
+      var bb = el.querySelector('[data-r=buy]');
+      bb.textContent = 'Buy ' + (k > 1 ? '×' + k + ' ' : '') + '· $' + TM.fmt(cost);
+      bb.disabled = S.cash < cost;
+      var uc = TM.upgradeCost(S, t.id);
+      var ub = el.querySelector('[data-r=up]');
+      ub.textContent = '⬆ Lv' + (lv + 1) + ' · $' + TM.fmt(uc);
+      ub.disabled = S.cash < uc || cnt < 1;
+      el.querySelector('[data-r=cnt]').textContent = '×' + cnt + (lv > 0 ? ' · Lv' + lv : '');
+      el.querySelector('[data-r=inc]').textContent =
+        cnt > 0 ? '+$' + TM.fmt(TM.typeIncome(S, t.id) * TM.starMult(S.stars)) + '/s' : 'no income yet';
+    });
+  }
+
+  function doBuy(id) {
+    var cnt = TM.countOf(S, id);
+    var q = QTYS[qtyIdx];
+    var k = q === -1 ? TM.maxAffordable(id, cnt, S.cash) : q;
+    var got = TM.buy(S, id, Math.max(1, k));
+    if (got > 0) {
+      for (var i = 0; i < got; i++) cityAddFloor(id, false);
+      sfxBuy();
+      refreshCards(true);
+      persist();
+    }
+  }
+  function doUpgrade(id) {
+    if (TM.upgrade(S, id)) {
+      sfxFanfare();
+      toast(TM.BY_ID[id].icon + ' ' + TM.BY_ID[id].name + 's upgraded to Lv' + TM.levelOf(S, id) + ' — income ×2!');
+      refreshCards(true);
+      persist();
+    }
+  }
+
+  /* ---------------- export goods ---------------- */
+  function doExport() {
+    var now = Date.now();
+    if (!TM.canExport(S.lastExport, now)) return;
+    var w = loadWallet();
+    var res = TM.exportResult(S.lifetime, w.bonusPct || 0, Math.random(), Math.random());
+    w.coins = Math.floor(Number(w.coins) || 0) + res.n;
+    w.earned[GAME_ID] = (Number(w.earned[GAME_ID]) || 0) + res.n;
+    if (res.ticket) w.tickets = (Number(w.tickets) || 0) + 1;
+    saveWallet(w);
+    S.lastExport = now;
+    S.exported += res.n;
+    persist();
+    syncWallet();
+    var msg = '📦 Goods exported! +' + res.n + ' 🪙';
+    if (res.lucky > 1) msg += '  🍀 LUCKY ×' + res.lucky + '!';
+    if (res.ticket) msg += '  🎟 PULL TICKET!';
+    toast(msg, res.lucky > 1);
+    sfxCoin();
+    if (res.lucky > 1) sfxFanfare();
+    var r = exportBtn.getBoundingClientRect();
+    floaty('+' + res.n + ' 🪙' + (res.lucky > 1 ? ' 🍀' : ''), r.left + r.width / 2, Math.max(10, r.top - 60));
+  }
+  exportBtn.addEventListener('click', doExport);
+  function syncWallet() {
+    document.getElementById('walletNum').textContent = TM.fmt(Math.floor(Number(loadWallet().coins) || 0));
+  }
+  syncWallet();
+
+  /* ---------------- prestige ---------------- */
+  var pgBack = document.getElementById('pgBack');
+  prestigeBtn.addEventListener('click', function () {
+    var g = TM.prestigeGain(S);
+    document.getElementById('pgGain').textContent = g >= 1 ? '+' + g + ' ⭐' : 'no ⭐ yet';
+    document.getElementById('pgDetail').textContent = g >= 1
+      ? 'New total: ' + (S.stars + g) + ' ⭐ → income ×' + TM.starMult(S.stars + g).toFixed(1) +
+        ' (currently ×' + TM.starMult(S.stars).toFixed(1) + ')'
+      : 'Earn $' + TM.fmt(Math.pow(S.stars + 1, 2) * 1e6) + ' lifetime for your next star. Lifetime so far: $' + TM.fmt(S.lifetime);
+    document.getElementById('pgYes').style.display = g >= 1 ? '' : 'none';
+    pgBack.classList.add('show');
+  });
+  document.getElementById('pgNo').addEventListener('click', function () { pgBack.classList.remove('show'); });
+  document.getElementById('pgYes').addEventListener('click', function () {
+    var g = TM.doPrestige(S);
+    pgBack.classList.remove('show');
+    if (g > 0) {
+      construction = []; cats = [];
+      toast('📜 New City Charter signed! +' + g + ' ⭐ (income ×' + TM.starMult(S.stars).toFixed(1) + ')', true);
+      sfxFanfare();
+      refreshCards('rebuild');
+      persist();
+    }
+  });
+
+  /* ---------------- milestones ---------------- */
+  function checkMilestones() {
+    var pop = TM.population(S);
+    for (var i = 0; i < TM.POP_MILESTONES.length; i++) {
+      var m = TM.POP_MILESTONES[i];
+      if (pop >= m.pop && !S.seen['pop' + m.pop]) {
+        S.seen['pop' + m.pop] = true;
+        toast(m.msg, true);
+        sfxFanfare();
+      }
+    }
+  }
+
+  /* ---------------- welcome back / intro ---------------- */
+  reconcileCity();
+  (function offlineWelcome() {
+    var now = Date.now();
+    if (S.lastSeen > 0) {
+      var away = (now - S.lastSeen) / 1000;
+      if (away > 60) {
+        var earned = TM.offlineEarnings(S, away);
+        if (earned > 0) {
+          S.cash += earned; S.lifetime += earned;
+          var capped = away > TM.OFFLINE_CAP;
+          var shown = Math.min(away, TM.OFFLINE_CAP);
+          var h = Math.floor(shown / 3600), mn = Math.floor((shown % 3600) / 60);
+          document.getElementById('wbAway').textContent =
+            'While you were away (' + (h > 0 ? h + 'h ' : '') + mn + 'm' + (capped ? ', capped at 8h' : '') + '):';
+          document.getElementById('wbNote').textContent = capped ? 'Offline earnings cap at 8 hours — visit often!' : '';
+          var amtEl = document.getElementById('wbAmount');
+          var t0 = null;
+          document.getElementById('wbBack').classList.add('show');
+          function countUp(ts) {
+            if (!t0) t0 = ts;
+            var p = Math.min(1, (ts - t0) / 1800);
+            var ease = 1 - Math.pow(1 - p, 3);
+            amtEl.textContent = '$' + TM.fmt(earned * ease);
+            if (p < 1) requestAnimationFrame(countUp);
+          }
+          requestAnimationFrame(countUp);
+        }
+      }
+    }
+    persist();
+  })();
+  document.getElementById('wbGo').addEventListener('click', function () {
+    document.getElementById('wbBack').classList.remove('show');
+    sfxCoin();
+  });
+  if (!S.seenIntro) document.getElementById('introBack').classList.add('show');
+  document.getElementById('introGo').addEventListener('click', function () {
+    S.seenIntro = true;
+    document.getElementById('introBack').classList.remove('show');
+    initAudio();
+    persist();
+  });
+
+  /* ================= rendering ================= */
+  function hex2rgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+  function lerpC(a, b, t) {
+    var A = hex2rgb(a), B = hex2rgb(b);
+    return 'rgb(' + Math.round(A[0] + (B[0] - A[0]) * t) + ',' + Math.round(A[1] + (B[1] - A[1]) * t) + ',' + Math.round(A[2] + (B[2] - A[2]) * t) + ')';
+  }
+  var SKY = [
+    { t: 0.00, top: '#070718', bot: '#191938' },
+    { t: 0.20, top: '#0d0d24', bot: '#26264c' },
+    { t: 0.26, top: '#33305c', bot: '#e07a50' },
+    { t: 0.34, top: '#4f9ed2', bot: '#b8e0f0' },
+    { t: 0.55, top: '#4694d0', bot: '#cceafc' },
+    { t: 0.72, top: '#4a7fc0', bot: '#f0b46a' },
+    { t: 0.80, top: '#2e2a5a', bot: '#ff7e5f' },
+    { t: 0.88, top: '#12122c', bot: '#3a2a52' },
+    { t: 1.00, top: '#070718', bot: '#191938' }
+  ];
+  function skyColors(t) {
+    for (var i = 0; i < SKY.length - 1; i++) {
+      if (t >= SKY[i].t && t <= SKY[i + 1].t) {
+        var f = (t - SKY[i].t) / (SKY[i + 1].t - SKY[i].t);
+        return [lerpC(SKY[i].top, SKY[i + 1].top, f), lerpC(SKY[i].bot, SKY[i + 1].bot, f)];
+      }
+    }
+    return [SKY[0].top, SKY[0].bot];
+  }
+
+  function hash3(a, b, c) {
+    var h = (a * 73856093) ^ (b * 19349663) ^ (c * 83492791);
+    h = (h ^ (h >>> 13)) >>> 0;
+    return (h % 1000) / 1000;
+  }
+
+  function drawWindow(x, y, w, h, night, lit, warm) {
+    if (night > 0.25 && lit) {
+      ctx.fillStyle = warm ? 'rgba(255,214,120,' + (0.9 * night) + ')' : 'rgba(150,230,255,' + (0.9 * night) + ')';
+    } else {
+      ctx.fillStyle = 'rgba(30,45,64,0.85)';
+    }
+    ctx.fillRect(x, y, w, h);
+  }
+
+  var FH = 22; // floor height
+
+  function drawBuilding(b, night, time) {
+    var t = TM.BY_ID[b.t];
+    var x = lotX(b.lot) + 6, w = LOT_W - 12;
+    var fl = Math.min(b.fl, t.cap);
+    if (fl <= 0 && b.q <= 0) return;
+    var hsh = hash3(b.lot, 7, 3);
+    var y0 = BASE_Y;
+    var i, f, wx;
+
+    if (b.t === 'park') { drawPark(b, x - 3, w + 6, fl, night, time); drawScaffold(b, x, w, fl, t); return; }
+
+    var H = fl * FH;
+    // facade body
+    var body;
+    switch (b.t) {
+      case 'house':   body = ['#d8b98a', '#c9a06a', '#b9a4c9'][ (hsh * 3) | 0 ]; break;
+      case 'shop':    body = '#8a6f9e'; break;
+      case 'office':  body = '#33506e'; break;
+      case 'factory': body = '#7a5c4e'; break;
+      case 'cinema':  body = '#7e2f3a'; break;
+      case 'bank':    body = '#cfc4a6'; break;
+      case 'lab':     body = '#b9c4cc'; break;
+      default: body = '#888';
+    }
+    if (fl > 0) {
+      var shade = 1 - night * 0.55;
+      var rgb = hex2rgb(body);
+      ctx.fillStyle = 'rgb(' + (rgb[0] * shade | 0) + ',' + (rgb[1] * shade | 0) + ',' + (rgb[2] * shade | 0) + ')';
+      ctx.fillRect(x, y0 - H, w, H);
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(x + w - 5, y0 - H, 5, H);
+    }
+
+    // per-floor detail
+    for (f = 0; f < fl; f++) {
+      var fy = y0 - (f + 1) * FH;
+      var cols = b.t === 'office' ? 3 : 2;
+      var isGround = f === 0;
+      if (b.t === 'shop' && isGround) {
+        // storefront + awning
+        drawWindow(x + 5, fy + 8, w - 10, FH - 10, night, true, true);
+        for (i = 0; i < 5; i++) {
+          ctx.fillStyle = i % 2 ? '#e8e2d8' : '#d64545';
+          ctx.fillRect(x + 2 + i * ((w - 4) / 5), fy + 3, (w - 4) / 5, 5);
+        }
+      } else if (b.t === 'cinema' && isGround) {
+        ctx.fillStyle = '#2a1218';
+        ctx.fillRect(x + 8, fy + 8, w - 16, FH - 8);          // doors
+        ctx.fillStyle = 'rgba(255,220,140,' + (0.35 + night * 0.6) + ')';
+        ctx.fillRect(x + w / 2 - 1, fy + 8, 2, FH - 8);
+      } else if (b.t === 'bank' && isGround) {
+        for (i = 0; i < 4; i++) {                              // columns
+          ctx.fillStyle = night > 0.5 ? '#8a8268' : '#e8e0c4';
+          ctx.fillRect(x + 4 + i * ((w - 12) / 3), fy + 4, 5, FH - 4);
+        }
+        ctx.fillStyle = '#3a3020';
+        ctx.fillRect(x + w / 2 - 6, fy + 10, 12, FH - 10);
+      } else if (b.t === 'house' && isGround) {
+        ctx.fillStyle = '#5a3a22';
+        ctx.fillRect(x + w / 2 - 5, fy + 8, 10, FH - 8);       // door
+        drawWindow(x + 6, fy + 6, 10, 9, night, hash3(b.lot, f, 1) < 0.7, true);
+        drawWindow(x + w - 16, fy + 6, 10, 9, night, hash3(b.lot, f, 2) < 0.7, true);
+      } else if (b.t === 'factory' && isGround) {
+        ctx.fillStyle = '#4a3a30';
+        ctx.fillRect(x + 6, fy + 6, w - 24, FH - 6);           // big bay door
+        drawWindow(x + w - 14, fy + 6, 9, 9, night, true, true);
+      } else {
+        var ww = (w - 8 - (cols - 1) * 4) / cols;
+        for (i = 0; i < cols; i++) {
+          wx = x + 4 + i * (ww + 4);
+          var lit = hash3(b.lot, f + 1, i) < (b.t === 'office' ? 0.62 : 0.7);
+          // slow random re-light: shift by time bucket
+          if (((hash3(b.lot, f + 11, i) * 977 + (time / 9)) | 0) % 7 === 0) lit = !lit;
+          drawWindow(wx, fy + 5, ww, FH - 9, night, lit, b.t !== 'lab' && b.t !== 'office');
+        }
+      }
+    }
+
+    // roofs / crowns
+    if (fl > 0) {
+      var topY = y0 - H;
+      if (b.t === 'house') {
+        ctx.fillStyle = '#9e4b2f';
+        ctx.beginPath();
+        ctx.moveTo(x - 4, topY); ctx.lineTo(x + w / 2, topY - 14); ctx.lineTo(x + w + 4, topY);
+        ctx.closePath(); ctx.fill();
+      } else if (b.t === 'factory') {
+        ctx.fillStyle = '#5c4438';
+        for (i = 0; i < 3; i++) {
+          var sx = x + i * (w / 3);
+          ctx.beginPath();
+          ctx.moveTo(sx, topY); ctx.lineTo(sx, topY - 12); ctx.lineTo(sx + w / 3, topY);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle = '#4a3a30';
+        ctx.fillRect(x + w - 12, topY - 30, 8, 30);            // chimney
+        // smoke puffs
+        var sm = (time * 0.9 + hsh * 5) % 3;
+        ctx.fillStyle = 'rgba(200,200,210,' + (0.3 - sm * 0.09) + ')';
+        ctx.beginPath();
+        ctx.arc(x + w - 8 + sm * 4, topY - 34 - sm * 12, 4 + sm * 3, 0, 6.29);
+        ctx.fill();
+      } else if (b.t === 'cinema') {
+        // marquee with blinking bulbs
+        ctx.fillStyle = '#f2ead8';
+        ctx.fillRect(x - 3, topY - 14, w + 6, 14);
+        ctx.fillStyle = '#c22a3a';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('CINEMA', x + w / 2, topY - 4);
+        for (i = 0; i < 8; i++) {
+          var on = ((time * 6 | 0) + i) % 2 === 0;
+          ctx.fillStyle = on ? '#ffd45e' : '#8a6a20';
+          ctx.beginPath(); ctx.arc(x - 1 + i * ((w + 2) / 7), topY - 15, 1.6, 0, 6.29); ctx.fill();
+        }
+      } else if (b.t === 'bank') {
+        ctx.fillStyle = '#b8ad8e';
+        ctx.beginPath();
+        ctx.moveTo(x - 4, topY); ctx.lineTo(x + w / 2, topY - 12); ctx.lineTo(x + w + 4, topY);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffd45e';
+        ctx.beginPath(); ctx.arc(x + w / 2, topY - 4, 3, 0, 6.29); ctx.fill();
+      } else if (b.t === 'lab') {
+        ctx.fillStyle = '#dfe8ee';
+        ctx.beginPath(); ctx.arc(x + w / 2, topY, 12, Math.PI, 0); ctx.fill();  // dome
+        ctx.strokeStyle = '#9aa8b2'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x + w / 2, topY - 12); ctx.lineTo(x + w / 2, topY - 24); ctx.stroke();
+        var blink = (time * 2 | 0) % 2 === 0;
+        ctx.fillStyle = blink ? '#ff4a4a' : '#5a1a1a';
+        ctx.beginPath(); ctx.arc(x + w / 2, topY - 24, 2, 0, 6.29); ctx.fill();
+      } else if (b.t === 'office') {
+        ctx.fillStyle = '#26394e';
+        ctx.fillRect(x, topY - 5, w, 5);
+        ctx.fillStyle = '#4a5a68';
+        ctx.fillRect(x + 6, topY - 11, 10, 6);                 // AC unit
+        if (fl >= t.cap) {                                     // antenna at max height
+          ctx.strokeStyle = '#68788a'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(x + w - 10, topY - 5); ctx.lineTo(x + w - 10, topY - 22); ctx.stroke();
+        }
+      } else if (b.t === 'shop') {
+        ctx.fillStyle = '#6a5580';
+        ctx.fillRect(x - 2, topY - 4, w + 4, 4);
+        ctx.fillStyle = night > 0.4 ? '#7cf2b0' : '#3f7d5a';   // shop sign
+        ctx.fillRect(x + 8, topY - 12, w - 16, 7);
+      }
+    }
+    drawScaffold(b, x, w, fl, t);
+  }
+
+  function drawPark(b, x, w, fl, night, time) {
+    ctx.fillStyle = night > 0.5 ? '#22452a' : '#3f7d46';
+    ctx.fillRect(x, BASE_Y - 8, w, 8);
+    var trees = 1 + fl * 2;
+    for (var i = 0; i < trees && i < 9; i++) {
+      var tx = x + 6 + ((i * 37 + 13) % (w - 12));
+      var th = 14 + hash3(b.lot, i, 5) * 14;
+      ctx.fillStyle = '#6a4a2a';
+      ctx.fillRect(tx - 1.5, BASE_Y - 8 - th, 3, th);
+      ctx.fillStyle = night > 0.5 ? '#1e5a2e' : '#2e8a44';
+      ctx.beginPath(); ctx.arc(tx, BASE_Y - 10 - th, 8 + hash3(b.lot, i, 6) * 5, 0, 6.29); ctx.fill();
+    }
+    if (fl >= 2) { // fountain
+      var fx = x + w / 2;
+      ctx.fillStyle = '#8aa8b8';
+      ctx.fillRect(fx - 8, BASE_Y - 12, 16, 4);
+      ctx.strokeStyle = 'rgba(150,220,255,0.7)';
+      ctx.lineWidth = 1.5;
+      var spr = Math.sin(time * 5) * 2;
+      ctx.beginPath(); ctx.moveTo(fx, BASE_Y - 12); ctx.quadraticCurveTo(fx + spr, BASE_Y - 24, fx + spr * 2, BASE_Y - 12); ctx.stroke();
+    }
+  }
+
+  function drawScaffold(b, x, w, fl, t) {
+    if (b.q <= 0) return;
+    var cy = BASE_Y - Math.min(fl, t.cap) * FH;
+    var prog = 0;
+    for (var i = 0; i < construction.length; i++) if (construction[i].b === b) prog = construction[i].prog;
+    // rising floor
+    if (prog > 0) {
+      ctx.fillStyle = 'rgba(160,150,130,0.7)';
+      ctx.fillRect(x, cy - FH * prog, w, FH * prog);
+    }
+    // scaffold lattice
+    ctx.strokeStyle = '#a07a3f';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x - 3, BASE_Y); ctx.lineTo(x - 3, cy - FH - 6);
+    ctx.moveTo(x + w + 3, BASE_Y); ctx.lineTo(x + w + 3, cy - FH - 6);
+    ctx.moveTo(x - 3, cy - FH - 6); ctx.lineTo(x + w + 3, cy - FH - 6);
+    ctx.moveTo(x - 3, cy - 2); ctx.lineTo(x + w + 3, cy - FH - 2);
+    ctx.stroke();
+    // little crane arm on top
+    ctx.strokeStyle = '#c99a4f';
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, cy - FH - 6); ctx.lineTo(x + w / 2, cy - FH - 20); ctx.lineTo(x + w / 2 + 16, cy - FH - 20);
+    ctx.stroke();
+  }
+
+  function drawPed(p, night, rain) {
+    var y = p.lane;
+    var bob = Math.sin(p.ph) * 1.2;
+    ctx.fillStyle = p.c;
+    ctx.fillRect(p.x - 2, y - 9 + bob, 4, 6);                  // body
+    ctx.fillStyle = '#e8c49a';
+    ctx.beginPath(); ctx.arc(p.x, y - 11 + bob, 2.2, 0, 6.29); ctx.fill();
+    ctx.strokeStyle = p.c2; ctx.lineWidth = 1.4;
+    var lp = Math.sin(p.ph * 2) * 2;
+    ctx.beginPath();
+    ctx.moveTo(p.x, y - 3 + bob); ctx.lineTo(p.x - lp, y);
+    ctx.moveTo(p.x, y - 3 + bob); ctx.lineTo(p.x + lp, y);
+    ctx.stroke();
+    if (rain > 0.3 && p.umb < 0.8) {                           // umbrella!
+      ctx.fillStyle = p.c2;
+      ctx.beginPath();
+      ctx.arc(p.x + p.dir * 2, y - 16 + bob, 6, Math.PI, 0);
+      ctx.fill();
+      ctx.strokeStyle = '#555'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(p.x + p.dir * 2, y - 16 + bob); ctx.lineTo(p.x + p.dir * 2, y - 8 + bob); ctx.stroke();
+    }
+  }
+
+  function drawCar(c, night) {
+    var h = c.bus ? 16 : 10;
+    ctx.fillStyle = c.c;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(c.x - c.w / 2, c.y - h, c.w, h, 3); else ctx.rect(c.x - c.w / 2, c.y - h, c.w, h);
+    ctx.fill();
+    ctx.fillStyle = night > 0.4 ? 'rgba(180,230,255,0.85)' : 'rgba(40,60,80,0.85)';
+    if (c.bus) {
+      for (var i = 0; i < 4; i++) ctx.fillRect(c.x - c.w / 2 + 5 + i * 12, c.y - h + 3, 8, 6);
+    } else {
+      ctx.fillRect(c.x - c.w / 4, c.y - h + 2, c.w / 2, 4);
+    }
+    ctx.fillStyle = '#1a1a22';
+    ctx.beginPath();
+    ctx.arc(c.x - c.w / 3, c.y, 3, 0, 6.29);
+    ctx.arc(c.x + c.w / 3, c.y, 3, 0, 6.29);
+    ctx.fill();
+    if (night > 0.4) {
+      ctx.fillStyle = 'rgba(255,240,180,' + (0.7 * night) + ')';
+      ctx.beginPath();
+      ctx.arc(c.x + c.dir * c.w / 2, c.y - h / 2, 2, 0, 6.29);
+      ctx.fill();
+    }
+  }
+
+  var distSky = [];
+  for (var di = 0; di < 40; di++) distSky.push({ w: 30 + rng() * 60, h: 40 + rng() * 130 });
+
+  function render(now, dt) {
+    var t = dayT(), day = daylight(t), night = 1 - day;
+    var time = now / 1000;
+    var scale = chh / WORLD_H;
+    var viewW = cw / scale;
+    var maxCam = Math.max(0, WORLD_W - viewW);
+
+    // camera auto-drift
+    if (performance.now() > camUserUntil && maxCam > 0) {
+      camDrift += dt * 0.05;
+      var target = (Math.sin(camDrift) * 0.5 + 0.5) * maxCam;
+      camX += (target - camX) * Math.min(1, dt * 0.3);
+    }
+    camX = Math.min(maxCam, Math.max(0, camX));
+    if (maxCam === 0) camX = -(viewW - WORLD_W) / 2;   // center small city on wide screens
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // ----- sky (screen space) -----
+    var sc = skyColors(t);
+    var g = ctx.createLinearGradient(0, 0, 0, chh);
+    g.addColorStop(0, sc[0]); g.addColorStop(1, sc[1]);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, cw, chh);
+
+    // stars
+    if (night > 0.35) {
+      for (var i = 0; i < stars.length; i++) {
+        var st = stars[i];
+        var tw = 0.5 + 0.5 * Math.sin(time * 1.5 + st.p);
+        ctx.fillStyle = 'rgba(255,255,240,' + ((night - 0.3) * tw * 0.9) + ')';
+        ctx.fillRect(st.x * cw, st.y * chh, st.s, st.s);
+      }
+    }
+    // sun / moon
+    var sunA = (t - 0.26) / (0.60);
+    if (sunA > -0.05 && sunA < 1.05) {
+      var sx = sunA * cw, sy = chh * 0.75 - Math.sin(sunA * Math.PI) * chh * 0.6;
+      var sg = ctx.createRadialGradient(sx, sy, 2, sx, sy, 40);
+      sg.addColorStop(0, 'rgba(255,236,160,1)'); sg.addColorStop(1, 'rgba(255,200,80,0)');
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, 40, 0, 6.29); ctx.fill();
+      ctx.fillStyle = '#fff2c0'; ctx.beginPath(); ctx.arc(sx, sy, 12, 0, 6.29); ctx.fill();
+    }
+    var moonA = ((t + 0.5) % 1 - 0.26) / 0.6;
+    if (night > 0.3 && moonA > 0 && moonA < 1) {
+      var mx = moonA * cw, my = chh * 0.7 - Math.sin(moonA * Math.PI) * chh * 0.55;
+      ctx.fillStyle = 'rgba(230,235,245,' + (0.9 * night) + ')';
+      ctx.beginPath(); ctx.arc(mx, my, 10, 0, 6.29); ctx.fill();
+      ctx.fillStyle = sc[0];
+      ctx.beginPath(); ctx.arc(mx + 4, my - 3, 8, 0, 6.29); ctx.fill();
+    }
+
+    // ----- world space -----
+    ctx.save();
+    ctx.scale(scale, scale);
+    ctx.translate(-camX, 0);
+
+    // distant skyline (parallax)
+    ctx.save();
+    ctx.translate(camX * 0.55, 0);
+    ctx.fillStyle = night > 0.5 ? 'rgba(16,16,34,0.85)' : 'rgba(90,110,140,0.4)';
+    var dx = -200;
+    for (i = 0; i < distSky.length; i++) {
+      ctx.fillRect(dx, BASE_Y + 14 - distSky[i].h, distSky[i].w, distSky[i].h);
+      dx += distSky[i].w + 8;
+    }
+    ctx.restore();
+
+    // clouds (world space, slow drift)
+    for (i = 0; i < clouds.length; i++) {
+      var cl = clouds[i];
+      var ca = weather.mode === 'clear' ? 0.5 : 0.85;
+      ctx.fillStyle = night > 0.5
+        ? 'rgba(60,60,90,' + ca + ')'
+        : (weather.level > 0.2 ? 'rgba(140,145,160,' + ca + ')' : 'rgba(255,255,255,' + ca + ')');
+      ctx.beginPath();
+      ctx.arc(cl.x, cl.y, 16 * cl.s, 0, 6.29);
+      ctx.arc(cl.x + 18 * cl.s, cl.y + 4 * cl.s, 13 * cl.s, 0, 6.29);
+      ctx.arc(cl.x - 18 * cl.s, cl.y + 5 * cl.s, 12 * cl.s, 0, 6.29);
+      ctx.fill();
+    }
+
+    // birds
+    ctx.strokeStyle = night > 0.6 ? 'rgba(200,200,220,0.5)' : 'rgba(30,30,40,0.8)';
+    ctx.lineWidth = 1.5;
+    for (i = 0; i < birds.length; i++) {
+      var bd = birds[i];
+      var fw = Math.sin(time * 8 + bd.ph) * 4;
+      ctx.beginPath();
+      ctx.moveTo(bd.x - 5, bd.y - fw);
+      ctx.quadraticCurveTo(bd.x, bd.y + 2, bd.x + 5, bd.y - fw);
+      ctx.stroke();
+    }
+
+    // blimp
+    if (blimp) {
+      var bx = blimp.x, by = blimp.y;
+      ctx.save();
+      var wob = Math.sin(time * 1.2) * 3;
+      ctx.translate(bx, by + wob);
+      ctx.fillStyle = blimp.tapped ? '#ffe9a0' : '#e8b830';
+      ctx.beginPath(); ctx.ellipse(0, 0, 46, 17, 0, 0, 6.29); ctx.fill();
+      ctx.fillStyle = '#c99516';
+      ctx.beginPath(); ctx.ellipse(0, 0, 46, 17, 0, Math.PI * 0.15, Math.PI * 0.85); ctx.fill();
+      ctx.fillStyle = '#7a5a10';
+      ctx.fillRect(-8, 15, 16, 7);
+      ctx.fillStyle = '#3a2f10';
+      ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(blimp.tapped ? '⚡' : '×2', 0, 5);
+      // glow hint
+      if (!blimp.tapped) {
+        ctx.strokeStyle = 'rgba(255,220,110,' + (0.4 + 0.3 * Math.sin(time * 5)) + ')';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(0, 0, 52, 22, 0, 0, 6.29); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ground strip
+    ctx.fillStyle = night > 0.5 ? '#141420' : '#2c2c38';
+    ctx.fillRect(camX - 50, BASE_Y, viewW + 100, WORLD_H - BASE_Y);
+    // top sidewalk
+    ctx.fillStyle = night > 0.5 ? '#3a3a48' : '#8a8a96';
+    ctx.fillRect(camX - 50, BASE_Y, viewW + 100, 14);
+    // road
+    ctx.fillStyle = night > 0.5 ? '#1e1e2a' : '#3c3c46';
+    ctx.fillRect(camX - 50, BASE_Y + 14, viewW + 100, 40);
+    ctx.strokeStyle = 'rgba(255,220,100,0.5)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([14, 12]);
+    ctx.beginPath(); ctx.moveTo(camX - 50, BASE_Y + 34); ctx.lineTo(camX + viewW + 50, BASE_Y + 34); ctx.stroke();
+    ctx.setLineDash([]);
+    // front sidewalk
+    ctx.fillStyle = night > 0.5 ? '#343442' : '#7e7e8c';
+    ctx.fillRect(camX - 50, BASE_Y + 54, viewW + 100, 22);
+
+    // street lamps at night
+    for (i = 0; i <= LOTS; i += 3) {
+      var lx = lotX(i);
+      ctx.strokeStyle = '#3a3a46'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(lx, BASE_Y + 14); ctx.lineTo(lx, BASE_Y - 20); ctx.stroke();
+      if (night > 0.4) {
+        var lg2 = ctx.createRadialGradient(lx, BASE_Y - 20, 1, lx, BASE_Y - 20, 26);
+        lg2.addColorStop(0, 'rgba(255,230,150,' + (0.5 * night) + ')');
+        lg2.addColorStop(1, 'rgba(255,230,150,0)');
+        ctx.fillStyle = lg2;
+        ctx.beginPath(); ctx.arc(lx, BASE_Y - 20, 26, 0, 6.29); ctx.fill();
+        ctx.fillStyle = '#ffe9b0';
+        ctx.beginPath(); ctx.arc(lx, BASE_Y - 20, 2.5, 0, 6.29); ctx.fill();
+      }
+    }
+
+    // buildings
+    for (i = 0; i < S.city.length; i++) drawBuilding(S.city[i], night, time);
+
+    // cats on roofs
+    for (i = cats.length - 1; i >= 0; i--) {
+      var cat = cats[i];
+      var ct = TM.BY_ID[cat.b.t];
+      var cyy = BASE_Y - Math.min(cat.b.fl, ct.cap) * FH - (cat.b.t === 'house' ? 14 : 2);
+      var cxx = lotX(cat.b.lot) + LOT_W / 2;
+      ctx.fillStyle = '#1c1c24';
+      ctx.beginPath(); ctx.ellipse(cxx, cyy - 3, 6, 4, 0, 0, 6.29); ctx.fill();       // body
+      ctx.beginPath(); ctx.arc(cxx + 6, cyy - 6, 3.2, 0, 6.29); ctx.fill();           // head
+      ctx.beginPath();
+      ctx.moveTo(cxx + 4, cyy - 9); ctx.lineTo(cxx + 5, cyy - 12); ctx.lineTo(cxx + 6.5, cyy - 9);
+      ctx.moveTo(cxx + 6, cyy - 9); ctx.lineTo(cxx + 7.5, cyy - 12); ctx.lineTo(cxx + 8.5, cyy - 8.6);
+      ctx.fill();
+      ctx.strokeStyle = '#1c1c24'; ctx.lineWidth = 2;
+      var tw2 = Math.sin(time * 3 + cat.ph) * 4;
+      ctx.beginPath(); ctx.moveTo(cxx - 6, cyy - 3); ctx.quadraticCurveTo(cxx - 11, cyy - 8, cxx - 10 + tw2 * 0.3, cyy - 12); ctx.stroke();
+      if (night > 0.5) {
+        ctx.fillStyle = '#8aff8a';
+        ctx.fillRect(cxx + 6.5, cyy - 7, 1.2, 1.2); ctx.fillRect(cxx + 4.5, cyy - 7, 1.2, 1.2);
+      }
+    }
+
+    // peds behind road (top sidewalk)
+    for (i = 0; i < peds.length; i++) if (peds[i].lane === 352) drawPed(peds[i], night, weather.level);
+    // cars
+    for (i = 0; i < cars.length; i++) drawCar(cars[i], night);
+    // peds front
+    for (i = 0; i < peds.length; i++) if (peds[i].lane === 406) drawPed(peds[i], night, weather.level);
+
+    // construction dust puffs
+    for (i = 0; i < puffs.length; i++) {
+      var pf = puffs[i];
+      ctx.fillStyle = 'rgba(210,200,180,' + (pf.life * 0.5) + ')';
+      ctx.beginPath(); ctx.arc(pf.x, pf.y, 3 + (1 - pf.life) * 8, 0, 6.29); ctx.fill();
+    }
+
+    // balloons
+    for (i = 0; i < balloons.length; i++) {
+      var bl = balloons[i];
+      var sway = Math.sin(time * 2 + bl.ph) * 5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(bl.x + sway, bl.y); ctx.lineTo(bl.x + sway * 0.7, bl.y + 14); ctx.stroke();
+      ctx.fillStyle = 'hsla(' + bl.hue + ',80%,60%,' + Math.min(1, bl.life) + ')';
+      ctx.beginPath(); ctx.ellipse(bl.x + sway, bl.y - 6, 6, 7.5, 0, 0, 6.29); ctx.fill();
+    }
+
+    ctx.restore();
+
+    // rain (screen space)
+    if (weather.level > 0.02) {
+      ctx.strokeStyle = 'rgba(160,200,255,' + (0.4 * weather.level) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (i = 0; i < rainDrops.length * weather.level; i++) {
+        var rd = rainDrops[i | 0];
+        var ry = ((rd.y + time * rd.v) % 1) * chh;
+        var rx = rd.x * cw - ry * 0.15;
+        ctx.moveTo(rx, ry); ctx.lineTo(rx - 2, ry + 9);
+      }
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(100,140,200,' + (0.06 * weather.level) + ')';
+      ctx.fillRect(0, 0, cw, chh);
+    }
+  }
+
+  /* ================= simulation update ================= */
+  function updateSim(dt, now) {
+    var i, time = now / 1000;
+
+    // weather machine
+    weather.next -= dt;
+    if (weather.next <= 0) {
+      if (weather.mode === 'clear') weather.mode = 'cloudy';
+      else if (weather.mode === 'cloudy') weather.mode = Math.random() < 0.45 ? 'rain' : 'clear';
+      else weather.mode = 'cloudy';
+      weather.next = 25 + Math.random() * 55;
+    }
+    var targetRain = weather.mode === 'rain' ? 1 : 0;
+    weather.level += (targetRain - weather.level) * Math.min(1, dt * 0.4);
+    if (rainGain) rainGain.gain.value = weather.level * 0.05;
+
+    // clouds
+    for (i = 0; i < clouds.length; i++) {
+      clouds[i].x += clouds[i].v * dt;
+      if (clouds[i].x > WORLD_W + 80) clouds[i].x = -80;
+    }
+
+    // pedestrians: target count scales with houses
+    var houses = TM.countOf(S, 'house');
+    var others = TM.population(S) / 40;
+    var target = Math.min(30, Math.ceil(houses * 1.5 + others));
+    if (peds.length < target && Math.random() < dt * 0.8) spawnPed();
+    for (i = peds.length - 1; i >= 0; i--) {
+      var p = peds[i];
+      p.x += p.dir * p.v * dt;
+      p.ph += dt * 7;
+      if (p.x < -20 || p.x > WORLD_W + 20) peds.splice(i, 1);
+    }
+    while (peds.length > target + 6) peds.pop();
+
+    // cars & bus
+    var carRate = Math.min(0.6, 0.06 + S.city.length * 0.02);
+    carTimer -= dt;
+    if (carTimer <= 0 && S.city.length > 0) { spawnCar(false); carTimer = 1.5 + Math.random() * (4 / (carRate * 10)); }
+    busTimer -= dt;
+    if (busTimer <= 0 && TM.population(S) >= 250) { spawnCar(true); busTimer = 40 + Math.random() * 30; }
+    for (i = cars.length - 1; i >= 0; i--) {
+      cars[i].x += cars[i].dir * cars[i].v * dt;
+      if (cars[i].x < -100 || cars[i].x > WORLD_W + 100) cars.splice(i, 1);
+    }
+
+    // birds
+    birdTimer -= dt;
+    if (birdTimer <= 0) { if (daylight(dayT()) > 0.3) spawnBirds(); birdTimer = 18 + Math.random() * 30; }
+    for (i = birds.length - 1; i >= 0; i--) {
+      birds[i].x += birds[i].dir * birds[i].v * dt;
+      birds[i].y += Math.sin(time * 2 + birds[i].ph) * dt * 4;
+      if (birds[i].x < -40 || birds[i].x > WORLD_W + 40) birds.splice(i, 1);
+    }
+
+    // balloons
+    for (i = balloons.length - 1; i >= 0; i--) {
+      balloons[i].y -= balloons[i].v * dt;
+      balloons[i].life -= dt;
+      if (balloons[i].life <= 0 || balloons[i].y < -30) balloons.splice(i, 1);
+    }
+    // cats
+    for (i = cats.length - 1; i >= 0; i--) { cats[i].life -= dt; if (cats[i].life <= 0) cats.splice(i, 1); }
+    // puffs
+    for (i = puffs.length - 1; i >= 0; i--) { puffs[i].life -= dt * 1.4; puffs[i].y -= dt * 8; if (puffs[i].life <= 0) puffs.splice(i, 1); }
+
+    // blimp
+    var pn = performance.now();
+    if (!blimp && pn >= nextBlimpAt) {
+      blimp = { x: -70, y: 60 + Math.random() * 50, v: WORLD_W / 24, tapped: false };
+      sfxHorn();
+    }
+    if (blimp) {
+      blimp.x += blimp.v * (blimp.tapped ? 3 : 1) * dt;
+      if (blimp.x > WORLD_W + 80) {
+        blimp = null;
+        nextBlimpAt = pn + 150000 + Math.random() * 130000;
+      }
+    }
+
+    // construction queue: up to 2 concurrent, 2.2s per floor
+    var active = construction.length;
+    if (active < 2) {
+      for (i = 0; i < S.city.length && active < 2; i++) {
+        var b = S.city[i];
+        if (b.q > 0 && !construction.some(function (c) { return c.b === b; })) {
+          construction.push({ b: b, prog: 0 });
+          active++;
+        }
+      }
+    }
+    for (i = construction.length - 1; i >= 0; i--) {
+      var c = construction[i];
+      c.prog += dt / 2.2;
+      if (Math.random() < dt * 2.5) sfxHammer();
+      if (c.prog >= 1) {
+        c.b.fl++; c.b.q--;
+        var t2 = TM.BY_ID[c.b.t];
+        puffs.push({ x: lotX(c.b.lot) + LOT_W / 2, y: BASE_Y - Math.min(c.b.fl, t2.cap) * FH, life: 1 });
+        puffs.push({ x: lotX(c.b.lot) + 14, y: BASE_Y - Math.min(c.b.fl, t2.cap) * FH + 8, life: 0.8 });
+        construction.splice(i, 1);
+        sfxHammer();
+      }
+    }
+  }
+
+  /* ================= HUD refresh ================= */
+  var cashEl = document.getElementById('cashBig');
+  var incEl = document.getElementById('incLbl');
+  var popEl = document.getElementById('popLbl');
+  var starEl = document.getElementById('starLbl');
+  var multEl = document.getElementById('multLbl');
+  var boostPill = document.getElementById('boostPill');
+  var boostLbl = document.getElementById('boostLbl');
+
+  function refreshHUD() {
+    var now = Date.now();
+    cashEl.textContent = '$' + TM.fmt(S.cash);
+    incEl.textContent = '$' + TM.fmt(TM.incomePerSec(S, now)) + '/s';
+    popEl.textContent = TM.fmt(TM.population(S));
+    starEl.textContent = S.stars;
+    multEl.textContent = '(×' + TM.starMult(S.stars).toFixed(1) + ')';
+    var bl = S.boostUntil - now;
+    if (bl > 0) { boostPill.style.display = 'inline-flex'; boostLbl.textContent = Math.ceil(bl / 1000) + 's'; }
+    else boostPill.style.display = 'none';
+
+    // export button
+    var cd = TM.EXPORT_CD - (now - S.lastExport);
+    if (cd > 0) {
+      exportBtn.disabled = true;
+      var m = Math.floor(cd / 60000), s = Math.ceil((cd % 60000) / 1000);
+      exportBtn.textContent = '📦 Export in ' + m + ':' + (s < 10 ? '0' : '') + s;
+    } else {
+      exportBtn.disabled = false;
+      var w = loadWallet();
+      exportBtn.textContent = '📦 Export Goods (+~' + TM.exportBase(S.lifetime, w.bonusPct || 0) + ' 🪙)';
+    }
+    // prestige button
+    var pg = TM.prestigeGain(S);
+    prestigeBtn.textContent = pg >= 1 ? '📜 New Charter +' + pg + ' ⭐' : '📜 New Charter';
+    prestigeBtn.classList.toggle('ready', pg >= 1);
+  }
+
+  /* ================= main loop ================= */
+  var lastFrame = performance.now();
+  var lastWall = Date.now();
+  var uiAcc = 0, saveAcc = 0, msAcc = 0;
+
+  function frame(pn) {
+    requestAnimationFrame(frame);
+    var dt = Math.min(0.5, (pn - lastFrame) / 1000);
+    lastFrame = pn;
+    var now = Date.now();
+    var wallGap = (now - lastWall) / 1000;
+    lastWall = now;
+
+    if (wallGap > 30) {
+      // tab was suspended: treat as offline (deterministic, capped)
+      var earned = TM.offlineEarnings(S, wallGap);
+      S.cash += earned; S.lifetime += earned;
+      reconcileCity();
+      if (wallGap > 120 && earned > 0) toast('🌆 While suspended, your city earned $' + TM.fmt(earned));
+    } else {
+      var e = TM.tick(S, dt, now);
+      if (e > 0) sfxBlip();
+    }
+
+    updateSim(dt, pn);
+    render(pn, dt);
+
+    uiAcc += dt; saveAcc += dt; msAcc += dt;
+    if (uiAcc >= 0.25) { uiAcc = 0; refreshHUD(); refreshCards(); }
+    if (msAcc >= 1) { msAcc = 0; checkMilestones(); }
+    if (saveAcc >= 5) { saveAcc = 0; persist(); syncWallet(); }
+  }
+
+  refreshCards('rebuild');
+  refreshHUD();
+  requestAnimationFrame(frame);
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') persist();
+    else { lastWall = Date.now(); lastFrame = performance.now(); syncWallet(); }
+  });
+  window.addEventListener('pagehide', persist);
+  window.addEventListener('beforeunload', persist);
+
+})();
+</script>
+</body>
+</html>

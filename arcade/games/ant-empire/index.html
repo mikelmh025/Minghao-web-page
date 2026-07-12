@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#12121a">
+<title>Ant Empire — Stigmergy Colony Sim</title>
+<style>
+  :root{
+    --bg:#12121a; --panel:rgba(18,18,26,.82); --panel2:rgba(28,28,40,.9);
+    --ink:#e9e6df; --dim:#9a978f; --line:rgba(255,255,255,.08);
+    --black:#8fb7ff; --red:#ff8a5c; --gold:#ffd15c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;overflow:hidden;touch-action:none}
+  #wrap{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%}
+  .hud{position:absolute;pointer-events:none;z-index:5}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .pill{pointer-events:auto;background:var(--panel);border:1px solid var(--line);
+    color:var(--ink);border-radius:999px;padding:7px 12px;font-size:12px;cursor:pointer;
+    text-decoration:none;backdrop-filter:blur(8px);user-select:none;transition:.12s}
+  .pill:hover{background:var(--panel2)}
+  .pill.on{background:#2b6cff;border-color:#4d84ff;color:#fff}
+  .pill.small{padding:5px 9px;font-size:11px}
+  #top{top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  #title{font-weight:700;font-size:15px;letter-spacing:.5px}
+  #title small{display:block;font-weight:400;font-size:10px;color:var(--dim);letter-spacing:0}
+  #stats{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:9px 11px;font-size:11px;min-width:186px;backdrop-filter:blur(8px);line-height:1.5}
+  #stats .hd{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:3px}
+  #stats b{font-weight:700}
+  .cB{color:var(--black)} .cR{color:var(--red)} .cG{color:var(--gold)}
+  .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin:2px 0 5px}
+  .bar>i{display:block;height:100%;border-radius:3px}
+  #tools{bottom:44px;left:50%;transform:translateX(-50%);display:flex;gap:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;backdrop-filter:blur(8px)}
+  #tools .pill{font-size:16px;padding:7px 10px;line-height:1}
+  #tools .lbl{font-size:9px;line-height:1;display:block;margin-top:2px;color:var(--dim)}
+  #tools .pill.on .lbl{color:#dbe6ff}
+  #chron{bottom:10px;left:10px;right:10px;text-align:center}
+  #chronText{display:inline-block;background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:5px 14px;font-size:11px;color:var(--dim);max-width:92vw;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(8px)}
+  #right{position:absolute;top:52px;right:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;z-index:5}
+  #follow{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:6px 10px;font-size:11px;display:none;pointer-events:auto;backdrop-filter:blur(8px)}
+  #wallet{font-size:11px}
+  /* intro */
+  #intro{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    background:rgba(6,6,10,.55);backdrop-filter:blur(3px);pointer-events:auto}
+  #card{max-width:420px;width:86%;background:linear-gradient(180deg,#1a1a26,#131320);
+    border:1px solid var(--line);border-radius:18px;padding:22px 22px 18px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  #card h1{margin:0 0 2px;font-size:22px;letter-spacing:1px}
+  #card p{color:var(--dim);font-size:12px;line-height:1.6;margin:8px 0}
+  #card .go{display:block;text-align:center;margin-top:14px;background:#2b6cff;color:#fff;
+    border:none;border-radius:12px;padding:12px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:700}
+  #card .go:hover{background:#3f7cff}
+  #away{background:rgba(255,209,92,.1);border:1px solid rgba(255,209,92,.3);color:var(--gold);
+    border-radius:10px;padding:8px 10px;font-size:11px;margin-top:10px;display:none;line-height:1.5}
+  @media(max-width:560px){ #stats{min-width:150px;font-size:10px} #title small{display:none} }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div class="hud" id="top">
+    <div class="row" style="align-items:flex-start">
+      <a class="pill" href="../../arcade.html">&larr; Arcade</a>
+      <a class="pill" href="../../vault.html">🎴 Card Vault</a>
+      <div id="title" style="margin-left:4px">ANT EMPIRE<small>a living stigmergy colony</small></div>
+    </div>
+    <div id="stats">
+      <div class="hd"><span>COLONIES</span><span id="clock">day</span></div>
+      <div><span class="cB">■ BLACK</span> pop <b id="popB">0</b> · store <b id="stB">0</b></div>
+      <div class="bar"><i id="barB" style="background:var(--black)"></i></div>
+      <div><span class="cR">■ RED</span> pop <b id="popR">0</b> · store <b id="stR">0</b></div>
+      <div class="bar"><i id="barR" style="background:var(--red)"></i></div>
+      <div class="hd" style="margin-top:2px"><span>kills B/R</span><span><b id="kills">0/0</b></span></div>
+      <div class="hd"><span>oldest ant</span><span><b id="oldest">0s</b></span></div>
+      <div class="hd"><span>era</span><span><b id="era">1</b></span></div>
+      <div id="wallet" class="hd" style="margin-top:4px;border-top:1px solid var(--line);padding-top:4px">
+        <span class="cG">🪙 wallet</span><span class="cG"><b id="coins">0</b></span></div>
+    </div>
+  </div>
+
+  <div id="right">
+    <button class="pill small" id="mute">🔊 sound</button>
+    <div id="follow"></div>
+  </div>
+
+  <div class="hud" id="tools">
+    <button class="pill" data-tool="food" title="drop food">🍎<span class="lbl">food</span></button>
+    <button class="pill" data-tool="rock" title="place/remove rock">🪨<span class="lbl">rock</span></button>
+    <button class="pill" data-tool="rain" title="local rain">💧<span class="lbl">rain</span></button>
+    <button class="pill on" data-tool="follow" title="follow an ant">🔍<span class="lbl">follow</span></button>
+    <button class="pill" id="speed" title="time speed">1×<span class="lbl">speed</span></button>
+  </div>
+
+  <div class="hud" id="chron"><span id="chronText">The colonies stir…</span></div>
+
+  <div id="intro">
+    <div id="card">
+      <h1>🐜 ANT EMPIRE</h1>
+      <p>A zero-player colony simulation built on <b>real stigmergy</b>. Ants leave pheromone trails; trails become roads; roads become empires. Mostly, you just <i>watch</i>.</p>
+      <p>Nudge the world with the toolbar: drop <b>🍎 food</b>, place <b>🪨 rocks</b>, summon <b>💧 rain</b> (it washes the trails away — watch them rebuild), tap <b>🔍</b> then any ant to follow it, and accelerate time up to <b>16×</b>.</p>
+      <div id="away"></div>
+      <button class="go" id="begin">Enter the colony</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================================
+     SIMULATION CORE  (DOM-free, headless-testable)
+     Extract between the START/END markers to run under node.
+=================================================================== -->
+<script id="sim-core">
+//__SIM_CORE_START__
+(function(root){
+  "use strict";
+
+  // ---- constants ----
+  var W=1000, H=700, CELL=5, GW=W/CELL, GH=H/CELL;      // 200 x 140 pheromone grid
+  var NEST=[{x:92,y:92},{x:W-92,y:H-92}];               // opposite corners
+  var NEST_R=26, FOOD_R=13, COMBAT_R=8, HASH=26;
+  var PH_MAX=8;
+  var ANT_SPEED=46;                                     // px/sec
+  var COLONY_CAP=180;                                   // per-colony worker+soldier cap (<=360 total, headroom to 400)
+  var SPAWN_COST=1.2, SOLDIER_RATIO=0.24;
+  var FOOD_EVAP=0.9955, HOME_EVAP=0.9955, FIGHT_EVAP=0.97, DIFF=0.16;
+
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  function clamp(v,a,b){return v<a?a:v>b?b:v;}
+  function angNorm(d){while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d;}
+  function angLerp(a,b,t){return a+angNorm(b-a)*t;}
+  function dist2(ax,ay,bx,by){var dx=ax-bx,dy=ay-by;return dx*dx+dy*dy;}
+
+  // ---- pure, deterministic away-progress (idle summary) ----
+  function awayProgress(elapsedMs, state){
+    elapsedMs = Math.max(0, elapsedMs||0);
+    var mins = elapsedMs/60000;
+    var cm = Math.min(mins, 100000);                    // clamp for pathological clocks
+    var wars       = Math.floor(cm/7);                  // a skirmish era every ~7 min
+    var expansions = Math.floor(cm/22);                 // a colony expands every ~22 min
+    var rains      = Math.floor(cm/13);
+    var coins      = Math.min(Math.floor(mins), 120);   // 1 coin/min, cap 120
+    var era = (state && state.era) ? state.era : 1;
+    var newEras = Math.floor(cm/60);                    // a rival lands every ~60s of sim... (idle: slower)
+    return { minutes:cm, wars:wars, expansions:expansions, rains:rains,
+             coins:coins, era: era + newEras };
+  }
+
+  // ---- field helpers ----
+  function newField(){ return new Float32Array(GW*GH); }
+  function deposit(f,x,y,amt){
+    var cx=x/CELL|0, cy=y/CELL|0;
+    if(cx<0||cy<0||cx>=GW||cy>=GH) return;
+    var i=cy*GW+cx, v=f[i]+amt; f[i]=v>PH_MAX?PH_MAX:v;
+  }
+  function sampleAt(f,x,y){
+    var cx=x/CELL|0, cy=y/CELL|0;
+    if(cx<0)cx=0; else if(cx>=GW)cx=GW-1;
+    if(cy<0)cy=0; else if(cy>=GH)cy=GH-1;
+    return f[cy*GW+cx];
+  }
+  function evapField(f,e){ for(var i=0;i<f.length;i++) f[i]*=e; }
+  function diffuseField(f,tmp,e,d){
+    for(var y=0;y<GH;y++){ var row=y*GW;
+      for(var x=0;x<GW;x++){
+        var i=row+x, c=f[i];
+        var l=x>0?f[i-1]:c, r=x<GW-1?f[i+1]:c;
+        var u=y>0?f[i-GW]:c, dn=y<GH-1?f[i+GW]:c;
+        var avg=(l+r+u+dn)*0.25;
+        tmp[i]=(c+(avg-c)*d)*e;
+      }
+    }
+    f.set(tmp);
+  }
+
+  // ---- world factory ----
+  function createWorld(opts){
+    opts=opts||{};
+    var rng=mulberry32(opts.seed||1234567);
+    var foodPh=[newField(),newField()], homePh=[newField(),newField()], fightPh=newField();
+    var tmp=newField();
+
+    var w={
+      W:W,H:H,CELL:CELL,GW:GW,GH:GH,NEST_R:NEST_R,PH_MAX:PH_MAX,
+      t:0, tick:0, era:1, autoFood:true,
+      nest:[{x:NEST[0].x,y:NEST[0].y},{x:NEST[1].x,y:NEST[1].y}],
+      ants:[], foods:[], rocks:[],
+      foodPh:foodPh, homePh:homePh, fightPh:fightPh,
+      colonies:[colony(0),colony(1)],
+      rng:rng,
+      events:[],                      // drained by UI
+      rainT:0, nextRain:38+rng()*40, nextLeaf:20+rng()*35,
+      hashW:Math.ceil(W/HASH), hashH:Math.ceil(H/HASH), buckets:null,
+      // methods (assigned below)
+      step:null, spawnAnt:null, queryNeighbors:null, buildHash:null,
+      pop:null, sampleAt:sampleAt, addFood:null, toggleRock:null, splashRain:null,
+      awayProgress:awayProgress
+    };
+
+    function colony(c){ return {id:c, alive:true, queenAlive:true, food:0, harvested:0,
+      kills:0, expansions:0, ruinT:0, respawnAt:0, color:c, }; }
+
+    var FOOD_NAMES=['melon','berry cluster','seed cache','fallen fig','sugar drop',
+      'dew pool','crumb pile','honey bead','mushroom cap','aphid herd','grain stash'];
+    function pushEvt(kind,msg){ w.events.push({t:w.t,kind:kind,msg:msg}); if(w.events.length>60)w.events.shift(); }
+    w.pushEvt=pushEvt;
+
+    // ---- population ----
+    w.pop=function(c){ var n=0; for(var i=0;i<w.ants.length;i++){var a=w.ants[i]; if(a.alive&&a.colony===c&&a.caste!=='queen')n++;} return n; };
+
+    // ---- spawn ----
+    var _id=1;
+    w.spawnAnt=function(c,caste,x,y){
+      var n=w.nest[c];
+      var a={ id:_id++, colony:c, caste:caste,
+        x: x==null? n.x+(rng()-.5)*14 : x,
+        y: y==null? n.y+(rng()-.5)*14 : y,
+        angle: rng()*Math.PI*2, carry:0, age:0, alive:true,
+        hp: caste==='queen'?320: caste==='soldier'?30:12,
+        state: caste==='queen'?'queen':'foraging', wander:0 };
+      w.ants.push(a); return a;
+    };
+
+    // ---- initial populate ----
+    function foundColony(c){
+      w.spawnAnt(c,'queen',w.nest[c].x,w.nest[c].y);
+      for(var i=0;i<34;i++) w.spawnAnt(c,'worker');
+      for(var j=0;j<9;j++)  w.spawnAnt(c,'soldier');
+      w.colonies[c].alive=true; w.colonies[c].queenAlive=true;
+    }
+    if(opts.empty!==true){ foundColony(0); foundColony(1); seedFood(9); }
+
+    function seedFood(n){ for(var i=0;i<n;i++) makeFood(); }
+    function makeFood(x,y,amount){
+      var fx = x==null? 120+rng()*(W-240) : x;
+      var fy = y==null? 100+rng()*(H-200) : y;
+      w.foods.push({ x:fx, y:fy, amount: amount||(40+rng()*45|0),
+        max: amount||70, name: FOOD_NAMES[rng()*FOOD_NAMES.length|0], found:0 });
+    }
+    w.addFood=function(x,y,amount){ makeFood(x,y,amount); };
+    w.makeFood=makeFood;
+
+    // ---- rocks ----
+    w.toggleRock=function(x,y){
+      for(var i=0;i<w.rocks.length;i++){ var r=w.rocks[i];
+        if(dist2(x,y,r.x,r.y) < (r.r+8)*(r.r+8)){ w.rocks.splice(i,1); return false; } }
+      w.rocks.push({x:x,y:y,r:14+rng()*16}); return true;
+    };
+    // a few starting rocks
+    if(opts.empty!==true){ for(var rk=0;rk<7;rk++) w.rocks.push({x:180+rng()*(W-360),y:140+rng()*(H-280),r:12+rng()*18}); }
+
+    w.splashRain=function(x,y,rad){
+      rad=rad||110; var r2=rad*rad;
+      var c0x=(x-rad)/CELL|0, c1x=(x+rad)/CELL|0, c0y=(y-rad)/CELL|0, c1y=(y+rad)/CELL|0;
+      for(var cy=Math.max(0,c0y);cy<=Math.min(GH-1,c1y);cy++)
+        for(var cx=Math.max(0,c0x);cx<=Math.min(GW-1,c1x);cx++){
+          var px=cx*CELL+CELL/2, py=cy*CELL+CELL/2;
+          if(dist2(px,py,x,y)<r2){ var i=cy*GW+cx;
+            foodPh[0][i]*=.15; foodPh[1][i]*=.15; homePh[0][i]*=.15; homePh[1][i]*=.15; }
+        }
+    };
+
+    // ---- spatial hash ----
+    w.buildHash=function(){
+      var HW=w.hashW, HH=w.hashH, b=new Array(HW*HH);
+      for(var i=0;i<w.ants.length;i++){ var a=w.ants[i]; if(!a.alive)continue;
+        var cx=clamp(a.x/HASH|0,0,HW-1), cy=clamp(a.y/HASH|0,0,HH-1), k=cy*HW+cx;
+        (b[k]||(b[k]=[])).push(a);
+      }
+      w.buckets=b;
+    };
+    w.queryNeighbors=function(x,y,r){
+      if(!w.buckets) w.buildHash();
+      var HW=w.hashW, HH=w.hashH, out=[], r2=r*r;
+      var x0=clamp((x-r)/HASH|0,0,HW-1), x1=clamp((x+r)/HASH|0,0,HW-1);
+      var y0=clamp((y-r)/HASH|0,0,HH-1), y1=clamp((y+r)/HASH|0,0,HH-1);
+      for(var cy=y0;cy<=y1;cy++)for(var cx=x0;cx<=x1;cx++){
+        var arr=w.buckets[cy*HW+cx]; if(!arr)continue;
+        for(var i=0;i<arr.length;i++){ var a=arr[i];
+          if(dist2(a.x,a.y,x,y)<=r2) out.push(a); }
+      }
+      return out;
+    };
+
+    // ---- steering by pheromone gradient ----
+    function steer(a,f,ahead,side,turn){
+      var an=a.angle;
+      var c=sampleAt(f, a.x+Math.cos(an)*ahead,        a.y+Math.sin(an)*ahead);
+      var l=sampleAt(f, a.x+Math.cos(an-side)*ahead,   a.y+Math.sin(an-side)*ahead);
+      var r=sampleAt(f, a.x+Math.cos(an+side)*ahead,   a.y+Math.sin(an+side)*ahead);
+      var m=c>l?(c>r?c:r):(l>r?l:r);
+      if(m<0.06) return;                                 // nothing to smell -> wander freely
+      if(c>=l&&c>=r) return;
+      if(l>r) a.angle-=turn; else a.angle+=turn;
+    }
+
+    function collideRocks(a,nx,ny){
+      for(var i=0;i<w.rocks.length;i++){ var r=w.rocks[i], rr=r.r+3;
+        if(dist2(nx,ny,r.x,r.y)<rr*rr){
+          var ang=Math.atan2(ny-r.y,nx-r.x);
+          nx=r.x+Math.cos(ang)*rr; ny=r.y+Math.sin(ang)*rr;
+          a.angle=ang+(rng()-.5)*0.6;
+        }
+      }
+      return [nx,ny];
+    }
+
+    // ---- ant update ----
+    function updateAnt(a,dt){
+      a.age+=dt;
+      if(a.caste==='queen'){ return; }
+      var c=a.colony, nest=w.nest[c];
+
+      // choose field to follow
+      if(a.carry>0){ steer(a, homePh[c], CELL*2.6, 0.6, 0.42); }
+      else if(a.caste==='soldier'){
+        // patrol toward fights, else drift along own food trails
+        var fv=sampleAt(fightPh, a.x, a.y);
+        steer(a, fv>0.1? fightPh : foodPh[c], CELL*2.6, 0.6, 0.35);
+      } else { steer(a, foodPh[c], CELL*2.6, 0.6, 0.4); }
+
+      // wander noise (momentum-preserving)
+      a.angle += (rng()-0.5)*0.6;
+
+      // homing bias straight to nest (robustness even with weak trail)
+      if(a.carry>0) a.angle=angLerp(a.angle, Math.atan2(nest.y-a.y,nest.x-a.x), 0.16);
+
+      var sp=(a.caste==='soldier'?ANT_SPEED*1.08:ANT_SPEED)*dt;
+      var nx=a.x+Math.cos(a.angle)*sp, ny=a.y+Math.sin(a.angle)*sp;
+
+      // walls
+      if(nx<4){nx=4;a.angle=Math.PI-a.angle;} else if(nx>W-4){nx=W-4;a.angle=Math.PI-a.angle;}
+      if(ny<4){ny=4;a.angle=-a.angle;}       else if(ny>H-4){ny=H-4;a.angle=-a.angle;}
+      var col=collideRocks(a,nx,ny); a.x=col[0]; a.y=col[1];
+
+      // lay pheromone
+      if(a.carry>0) deposit(foodPh[c], a.x, a.y, 22*dt);
+      else          deposit(homePh[c], a.x, a.y, 9*dt);
+
+      // interactions
+      if(a.carry>0){
+        if(dist2(a.x,a.y,nest.x,nest.y) < NEST_R*NEST_R){
+          w.colonies[c].food += a.carry; w.colonies[c].harvested += a.carry;
+          a.carry=0; a.state='foraging'; a.angle+=Math.PI;
+        }
+      } else {
+        for(var i=0;i<w.foods.length;i++){ var fd=w.foods[i];
+          if(fd.amount>0 && dist2(a.x,a.y,fd.x,fd.y) < FOOD_R*FOOD_R){
+            a.carry=1; fd.amount-=1; a.state='carrying'; a.angle+=Math.PI;
+            deposit(foodPh[c], a.x, a.y, 4);
+            if(!fd.found){ fd.found=c+1;
+              pushEvt('found', (c?'Red':'Black')+' scouts discovered the '+fd.name); }
+            break;
+          }
+        }
+      }
+    }
+
+    // ---- combat ----
+    function combat(dt){
+      var deaths=null;
+      for(var i=0;i<w.ants.length;i++){ var a=w.ants[i];
+        if(!a.alive || a.caste!=='soldier') continue;
+        var near=w.queryNeighbors(a.x,a.y,COMBAT_R);
+        for(var j=0;j<near.length;j++){ var b=near[j];
+          if(b.colony===a.colony || !b.alive) continue;
+          b.hp -= (a.caste==='soldier'?26:0)*dt;
+          a.state='fighting'; if(b.caste!=='queen') b.state='fighting';
+          deposit(fightPh,(a.x+b.x)/2,(a.y+b.y)/2, 26*dt);
+          if(b.hp<=0 && b.alive){ b.alive=false; (deaths||(deaths=[])).push(b);
+            w.colonies[a.colony].kills++;
+            w.makeFood(b.x,b.y,2);                       // corpse yields food
+            if(b.caste==='queen'){ w.colonies[b.colony].queenAlive=false;
+              pushEvt('war',(b.colony?'Red':'Black')+' queen has fallen!'); }
+          }
+        }
+      }
+      return deaths;
+    }
+    function reap(){
+      for(var i=w.ants.length-1;i>=0;i--){ if(!w.ants[i].alive) w.ants.splice(i,1); }
+    }
+
+    // ---- queens: convert food -> ants ----
+    function queens(dt){
+      for(var c=0;c<2;c++){ var col=w.colonies[c];
+        if(!col.alive||!col.queenAlive) continue;
+        var guard=0;
+        while(col.food>=SPAWN_COST && w.pop(c)<COLONY_CAP && guard++<6){
+          col.food-=SPAWN_COST;
+          w.spawnAnt(c, rng()<SOLDIER_RATIO?'soldier':'worker');
+        }
+      }
+    }
+
+    // ---- food respawn / maintenance ----
+    function foodMaintain(dt){
+      for(var i=w.foods.length-1;i>=0;i--){ if(w.foods[i].amount<=0) w.foods.splice(i,1); }
+      // keep a healthy number of large piles; corpses (amount 2) don't count as "piles"
+      var big=0; for(var k=0;k<w.foods.length;k++) if(w.foods[k].max>10) big++;
+      if(w.autoFood && big<9 && rng()<0.02) w.makeFood();
+    }
+
+    // ---- world events: rain, leaf, day/night ----
+    function events(dt){
+      w.nextRain-=dt; w.nextLeaf-=dt;
+      if(w.rainT>0){ w.rainT-=dt;
+        // rain washes pheromones globally (extra evaporation)
+        for(var i=0;i<foodPh[0].length;i++){ foodPh[0][i]*=.965; foodPh[1][i]*=.965;
+          homePh[0][i]*=.965; homePh[1][i]*=.965; }
+        if(w.rainT<=0) pushEvt('rain','The rain passes; the ants rebuild their roads.');
+      } else if(w.nextRain<=0){ w.rainT=6+rng()*5; w.nextRain=55+rng()*70;
+        pushEvt('rain','A downpour sweeps the colony — trails dissolve.'); }
+      if(w.nextLeaf<=0){ w.nextLeaf=30+rng()*45;
+        var lx=180+rng()*(W-360), ly=140+rng()*(H-280);
+        w.makeFood(lx,ly,180); w.foods[w.foods.length-1].leaf=true; w.foods[w.foods.length-1].name='fallen leaf';
+        pushEvt('leaf','A great leaf drifts down — a feast awaits!'); }
+    }
+
+    // ---- colony lifecycle: collapse, ruins, rival spore-drop ----
+    function lifecycle(dt){
+      for(var c=0;c<2;c++){ var col=w.colonies[c];
+        if(col.alive){
+          if(w.pop(c)===0 || !col.queenAlive){
+            col.alive=false; col.ruinT=w.t; col.respawnAt=w.t+60;
+            var other=1-c;
+            if(w.colonies[other].alive){ w.colonies[other].expansions++;
+              pushEvt('collapse',(c?'Red':'Black')+' colony has collapsed. '+
+                (other?'Red':'Black')+' expands across the ruins.'); }
+          }
+        } else if(w.t>=col.respawnAt){
+          // spore drop: a fresh rival lands
+          w.era++; col.food=0; col.harvested=col.harvested;
+          w.spawnAnt(c,'queen',w.nest[c].x,w.nest[c].y);
+          for(var i=0;i<26;i++) w.spawnAnt(c,'worker');
+          for(var j=0;j<7;j++)  w.spawnAnt(c,'soldier');
+          col.alive=true; col.queenAlive=true; col.spore=w.t;
+          pushEvt('spore','A rival spore drops — '+(c?'Red':'Black')+' rises anew (era '+w.era+').');
+        }
+      }
+    }
+
+    // ---- one simulation tick ----
+    var diffCount=0;
+    w.step=function(dt){
+      dt = dt||1/60;
+      w.t+=dt; w.tick++;
+      events(dt);
+      // pheromone evaporation (every tick) + diffusion (every 4th) — cheap & smooth
+      diffCount++;
+      if(diffCount%4===0){
+        diffuseField(foodPh[0],tmp,FOOD_EVAP,DIFF); diffuseField(foodPh[1],tmp,FOOD_EVAP,DIFF);
+        diffuseField(homePh[0],tmp,HOME_EVAP,DIFF); diffuseField(homePh[1],tmp,HOME_EVAP,DIFF);
+        diffuseField(fightPh,tmp,FIGHT_EVAP,DIFF);
+      } else {
+        evapField(foodPh[0],FOOD_EVAP); evapField(foodPh[1],FOOD_EVAP);
+        evapField(homePh[0],HOME_EVAP); evapField(homePh[1],HOME_EVAP);
+        evapField(fightPh,FIGHT_EVAP);
+      }
+      // nest is a home-pheromone source (bootstraps gradient toward home)
+      for(var c=0;c<2;c++) if(w.colonies[c].alive) deposit(homePh[c], w.nest[c].x, w.nest[c].y, 4);
+
+      w.buildHash();
+      for(var i=0;i<w.ants.length;i++){ var a=w.ants[i]; if(a.alive) updateAnt(a,dt); }
+      var d=combat(dt);
+      if(d){ reap(); w.lastDeaths=d.length; } else { w.lastDeaths=0; }
+      queens(dt);
+      foodMaintain(dt);
+      lifecycle(dt);
+    };
+
+    return w;
+  }
+
+  var api={ createWorld:createWorld, awayProgress:awayProgress,
+    C:{W:W,H:H,CELL:CELL,GW:GW,GH:GH,NEST:NEST,NEST_R:NEST_R,PH_MAX:PH_MAX,COLONY_CAP:COLONY_CAP} };
+  root.AntEmpire=api;
+  if(typeof module!=='undefined'&&module.exports) module.exports=api;
+})(typeof globalThis!=='undefined'?globalThis:this);
+//__SIM_CORE_END__
+</script>
+
+<!-- ===================================================================
+     RENDER + UI + AUDIO + WALLET  (browser only)
+=================================================================== -->
+<script>
+(function(){
+  "use strict";
+  var AE=globalThis.AntEmpire, C=AE.C;
+  var W=C.W, H=C.H, CELL=C.CELL, GW=C.GW, GH=C.GH;
+  var SLUG='ant-empire', LS_STATE='arcade-ant-empire';
+
+  // ---------- wallet ----------
+  function loadWallet(){ try{return JSON.parse(localStorage.getItem('arcade-wallet'))||{coins:0,earned:{},spent:0,tickets:0};}catch(e){return {coins:0,earned:{},spent:0,tickets:0};} }
+  function awardCoins(n){ // idle trickle: no lucky rolls, apply bonusPct
+    if(n<=0) return 0;
+    var w=loadWallet();
+    n=Math.round(n*(1+(w.bonusPct||0)/100));
+    w.coins=(w.coins||0)+n; w.earned=w.earned||{}; w.earned[SLUG]=(w.earned[SLUG]||0)+n;
+    localStorage.setItem('arcade-wallet',JSON.stringify(w));
+    return n;
+  }
+  function walletCoins(){ return loadWallet().coins||0; }
+
+  // ---------- world ----------
+  var world=AE.createWorld({seed:(Date.now()>>>0)||42});
+
+  // ---------- idle: away-progress on load ----------
+  function loadState(){ try{return JSON.parse(localStorage.getItem(LS_STATE));}catch(e){return null;} }
+  function saveState(){
+    try{ localStorage.setItem(LS_STATE, JSON.stringify({
+      t:Date.now(), era:world.era,
+      popB:world.pop(0), popR:world.pop(1),
+      foodB:Math.round(world.colonies[0].food), foodR:Math.round(world.colonies[1].food)
+    })); }catch(e){}
+  }
+  (function applyAway(){
+    var st=loadState(); var awayEl=document.getElementById('away');
+    if(st && st.t){
+      var elapsed=Date.now()-st.t;
+      if(elapsed>60000){
+        var ap=AE.awayProgress(elapsed,{era:st.era||1});
+        var got=awardCoins(ap.coins);
+        world.era = ap.era;
+        var mins=Math.floor(ap.minutes);
+        awayEl.style.display='block';
+        awayEl.innerHTML='While you were away ('+mins+' min): '+ap.wars+' wars, '+
+          ap.expansions+' expansions, '+ap.rains+' storms.<br>+'+got+' 🪙 Arcade Coins awarded.';
+      }
+    }
+    saveState();
+    setInterval(saveState,15000);
+    window.addEventListener('beforeunload',saveState);
+  })();
+  // live trickle: +1 coin every 2 min of watching
+  setInterval(function(){ var g=awardCoins(1); if(g) flashCoins(); }, 120000);
+
+  // ---------- canvas ----------
+  var cv=document.getElementById('cv'), g=cv.getContext('2d');
+  var DPR=1, VW=0, VH=0, scale=1, camX=0, camY=0, zoom=1;
+  function resize(){
+    DPR=Math.min(window.devicePixelRatio||1, 2);
+    VW=window.innerWidth; VH=window.innerHeight;
+    cv.width=VW*DPR; cv.height=VH*DPR;
+    cv.style.width=VW+'px'; cv.style.height=VH+'px';
+    scale=Math.min(VW/W, VH/H);
+  }
+  window.addEventListener('resize',resize); resize();
+
+  // offscreen pheromone canvas
+  var pc=document.createElement('canvas'); pc.width=GW; pc.height=GH;
+  var pg=pc.getContext('2d'); var pImg=pg.createImageData(GW,GH); var pData=pImg.data;
+
+  // ---------- tools / input ----------
+  var tool='follow', followAnt=null, followEl=document.getElementById('follow');
+  document.querySelectorAll('#tools .pill[data-tool]').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#tools .pill[data-tool]').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on'); tool=b.getAttribute('data-tool');
+      if(tool!=='follow'){ followAnt=null; followEl.style.display='none'; }
+    });
+  });
+  var speeds=[1,4,16], si=0, speedBtn=document.getElementById('speed');
+  speedBtn.addEventListener('click',function(){ si=(si+1)%speeds.length; speedBtn.firstChild.nodeValue=speeds[si]+'×'; });
+
+  function toWorld(mx,my){
+    // inverse of the draw transform
+    return { x:(mx-camX)/(scale*zoom), y:(my-camY)/(scale*zoom) };
+  }
+  function onTap(e){
+    var rect=cv.getBoundingClientRect();
+    var mx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+    var my=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
+    var p=toWorld(mx,my); var x=Math.max(0,Math.min(W,p.x)), y=Math.max(0,Math.min(H,p.y));
+    if(tool==='food'){ world.addFood(x,y,60+Math.random()*40|0); ping(660,0.05); }
+    else if(tool==='rock'){ world.toggleRock(x,y); ping(200,0.05); }
+    else if(tool==='rain'){ world.splashRain(x,y,120); world.pushEvt('rain','A local shower falls.'); rainClick(); }
+    else if(tool==='follow'){
+      var best=null,bd=1e9;
+      for(var i=0;i<world.ants.length;i++){ var a=world.ants[i]; if(!a.alive)continue;
+        var d=(a.x-x)*(a.x-x)+(a.y-y)*(a.y-y); if(d<bd){bd=d;best=a;} }
+      if(best && bd<3600){ followAnt=best; }
+    }
+  }
+  cv.addEventListener('click',onTap);
+  cv.addEventListener('touchstart',function(e){ e.preventDefault(); onTap(e); },{passive:false});
+
+  // ---------- audio ----------
+  var AC=null, master=null, muted=false, windNode=null, chirpTimer=null;
+  var muteBtn=document.getElementById('mute');
+  function initAudio(){
+    if(AC) return;
+    try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
+    master=AC.createGain(); master.gain.value=0.5; master.connect(AC.destination);
+    // wind bed: brown-ish noise -> lowpass with slow LFO
+    var buf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate), d=buf.getChannelData(0), last=0;
+    for(var i=0;i<d.length;i++){ var wn=Math.random()*2-1; last=(last+0.02*wn)/1.02; d[i]=last*3.5; }
+    var src=AC.createBufferSource(); src.buffer=buf; src.loop=true;
+    var lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=420;
+    var wg=AC.createGain(); wg.gain.value=0.18;
+    var lfo=AC.createOscillator(); lfo.frequency.value=0.08; var lg=AC.createGain(); lg.gain.value=140;
+    lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
+    src.connect(lp); lp.connect(wg); wg.connect(master); src.start();
+    windNode=wg;
+    scheduleChirp();
+  }
+  function scheduleChirp(){
+    chirpTimer=setTimeout(function(){
+      if(AC && !muted){ chirp(); }
+      scheduleChirp();
+    }, 1400+Math.random()*3200);
+  }
+  function chirp(){
+    var o=AC.createOscillator(), gg=AC.createGain(); var f=2200+Math.random()*1800;
+    o.type='sine'; o.frequency.setValueAtTime(f,AC.currentTime);
+    o.frequency.linearRampToValueAtTime(f*1.05,AC.currentTime+0.06);
+    gg.gain.setValueAtTime(0,AC.currentTime); gg.gain.linearRampToValueAtTime(0.05,AC.currentTime+0.01);
+    gg.gain.exponentialRampToValueAtTime(0.0005,AC.currentTime+0.14);
+    o.connect(gg); gg.connect(master); o.start(); o.stop(AC.currentTime+0.16);
+  }
+  function ping(freq,vol){ if(!AC||muted)return; var o=AC.createOscillator(),gg=AC.createGain();
+    o.type='triangle'; o.frequency.value=freq; gg.gain.setValueAtTime(vol||0.04,AC.currentTime);
+    gg.gain.exponentialRampToValueAtTime(0.0004,AC.currentTime+0.12);
+    o.connect(gg); gg.connect(master); o.start(); o.stop(AC.currentTime+0.13); }
+  function skirmish(){ if(!AC||muted)return; var o=AC.createOscillator(),gg=AC.createGain();
+    o.type='square'; o.frequency.value=120+Math.random()*80; gg.gain.setValueAtTime(0.03,AC.currentTime);
+    gg.gain.exponentialRampToValueAtTime(0.0004,AC.currentTime+0.05);
+    o.connect(gg); gg.connect(master); o.start(); o.stop(AC.currentTime+0.06); }
+  var rainGain=null;
+  function rainClick(){ if(!AC||muted)return; ping(300,0.03); }
+  function updateRainAudio(){
+    if(!AC||muted){ if(rainGain){rainGain.gain.value=0;} return; }
+    if(world.rainT>0 && !rainGain){
+      var buf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate), d=buf.getChannelData(0);
+      for(var i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.6;
+      var src=AC.createBufferSource(); src.buffer=buf; src.loop=true;
+      var hp=AC.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=1200;
+      rainGain=AC.createGain(); rainGain.gain.value=0.0;
+      src.connect(hp); hp.connect(rainGain); rainGain.connect(master); src.start();
+      rainGain._src=src;
+    }
+    if(rainGain){ rainGain.gain.value = world.rainT>0? 0.12 : 0; }
+  }
+  muteBtn.addEventListener('click',function(){ muted=!muted;
+    muteBtn.textContent=muted?'🔇 muted':'🔊 sound';
+    if(!muted){ initAudio(); if(AC&&AC.state==='suspended')AC.resume(); if(master)master.gain.value=0.5; }
+    else if(master){ master.gain.value=0; }
+  });
+
+  // ---------- chronicle ticker ----------
+  var chronEl=document.getElementById('chronText'), chronQ=[], chronCur='The colonies stir…', chronT=0;
+  function pumpChron(){
+    // drain sim events into the chronicle
+    if(world.events.length){ for(var i=0;i<world.events.length;i++) chronQ.push(world.events[i].msg);
+      world.events.length=0; if(chronQ.length>12) chronQ.splice(0,chronQ.length-12); }
+  }
+  var ambient=['Foragers fan out from the mound.','A trail thickens toward the food.',
+    'Soldiers pace the perimeter.','Scent roads shimmer in the dusk.','The queen tends her brood.'];
+
+  // ---------- coins flash ----------
+  var coinsEl=document.getElementById('coins');
+  function flashCoins(){ coinsEl.style.transition='none'; coinsEl.style.color='#fff';
+    setTimeout(function(){ coinsEl.style.transition='color .8s'; coinsEl.style.color=''; },30); }
+
+  // ---------- HUD refs ----------
+  var el={popB:g0('popB'),popR:g0('popR'),stB:g0('stB'),stR:g0('stR'),barB:g0('barB'),barR:g0('barR'),
+    kills:g0('kills'),oldest:g0('oldest'),era:g0('era'),clock:g0('clock')};
+  function g0(id){return document.getElementById(id);}
+
+  // ---------- rendering ----------
+  var PHMAX=C.PH_MAX;
+  function renderPheromones(){
+    var f0=world.foodPh[0], f1=world.foodPh[1], h0=world.homePh[0], h1=world.homePh[1], fg=world.fightPh;
+    for(var i=0,p=0;i<f0.length;i++,p+=4){
+      var s0=f0[i], s1=f1[i], hh0=h0[i], hh1=h1[i], fv=fg[i];
+      // BLACK colony trails glow cyan/blue; RED colony trails glow warm orange; fights flash white
+      var r = s1*34 + fv*70 + hh1*5;
+      var gr= s0*24 + fv*55 + hh0*5 + s1*10;
+      var b = s0*44 + hh1*6 + fv*80 + hh0*3;
+      var a = Math.min((s0+s1)*30 + fv*70 + (hh0+hh1)*7, 205);
+      pData[p]=r>255?255:r; pData[p+1]=gr>255?255:gr; pData[p+2]=b>255?255:b; pData[p+3]=a;
+    }
+    pg.putImageData(pImg,0,0);
+  }
+
+  function draw(){
+    g.setTransform(DPR,0,0,DPR,0,0);
+    g.clearRect(0,0,VW,VH);
+
+    // camera
+    if(followAnt && !followAnt.alive) followAnt=null;
+    if(followAnt){ zoom=2.3; camX=VW/2-followAnt.x*scale*zoom; camY=VH/2-followAnt.y*scale*zoom; }
+    else { zoom=1; camX=(VW-W*scale)/2; camY=(VH-H*scale)/2; }
+
+    g.save();
+    g.translate(camX,camY); g.scale(scale*zoom, scale*zoom);
+
+    // day/night: t cycles a 120s day
+    var day=(Math.sin(world.t/120*Math.PI*2)+1)/2; // 0 night .. 1 day
+    // ground
+    var night=1-day;
+    var top='rgb('+(20+day*8|0)+','+(19+day*7|0)+','+(28-day*4|0)+')';
+    var bot='rgb('+(12+day*6|0)+','+(11+day*5|0)+','+(17-day*2|0)+')';
+    var grd=g.createLinearGradient(0,0,0,H); grd.addColorStop(0,top); grd.addColorStop(1,bot);
+    g.fillStyle=grd; g.fillRect(0,0,W,H);
+    // subtle soil speckle band clip
+    g.save(); g.beginPath(); g.rect(0,0,W,H); g.clip();
+
+    // pheromone glow (additive)
+    renderPheromones();
+    g.globalCompositeOperation='lighter';
+    g.imageSmoothingEnabled=true; g.globalAlpha=0.9;
+    g.drawImage(pc,0,0,GW,GH,0,0,W,H);
+    g.globalAlpha=1; g.globalCompositeOperation='source-over';
+
+    // rocks
+    for(var i=0;i<world.rocks.length;i++){ var rk=world.rocks[i];
+      g.fillStyle='#2a2a34'; g.beginPath(); g.arc(rk.x,rk.y,rk.r,0,7); g.fill();
+      g.fillStyle='#33333f'; g.beginPath(); g.arc(rk.x-rk.r*0.25,rk.y-rk.r*0.25,rk.r*0.6,0,7); g.fill();
+    }
+
+    // food piles
+    for(i=0;i<world.foods.length;i++){ var fd=world.foods[i];
+      var rad=fd.leaf?12:(fd.max>10? 4+Math.sqrt(fd.amount)*0.9 : 2.4);
+      g.fillStyle=fd.leaf?'#7ad46b':(fd.max>10?'#6cc24a':'#caa07a');
+      g.beginPath(); g.arc(fd.x,fd.y,rad,0,7); g.fill();
+      if(fd.max>10){ g.fillStyle='rgba(255,255,255,.15)'; g.beginPath();
+        g.arc(fd.x-rad*0.3,fd.y-rad*0.3,rad*0.4,0,7); g.fill(); }
+    }
+
+    // nests
+    for(var c=0;c<2;c++){ var n=world.nest[c], col=world.colonies[c];
+      if(!col.alive){ // ruins
+        g.strokeStyle='rgba(120,110,100,.4)'; g.lineWidth=2;
+        g.beginPath(); g.arc(n.x,n.y,C.NEST_R,0,7); g.stroke();
+        g.fillStyle='rgba(80,74,66,.35)'; g.beginPath(); g.arc(n.x,n.y,C.NEST_R*0.7,0,7); g.fill();
+        continue;
+      }
+      var mg=g.createRadialGradient(n.x,n.y,2,n.x,n.y,C.NEST_R);
+      mg.addColorStop(0, c? '#7a3a24':'#3a4a6a'); mg.addColorStop(1,'#1c1a20');
+      g.fillStyle=mg; g.beginPath(); g.arc(n.x,n.y,C.NEST_R,0,7); g.fill();
+      g.fillStyle='#0c0b10'; g.beginPath(); g.arc(n.x,n.y,6,0,7); g.fill();
+    }
+
+    // ants
+    for(i=0;i<world.ants.length;i++){ var a=world.ants[i]; if(!a.alive)continue;
+      var base = a.colony? '#ff8a5c' : '#c9d6ff';
+      var sz = a.caste==='queen'?4.2 : a.caste==='soldier'?2.6 : 1.9;
+      g.save(); g.translate(a.x,a.y); g.rotate(a.angle);
+      if(a.state==='fighting'){ g.fillStyle='#fff'; } else { g.fillStyle=base; }
+      // body: 3 segments
+      g.beginPath(); g.ellipse(-sz*0.9,0,sz*0.75,sz*0.6,0,0,7);
+      g.ellipse(0,0,sz*0.55,sz*0.5,0,0,7); g.ellipse(sz*0.9,0,sz*0.7,sz*0.55,0,0,7); g.fill();
+      if(a.carry>0){ g.fillStyle='#6cc24a'; g.beginPath(); g.arc(sz*1.6,0,sz*0.7,0,7); g.fill(); }
+      if(a.caste==='soldier'){ g.strokeStyle=base; g.lineWidth=0.5;
+        g.beginPath(); g.moveTo(sz*1.2,-sz*0.5); g.lineTo(sz*2.1,-sz*1); g.moveTo(sz*1.2,sz*0.5); g.lineTo(sz*2.1,sz*1); g.stroke(); }
+      g.restore();
+    }
+
+    // follow highlight
+    if(followAnt){ g.strokeStyle='rgba(255,255,255,.7)'; g.lineWidth=1/(scale*zoom)*2;
+      g.beginPath(); g.arc(followAnt.x,followAnt.y,9,0,7); g.stroke(); }
+
+    g.restore(); // clip
+    g.restore(); // camera
+
+    // rain overlay (screen space)
+    if(world.rainT>0){
+      g.fillStyle='rgba(120,150,200,.06)'; g.fillRect(0,0,VW,VH);
+      g.strokeStyle='rgba(170,190,230,.25)'; g.lineWidth=1;
+      for(i=0;i<70;i++){ var rx=(i*97+ (world.t*400))%VW, ry=(i*53+(world.t*900))%VH;
+        g.beginPath(); g.moveTo(rx,ry); g.lineTo(rx-3,ry+11); g.stroke(); }
+    }
+    // night vignette
+    if(night>0.3){ g.fillStyle='rgba(4,4,12,'+(night*0.28)+')'; g.fillRect(0,0,VW,VH); }
+
+    // follow label
+    if(followAnt){
+      followEl.style.display='block';
+      var stMap={foraging:'foraging',carrying:'carrying → homing',homing:'homing',fighting:'fighting!',queen:'queen'};
+      followEl.innerHTML='<b style="color:'+(followAnt.colony?'#ff8a5c':'#c9d6ff')+'">'+
+        (followAnt.colony?'RED':'BLACK')+' '+followAnt.caste+'</b><br>state: '+
+        (stMap[followAnt.state]||followAnt.state)+'<br>age: '+followAnt.age.toFixed(0)+'s';
+    }
+  }
+
+  // ---------- HUD update ----------
+  var hudT=0;
+  function updateHUD(dt){
+    hudT+=dt; if(hudT<0.25) return; hudT=0;
+    el.popB.textContent=world.pop(0); el.popR.textContent=world.pop(1);
+    el.stB.textContent=Math.round(world.colonies[0].food); el.stR.textContent=Math.round(world.colonies[1].food);
+    el.barB.style.width=Math.min(100,world.pop(0)/C.COLONY_CAP*100)+'%';
+    el.barR.style.width=Math.min(100,world.pop(1)/C.COLONY_CAP*100)+'%';
+    el.kills.textContent=world.colonies[0].kills+'/'+world.colonies[1].kills;
+    var oldest=0; for(var i=0;i<world.ants.length;i++){ if(world.ants[i].alive&&world.ants[i].age>oldest)oldest=world.ants[i].age; }
+    el.oldest.textContent=oldest.toFixed(0)+'s';
+    el.era.textContent=world.era;
+    el.clock.textContent=((Math.sin(world.t/120*Math.PI*2)+1)/2>0.5)?'☀ day':'☾ night';
+    coinsEl.textContent=walletCoins();
+  }
+
+  // ---------- chronicle rotate ----------
+  var chronRot=0;
+  function updateChron(dt){
+    chronRot+=dt;
+    pumpChron();
+    if(chronRot>4){
+      chronRot=0;
+      var msg = chronQ.length? chronQ.shift() : ambient[Math.floor(Math.random()*ambient.length)];
+      chronEl.textContent='🐜 '+msg;
+    }
+  }
+
+  // ---------- main loop ----------
+  var last=performance.now(), acc=0, STEP=1/60, running=false, prevKills=0;
+  function frame(now){
+    requestAnimationFrame(frame);
+    var dt=(now-last)/1000; last=now;
+    if(dt>0.1) dt=0.1;                     // clamp (keeps sim time sane after tab switch)
+    if(!running){ return; }
+    var mult=speeds[si];
+    acc+=dt*mult;
+    var steps=0, maxSteps=mult*8+2;
+    while(acc>=STEP && steps<maxSteps){ world.step(STEP); acc-=STEP; steps++;
+      var k=world.colonies[0].kills+world.colonies[1].kills;
+      if(k>prevKills){ if(world.lastDeaths) skirmish(); prevKills=k; }
+    }
+    if(acc>STEP*maxSteps) acc=0;
+    updateRainAudio();
+    draw();
+    updateHUD(dt); updateChron(dt);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- intro ----------
+  document.getElementById('begin').addEventListener('click',function(){
+    document.getElementById('intro').style.display='none';
+    running=true; initAudio(); if(AC&&AC.state==='suspended')AC.resume();
+  });
+  // draw one frame behind the intro so it isn't blank
+  running=false; draw();
+})();
+</script>
+</body>
+</html>

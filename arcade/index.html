@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#12121a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Hungry Hole</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- Touch joystick -->
+<div id="joystick" class="hidden">
+  <div id="joy-base"></div>
+  <div id="joy-knob"></div>
+</div>
+
+<!-- In-game HUD -->
+<div id="hud" class="hidden">
+  <div id="hud-top">
+    <div id="hud-timer" class="hud-pill">1:30</div>
+    <div id="hud-center">
+      <div id="hud-score" class="hud-pill">0</div>
+      <div id="hud-stars">
+        <span class="hud-star" data-i="0">★</span>
+        <span class="hud-star" data-i="1">★</span>
+        <span class="hud-star" data-i="2">★</span>
+      </div>
+    </div>
+    <button id="btn-pause" class="hud-pill">⏸</button>
+  </div>
+  <div id="hud-combo" class="hidden">COMBO ×1.10</div>
+  <div id="hud-boosts" class="hidden"></div>
+  <div id="hud-goal" class="hud-pill"></div>
+  <div id="hud-size" class="hud-pill">Size ×1.0</div>
+</div>
+
+<!-- Action feedback -->
+<div id="banner" class="hidden"></div>
+<div id="flash" class="hidden"></div>
+
+<!-- Reversal build bar -->
+<div id="reversal-bar" class="hidden">
+  <button class="rev-item selected" data-kind="bait">🌟<span>Bait</span><em>25⚒</em></button>
+  <button class="rev-item" data-kind="bomb">💣<span>Bomb</span><em>20⚒</em></button>
+  <button class="rev-item" data-kind="tower">🏢<span>Tower</span><em>60⚒</em></button>
+  <div id="rev-pts"><div id="rev-pts-fill"></div><span id="rev-pts-label">60</span></div>
+</div>
+
+<!-- Title / level select -->
+<div id="title-screen" class="screen">
+  <h1 class="game-title">HUNGRY&nbsp;HOLE</h1>
+  <p class="subtitle">Swallow the world, one block at a time.</p>
+  <div class="panel">
+    <h2>Hole skin <span id="star-count" class="star-count">★ 0</span></h2>
+    <div id="skin-row"></div>
+  </div>
+  <div class="panel">
+    <h2>Levels</h2>
+    <div id="level-grid"></div>
+  </div>
+  <div class="btn-col">
+    <button id="btn-endless" class="big-btn">∞ Endless Mode</button>
+    <button id="btn-reversal" class="big-btn secondary">🏙 Hole Wars: Reversal</button>
+  </div>
+  <div class="title-footer">
+    <a class="small-btn" href="arcade.html" style="text-decoration:none">🕹 Arcade</a>
+    <a class="small-btn" href="vault.html" style="text-decoration:none">🎴 Vault</a>
+    <button id="btn-mute" class="small-btn">🔊 Sound</button>
+    <button id="btn-dev" class="small-btn">🛠 Dev</button>
+    <span class="hint">Mouse / WASD on desktop &nbsp;·&nbsp; drag to steer on touch</span>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pause-screen" class="screen hidden">
+  <h1>Paused</h1>
+  <div class="btn-col">
+    <button id="btn-resume" class="big-btn">Resume</button>
+    <button id="btn-restart" class="big-btn secondary">Restart level</button>
+    <button id="btn-quit" class="big-btn secondary">Level select</button>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="result-screen" class="screen hidden">
+  <h1 id="result-title">Level Clear!</h1>
+  <div id="result-stars">
+    <span class="result-star">★</span>
+    <span class="result-star">★</span>
+    <span class="result-star">★</span>
+  </div>
+  <div id="result-score" class="result-line">Score: 0</div>
+  <div id="result-best" class="result-line small">Best: 0</div>
+  <div class="btn-col">
+    <button id="btn-next" class="big-btn">Next level ▶</button>
+    <button id="btn-retry" class="big-btn secondary">Retry</button>
+    <button id="btn-levels" class="big-btn secondary">Level select</button>
+    <a class="small-btn" href="vault.html" style="text-decoration:none">🎴 Spend it in the Card Vault</a>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

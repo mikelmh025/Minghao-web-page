@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#12121a">
+<title>The Arcade</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  min-height: 100vh;
+  background: #12121a;
+  color: #f0f0f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  padding: max(28px, env(safe-area-inset-top)) 20px max(40px, env(safe-area-inset-bottom));
+}
+h1 {
+  text-align: center;
+  font-size: clamp(34px, 8vw, 60px);
+  font-weight: 900;
+  letter-spacing: 4px;
+  background: linear-gradient(180deg, #7dd3fc, #6d28d9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.tagline { text-align: center; color: #9a9ab0; margin: 6px 0 14px; font-size: 14px; }
+
+.wallet {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 26px;
+}
+.wallet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(180deg, rgba(250, 204, 21, 0.14), rgba(250, 204, 21, 0.05));
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 999px;
+  padding: 9px 22px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fde68a;
+}
+.wallet-pill small { font-weight: 500; color: #a8a06a; font-size: 11px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.card {
+  position: relative;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  padding: 16px;
+  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+}
+.card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+.thumb-row { display: flex; align-items: center; gap: 12px; }
+canvas.thumb {
+  width: 72px; height: 72px;
+  border-radius: 14px;
+  background: #0c0c14;
+  border: 1px solid rgba(255,255,255,0.07);
+  flex: none;
+}
+.card h2 { font-size: 18px; margin: 0 0 3px; }
+.best {
+  font-size: 11px;
+  color: #86c7f0;
+  font-variant-numeric: tabular-nums;
+  min-height: 14px;
+}
+.card p { font-size: 12.5px; color: #9a9ab0; line-height: 1.45; margin-top: 10px; }
+.card .tags { margin-top: 9px; }
+.tag {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #a5b4fc;
+  background: rgba(124, 92, 255, 0.15);
+  border-radius: 999px;
+  padding: 3px 9px;
+  margin-right: 5px;
+}
+.badge {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+.badge.improved { background: rgba(74, 222, 128, 0.18); color: #86efac; border: 1px solid rgba(74,222,128,0.4); }
+.badge.last { background: rgba(125, 211, 252, 0.14); color: #7dd3fc; border: 1px solid rgba(125,211,252,0.35); }
+.badge.new { background: rgba(250, 204, 21, 0.16); color: #fde68a; border: 1px solid rgba(250,204,21,0.4); }
+.card.soon { opacity: 0.38; pointer-events: none; }
+.card.soon h2::after { content: " · soon"; color: #70708a; font-size: 13px; }
+footer { text-align: center; color: #55556a; font-size: 12px; margin-top: 36px; line-height: 1.7; }
+
+/* ============ Season One meta layer ============ */
+.meta-deck { max-width: 1120px; margin: 0 auto 22px; display: grid; gap: 12px; }
+.profile-strip { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 12px 18px; }
+.lvl-badge { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 17px; color: #1a1207; background: linear-gradient(160deg, #fde68a, #f59e0b);
+  box-shadow: 0 0 14px rgba(245,158,11,0.4); flex: none; }
+.xp-wrap { min-width: 150px; flex: 1; max-width: 260px; }
+.xp-wrap small { font-size: 10px; color: #8888a0; letter-spacing: 1px; }
+.xp-bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 3px; }
+.xp-fill { height: 100%; background: linear-gradient(90deg, #f59e0b, #fde68a); transition: width 0.6s; }
+.stat-pill { font-size: 13px; font-weight: 800; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px; padding: 7px 14px; white-space: nowrap; }
+.stat-pill.streak { color: #fda4af; border-color: rgba(251,113,133,0.35); }
+.stat-pill.tik { color: #a5f3fc; border-color: rgba(103,232,249,0.35); }
+
+.vault-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-decoration: none; color: inherit;
+  background: linear-gradient(100deg, rgba(250,204,21,0.14), rgba(180,83,9,0.10) 60%, rgba(250,204,21,0.16));
+  border: 1px solid rgba(250,204,21,0.4); border-radius: 16px; padding: 14px 20px; position: relative; overflow: hidden; }
+.vault-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.18) 48%, transparent 60%);
+  background-size: 260% 100%; animation: foil-sweep 3.5s linear infinite; pointer-events: none; }
+@keyframes foil-sweep { 0% { background-position: 130% 0; } 100% { background-position: -140% 0; } }
+.vault-banner h3 { font-size: 17px; font-weight: 900; letter-spacing: 1px; color: #fde68a; }
+.vault-banner p { font-size: 12px; color: #b0a06a; margin-top: 2px; }
+.vault-cta { font-weight: 900; font-size: 14px; color: #1a1207; background: linear-gradient(180deg, #fde68a, #f59e0b);
+  padding: 10px 20px; border-radius: 12px; white-space: nowrap; }
+
+.mission-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.mission { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mission .m-txt { font-size: 12.5px; }
+.mission .m-txt b { display: block; font-size: 13px; }
+.mission .m-txt small { color: #8888a0; }
+.m-claim { font-size: 12px; font-weight: 900; border: none; border-radius: 10px; padding: 9px 14px; cursor: pointer;
+  background: linear-gradient(180deg, #86efac, #22c55e); color: #052e13; }
+.m-claim:disabled { background: rgba(255,255,255,0.08); color: #666; cursor: default; }
+.m-done { font-size: 12px; font-weight: 900; color: #4ade80; }
+
+.featured { position: relative; display: flex; align-items: center; gap: 18px; text-decoration: none; color: inherit;
+  background: rgba(125, 211, 252, 0.07); border: 1px solid rgba(125,211,252,0.3); border-radius: 16px; padding: 14px 18px; overflow: hidden; }
+.featured canvas { width: 96px; height: 96px; border-radius: 16px; background: #0c0c14; flex: none; }
+.featured .f-tag { position: absolute; top: 10px; right: 12px; font-size: 10px; font-weight: 900; letter-spacing: 2px; color: #7dd3fc; }
+.featured h3 { font-size: 19px; font-weight: 900; }
+.featured p { font-size: 12.5px; color: #9a9ab0; margin-top: 3px; }
+
+#toasts { position: fixed; top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 60;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { background: rgba(20,20,32,0.95); border: 1px solid rgba(250,204,21,0.5); color: #fde68a; font-weight: 800; font-size: 14px;
+  border-radius: 999px; padding: 10px 22px; animation: toast-in 3.2s ease forwards; box-shadow: 0 6px 24px rgba(0,0,0,0.5); }
+@keyframes toast-in { 0% { opacity: 0; transform: translateY(-16px) scale(0.9); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
+</style>
+</head>
+<body>
+<h1>THE ARCADE</h1>
+<p class="tagline">A growing collection of homemade web games — playable on Mac &amp; iPhone.</p>
+<div class="meta-deck">
+  <div class="profile-strip">
+    <div class="lvl-badge" id="lvl">1</div>
+    <div class="xp-wrap">
+      <small id="xp-label">LEVEL 1 · 0 XP</small>
+      <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+    <span class="stat-pill">🪙 <span id="coin-count">0</span></span>
+    <span class="stat-pill tik">🎟 <span id="ticket-count">0</span></span>
+    <span class="stat-pill streak">🔥 <span id="streak-count">1</span>-day streak</span>
+  </div>
+  <a class="vault-banner" href="vault.html">
+    <div><h3>🎴 THE CARD VAULT</h3><p id="vault-line">Pull the arcade's legends · Collection Power boosts every game</p></div>
+    <span class="vault-cta">PULL ▶</span>
+  </a>
+  <a class="featured" id="featured" href="#">
+    <canvas id="featured-thumb" width="144" height="144"></canvas>
+    <div><h3 id="featured-name"></h3><p id="featured-desc"></p></div>
+    <span class="f-tag">★ FEATURED TODAY</span>
+  </a>
+  <div class="mission-row" id="missions"></div>
+</div>
+<div class="grid" id="grid"></div>
+<div id="toasts"></div>
+<footer>All games run offline from this folder. Serve with <code>python3 -m http.server</code> for iPhone play.<br>
+The shared coin wallet &amp; cross-game bests work fully when served (browsers isolate <code>file://</code> storage per page).</footer>
+<script>
+/* ============ game registry ============ */
+const GAMES = [
+  { slug: 'hungry-hole', href: 'index.html', name: 'Hungry Hole', ready: true,
+    desc: 'Swallow a whole city. 19 levels, boss fight, endless + city-defense reversal modes.', tags: ['flagship', 'action'] },
+  { slug: 'cell-wars', href: 'games/cell-wars/index.html', name: 'Cell Wars', ready: true,
+    desc: 'Eat, split, and outgrow a petri dish of NPC cells that hunt each other too.', tags: ['arena', 'ai'] },
+  { slug: 'star-defense', href: 'games/star-defense/index.html', name: 'Star Defense', ready: true,
+    desc: 'Space tower defense. Four turret types, shielded aliens, boss waves.', tags: ['strategy', 'td'] },
+  { slug: 'snake-arena', href: 'games/snake-arena/index.html', name: 'Snake Arena', ready: true,
+    desc: 'Slither against AI snakes. Boost, cut them off, eat what remains.', tags: ['arena', 'ai'] },
+  { slug: 'zombie-nights', href: 'games/zombie-nights/index.html', name: 'Zombie Nights', ready: true,
+    desc: 'Twin-stick wave survival. Scavenge weapons, kite the horde.', tags: ['shooter', 'waves'] },
+  { slug: 'brick-storm', href: 'games/brick-storm/index.html', name: 'Brick Storm', ready: true,
+    desc: 'Breakout with multiball, lasers, and very breakable bricks.', tags: ['classic'] },
+  { slug: 'sky-command', href: 'games/sky-command/index.html', name: 'Sky Command', ready: true,
+    desc: 'Intercept incoming missiles before your cities vanish.', tags: ['classic', 'defense'] },
+  { slug: 'drift-rally', href: 'games/drift-rally/index.html', name: 'Drift Rally', ready: true,
+    desc: 'Top-down drift racing against AI drivers.', tags: ['racing'] },
+  { slug: 'cave-flyer', href: 'games/cave-flyer/index.html', name: 'Cave Flyer', ready: true,
+    desc: 'One touch. Endless cave. How far can you fly?', tags: ['endless'] },
+  { slug: 'astro-blaster', href: 'games/astro-blaster/index.html', name: 'Astro Blaster', ready: true,
+    desc: 'Asteroids, saucers, power-ups, screen wrap. You know the drill.', tags: ['shooter', 'classic'] },
+  { slug: 'merge-2048', href: 'games/merge-2048/index.html', name: 'Merge 2048', ready: true,
+    desc: 'Slide, merge, reach 2048. With undo, because we are merciful.', tags: ['puzzle'] },
+  { slug: 'tower-stack', href: 'games/tower-stack/index.html', name: 'Tower Stack', ready: true,
+    desc: 'Time each drop. Miss and the tower narrows.', tags: ['timing'] },
+  { slug: 'fruit-slash', href: 'games/fruit-slash/index.html', name: 'Fruit Slash', ready: true,
+    desc: 'Swipe to slice. Combo whole strokes. Do not slice the bomb.', tags: ['action', 'touch'] },
+  { slug: 'sky-hopper', href: 'games/sky-hopper/index.html', name: 'Sky Hopper', ready: true,
+    desc: 'Bounce ever upward — springs, jetpacks, crumbling clouds.', tags: ['endless'] },
+  { slug: 'tank-duel', href: 'games/tank-duel/index.html', name: 'Tank Duel', ready: true,
+    desc: 'Turn-based artillery on destructible terrain. Mind the wind.', tags: ['strategy', 'ai'] },
+  { slug: 'iron-fists', href: 'games/iron-fists/index.html', name: 'Iron Fists', ready: true,
+    desc: '2.5D fighting. Eight AI styles to out-read. Local 2P too.', tags: ['fighting', 'ai'] },
+  { slug: 'swarm-survivor', href: 'games/swarm-survivor/index.html', name: 'Swarm Survivor', ready: true,
+    desc: 'Hundreds of monsters. Auto-attacking builds. Fifteen minutes to live.', tags: ['roguelike', 'horde'] },
+  { slug: 'lucky-wheel', href: 'games/lucky-wheel/index.html', name: 'Lucky Wheel', ready: true,
+    desc: 'Physics roulette, blackjack, slots — betting your Arcade Coins.', tags: ['casino', 'coins'] },
+  { slug: 'turbo-seven', href: 'games/turbo-seven/index.html', name: 'Turbo Seven', ready: true,
+    desc: 'Mode-7 pseudo-3D kart racing. Drift, boost, throw shells.', tags: ['2.5d', 'racing'] },
+  { slug: 'isle-keep', href: 'games/isle-keep/index.html', name: 'Isle Keep', ready: true,
+    desc: 'Isometric kingdom defense. Build by day, survive the night.', tags: ['2.5d', 'strategy'] },
+  { slug: 'depths-of-grimhold', href: 'games/depths-of-grimhold/index.html', name: 'Depths of Grimhold', ready: true,
+    desc: 'Turn-based roguelike. Unidentified potions. Permadeath. Classic.', tags: ['roguelike'] },
+  { slug: 'grimhold-3d', href: 'games/grimhold-3d/index.html', name: 'Grimhold 3D', ready: true,
+    desc: 'First-person raycast dungeon crawling, straight out of 1993.', tags: ['2.5d', 'fps'] },
+  { slug: 'echo-hunter', href: 'games/echo-hunter/index.html', name: 'Echo Hunter', ready: true,
+    desc: 'See only what your sonar touches. It hears your pings too.', tags: ['novel', 'stealth'] },
+  { slug: 'ant-empire', href: 'games/ant-empire/index.html', name: 'Ant Empire', ready: true,
+    desc: 'A zero-player colony sim. Real pheromone trails. Wars. Rain. Just watch.', tags: ['simulation', 'idle'] },
+  { slug: 'neon-surge', href: 'games/neon-surge/index.html', name: 'Neon Surge', ready: true,
+    desc: 'WebGL twin-stick. The grid bends. Everything glows. Nothing survives.', tags: ['premium', 'webgl'] },
+  { slug: 'brick-rogue', href: 'games/brick-rogue/index.html', name: 'Brick Rogue', ready: true,
+    desc: 'Breakout roguelike. Spin the wheel, draft your build, break everything.', tags: ['roguelike', 'invention'] },
+  { slug: 'herdmind', href: 'games/herdmind/index.html', name: 'Herdmind', ready: true,
+    desc: 'You are not the hero. You are the crowd that keeps him alive.', tags: ['novel', 'ai'] },
+  { slug: 'star-forge', href: 'games/star-forge/index.html', name: 'Star Forge', ready: true,
+    desc: 'True 3D n-body sandbox. Fling planets, capture moons, forge a solar system.', tags: ['premium', '3d'] },
+  { slug: 'terrarium', href: 'games/terrarium/index.html', name: 'Terrarium', ready: true,
+    desc: 'A living ecosystem that evolves. Watch prey get faster, generation by generation.', tags: ['simulation', 'evolution'] },
+  { slug: 'colosseum', href: 'games/colosseum/index.html', name: 'Colosseum', ready: true,
+    desc: 'AI legions clash. You read the odds and bet your coins. Upsets are real.', tags: ['simulation', 'betting'] },
+  { slug: 'tiny-metropolis', href: 'games/tiny-metropolis/index.html', name: 'Tiny Metropolis', ready: true,
+    desc: 'An idle skyline that builds, commutes, and earns — even while you sleep.', tags: ['idle', 'simulation'] },
+];
+
+/* ============ wallet ============ */
+function readWallet() {
+  try { return JSON.parse(localStorage.getItem('arcade-wallet')) || { coins: 0, earned: {}, spent: 0 }; }
+  catch { return { coins: 0, earned: {}, spent: 0 }; }
+}
+function renderWallet() {
+  document.getElementById('coin-count').textContent = readWallet().coins.toLocaleString();
+}
+
+/* ============ best-score extraction (robust to each game's own format) ============ */
+function bestText(slug) {
+  try {
+    if (slug === 'hungry-hole') {
+      const s = JSON.parse(localStorage.getItem('hungry-hole-save') || 'null');
+      if (!s) return '';
+      const stars = Object.values(s.stars || {}).reduce((a, b) => a + b, 0);
+      const parts = [];
+      if (stars) parts.push(`★ ${stars}`);
+      if (s.endlessBest && s.endlessBest.score) parts.push(`∞ ${s.endlessBest.score.toLocaleString()}`);
+      return parts.join(' · ');
+    }
+    if (slug === 'tiny-metropolis') {
+      const s = JSON.parse(localStorage.getItem('arcade-tiny-metropolis') || 'null');
+      if (!s || !(s.lifetime > 0)) return '';
+      const sfx = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi'];
+      const tier = Math.min(sfx.length - 1, Math.floor(Math.log10(Math.max(1, s.lifetime)) / 3));
+      const v = s.lifetime / Math.pow(10, tier * 3);
+      const parts = [`$${v >= 100 ? v.toFixed(0) : v.toFixed(1)}${sfx[tier]}`];
+      if (s.stars > 0) parts.push(`★ ${s.stars}`);
+      return parts.join(' · ');
+    }
+    const raw = localStorage.getItem('arcade-' + slug);
+    if (raw == null) return '';
+    if (/^\d+(\.\d+)?$/.test(raw.trim())) return 'Best ' + Number(raw).toLocaleString();
+    const v = JSON.parse(raw);
+    if (typeof v === 'number') return 'Best ' + v.toLocaleString();
+    if (v && typeof v === 'object') {
+      const label = {
+        score: 'Best', best: 'Best', bestScore: 'Best', hi: 'Best', high: 'Best', highScore: 'Best',
+        wave: 'Wave', bestWave: 'Wave', distance: 'Best', bestDistance: 'Best', dist: 'Best',
+        height: 'Height', bestHeight: 'Height', wins: 'Wins', length: 'Length', mass: 'Mass',
+      };
+      for (const k of Object.keys(label)) {
+        if (typeof v[k] === 'number' && v[k] > 0) return `${label[k]} ${Math.round(v[k]).toLocaleString()}`;
+      }
+      // nested one level (e.g. per-mode / per-track bests)
+      let biggest = 0;
+      for (const val of Object.values(v)) {
+        if (typeof val === 'number' && val > biggest) biggest = val;
+        else if (val && typeof val === 'object') {
+          for (const n of Object.values(val)) if (typeof n === 'number' && n > biggest) biggest = n;
+        }
+      }
+      if (biggest > 0) return 'Best ' + Math.round(biggest).toLocaleString();
+    }
+  } catch {}
+  return '';
+}
+function bestNumber(slug) {
+  const t = bestText(slug);
+  const m = t.replace(/,/g, '').match(/\d+/g);
+  return m ? m.reduce((a, b) => a + Number(b), 0) : 0;
+}
+
+/* ============ badges: improved-since-last-visit + last played ============ */
+const seen = (() => { try { return JSON.parse(localStorage.getItem('arcade-hub-seen')) || {}; } catch { return {}; } })();
+const lastPlayed = (() => { try { return localStorage.getItem('arcade-last-played'); } catch { return null; } })();
+
+/* ============ build cards ============ */
+const grid = document.getElementById('grid');
+const thumbs = [];
+for (const g of GAMES) {
+  const a = document.createElement('a');
+  a.className = 'card' + (g.ready ? '' : ' soon');
+  a.href = g.href;
+  const best = g.ready ? bestText(g.slug) : '';
+  const improved = g.ready && bestNumber(g.slug) > (seen[g.slug] || 0) && seen[g.slug] !== undefined;
+  const isLast = lastPlayed === g.slug;
+  const badge = improved ? '<span class="badge improved">IMPROVED!</span>'
+    : isLast ? '<span class="badge last">LAST PLAYED</span>'
+    : (!best && g.ready) ? '<span class="badge new">UNPLAYED</span>' : '';
+  a.innerHTML = `
+    ${badge}
+    <div class="thumb-row">
+      <canvas class="thumb" width="144" height="144" data-slug="${g.slug}"></canvas>
+      <div><h2>${g.name}</h2><div class="best">${best}</div></div>
+    </div>
+    <p>${g.desc}</p>
+    <div class="tags">${g.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`;
+  a.addEventListener('click', () => { try { localStorage.setItem('arcade-last-played', g.slug); } catch {} });
+  grid.appendChild(a);
+  thumbs.push(a.querySelector('canvas'));
+}
+// snapshot current bests for next visit's IMPROVED! badges
+try {
+  const snap = {};
+  for (const g of GAMES) if (g.ready) snap[g.slug] = bestNumber(g.slug);
+  localStorage.setItem('arcade-hub-seen', JSON.stringify(snap));
+} catch {}
+renderWallet();
+
+/* ============ animated thumbnails ============ */
+/* Each drawer paints a tiny looping motif. S = 144 (canvas px), t = seconds. */
+const S = 144;
+function ring(c, x, y, r, w, col) { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.arc(x, y, r, 0, 7); c.stroke(); }
+function dot(c, x, y, r, col) { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); }
+
+const THUMB_DRAW = {
+  'hungry-hole'(c, t) {
+    c.fillStyle = '#69a95c'; c.fillRect(0, 0, S, S);
+    const hx = S / 2 + Math.cos(t) * 24, hy = S / 2 + Math.sin(t * 1.3) * 18;
+    for (let i = 0; i < 5; i++) {
+      const a = i * 1.26 + 0.5, d = 52;
+      const px = S / 2 + Math.cos(a) * d, py = S / 2 + Math.sin(a) * d;
+      const pull = Math.max(0, 1 - Math.hypot(px - hx, py - hy) / 46);
+      dot(c, px + (hx - px) * pull, py + (hy - py) * pull, 6 * (1 - pull * 0.8), ['#e8722c', '#2f7031', '#c93b3b', '#3565b0', '#8a5a33'][i]);
+    }
+    dot(c, hx, hy, 20, '#08080f'); ring(c, hx, hy, 20, 4, '#8b5cf6');
+  },
+  'cell-wars'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    dot(c, S / 2 + Math.cos(t) * 26, S / 2 + Math.sin(t) * 26, 22, '#4ade80');
+    dot(c, S / 2 + Math.cos(t + 2) * 40, S / 2 + Math.sin(t + 2) * 40, 13, '#f472b6');
+    dot(c, S / 2 + Math.cos(t * 1.7) * 48, S / 2 + Math.sin(t * 0.9) * 48, 8, '#60a5fa');
+    for (let i = 0; i < 8; i++) dot(c, (i * 53 + 20) % S, (i * 37 + 30) % S, 2.5, '#facc15');
+  },
+  'star-defense'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    const ex = ((t * 40) % (S + 40)) - 20, ey = S * 0.32 + Math.sin(ex * 0.06) * 14;
+    c.strokeStyle = '#22d3ee'; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(S * 0.28, S * 0.72); c.lineTo(ex, ey); c.stroke();
+    dot(c, S * 0.28, S * 0.72, 11, '#155e75'); ring(c, S * 0.28, S * 0.72, 11, 3, '#22d3ee');
+    c.save(); c.translate(ex, ey); c.rotate(2); c.fillStyle = '#86efac';
+    c.beginPath(); c.moveTo(10, 0); c.lineTo(-7, 6); c.lineTo(-7, -6); c.fill(); c.restore();
+  },
+  'snake-arena'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    c.strokeStyle = '#34d399'; c.lineWidth = 9; c.lineCap = 'round'; c.shadowColor = '#34d399'; c.shadowBlur = 10;
+    c.beginPath();
+    for (let i = 0; i <= 20; i++) {
+      const x = 18 + i * 5.4, y = S / 2 + Math.sin(i * 0.5 + t * 3) * 26;
+      i ? c.lineTo(x, y) : c.moveTo(x, y);
+    }
+    c.stroke(); c.shadowBlur = 0;
+    dot(c, 18 + 108, S / 2 + Math.sin(10 + t * 3) * 26, 4, '#fff');
+  },
+  'zombie-nights'(c, t) {
+    c.fillStyle = '#08080e'; c.fillRect(0, 0, S, S);
+    const g = c.createRadialGradient(S / 2, S / 2, 5, S / 2, S / 2, 60);
+    g.addColorStop(0, 'rgba(255,240,190,0.35)'); g.addColorStop(1, 'transparent');
+    c.fillStyle = g; c.fillRect(0, 0, S, S);
+    dot(c, S / 2, S / 2, 7, '#7dd3fc');
+    for (let i = 0; i < 4; i++) {
+      const a = i * 1.7 + 0.4, d = 62 - ((t * 12 + i * 17) % 34);
+      dot(c, S / 2 + Math.cos(a) * d, S / 2 + Math.sin(a) * d, 5, '#65a30d');
+    }
+  },
+  'brick-storm'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    const cols = ['#fb7185', '#fb923c', '#facc15', '#4ade80', '#38bdf8'];
+    for (let r = 0; r < 4; r++) for (let i = 0; i < 5; i++) c.fillStyle = cols[(r + i) % 5], c.fillRect(10 + i * 26, 12 + r * 13, 22, 9);
+    const bx = S / 2 + Math.sin(t * 2.2) * 44, by = 90 + Math.abs(Math.sin(t * 3.1)) * 30;
+    dot(c, bx, by, 5, '#fff');
+    c.fillStyle = '#38bdf8'; c.fillRect(bx - 18, 128, 36, 7);
+  },
+  'sky-command'(c, t) {
+    c.fillStyle = '#0a0a16'; c.fillRect(0, 0, S, S);
+    const p = (t % 1.6) / 1.6;
+    c.strokeStyle = '#f87171'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(20, 0); c.lineTo(20 + p * 60, p * 100); c.stroke();
+    ring(c, 95, 60, 8 + Math.sin(t * 4) * 6 + 8, 3, '#22d3ee');
+    c.fillStyle = '#334155';
+    for (let i = 0; i < 4; i++) c.fillRect(14 + i * 34, 122 - (i % 2) * 6, 18, 22);
+  },
+  'drift-rally'(c, t) {
+    c.fillStyle = '#14351c'; c.fillRect(0, 0, S, S);
+    c.strokeStyle = '#3f3f46'; c.lineWidth = 26; c.beginPath(); c.ellipse(S / 2, S / 2, 46, 32, 0, 0, 7); c.stroke();
+    c.strokeStyle = '#d4d4b0'; c.lineWidth = 2; c.setLineDash([7, 8]); c.beginPath(); c.ellipse(S / 2, S / 2, 46, 32, 0, 0, 7); c.stroke(); c.setLineDash([]);
+    const a = t * 1.8;
+    c.save(); c.translate(S / 2 + Math.cos(a) * 46, S / 2 + Math.sin(a) * 32); c.rotate(a + Math.PI / 2 + 0.5);
+    c.fillStyle = '#ef4444'; c.fillRect(-5, -9, 10, 18); c.restore();
+  },
+  'cave-flyer'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    c.fillStyle = '#1e293b';
+    c.beginPath(); c.moveTo(0, 0);
+    for (let x = 0; x <= S; x += 8) c.lineTo(x, 26 + Math.sin((x + t * 60) * 0.05) * 12);
+    c.lineTo(S, 0); c.fill();
+    c.beginPath(); c.moveTo(0, S);
+    for (let x = 0; x <= S; x += 8) c.lineTo(x, S - 26 + Math.sin((x + t * 60) * 0.045 + 2) * 12);
+    c.lineTo(S, S); c.fill();
+    const y = S / 2 + Math.sin(t * 2.5) * 14;
+    c.fillStyle = '#38bdf8'; c.beginPath(); c.moveTo(66, y); c.lineTo(48, y + 7); c.lineTo(48, y - 7); c.fill();
+    dot(c, 44, y, 3 + Math.sin(t * 20) * 1.5, '#fb923c');
+  },
+  'astro-blaster'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    for (let i = 0; i < 12; i++) dot(c, (i * 47 + 13) % S, (i * 31 + 7) % S, 1.4, '#94a3b8');
+    c.save(); c.translate(S * 0.3 + Math.cos(t) * 10, S * 0.35 + Math.sin(t * 0.8) * 8); c.rotate(t);
+    c.strokeStyle = '#cbd5e1'; c.lineWidth = 3; c.beginPath();
+    for (let i = 0; i < 7; i++) { const r = 22 + (i % 2) * 7, a = i / 7 * 6.28; i ? c.lineTo(Math.cos(a) * r, Math.sin(a) * r) : c.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+    c.closePath(); c.stroke(); c.restore();
+    c.save(); c.translate(S * 0.72, S * 0.72); c.rotate(-t * 1.4);
+    c.fillStyle = '#7dd3fc'; c.beginPath(); c.moveTo(12, 0); c.lineTo(-8, 8); c.lineTo(-4, 0); c.lineTo(-8, -8); c.fill(); c.restore();
+  },
+  'merge-2048'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    const p = Math.min(1, (t % 2) / 0.7);
+    const x1 = 22 + p * 34, x2 = 92 - p * 34;
+    c.fillStyle = '#6d5bd0'; c.beginPath(); c.roundRect(x1, 52, 40, 40, 8); c.fill();
+    c.fillStyle = '#6d5bd0'; c.beginPath(); c.roundRect(x2, 52, 40, 40, 8); c.fill();
+    if (p >= 1) {
+      const pop = 1 + Math.max(0, 0.25 - ((t % 2) - 0.7)) ;
+      c.fillStyle = '#38bdf8'; c.save(); c.translate(76, 72); c.scale(pop, pop);
+      c.beginPath(); c.roundRect(-22, -22, 44, 44, 9); c.fill();
+      c.fillStyle = '#fff'; c.font = '900 20px -apple-system'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('4', 0, 1); c.restore();
+    } else {
+      c.fillStyle = '#fff'; c.font = '900 18px -apple-system'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('2', x1 + 20, 73); c.fillText('2', x2 + 20, 73);
+    }
+  },
+  'tower-stack'(c, t) {
+    c.fillStyle = '#191430'; c.fillRect(0, 0, S, S);
+    for (let i = 0; i < 6; i++) {
+      c.fillStyle = `hsl(${255 + i * 9},60%,${48 + i * 3}%)`;
+      const w = 74 - i * 5;
+      c.fillRect(S / 2 - w / 2, 122 - i * 14, w, 12);
+    }
+    const w = 44, x = S / 2 + Math.sin(t * 2.6) * 34 - w / 2;
+    c.fillStyle = 'hsl(310,65%,62%)'; c.fillRect(x, 122 - 6 * 14, w, 12);
+  },
+  'fruit-slash'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    const p = (t % 1.5) / 1.5;
+    const fy = 130 - Math.sin(p * Math.PI) * 95;
+    dot(c, 46, fy, 13, '#4ade80'); ring(c, 46, fy, 13, 3, '#166534');
+    dot(c, 96, fy + 12, 11, '#fb923c');
+    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 4; c.lineCap = 'round';
+    const sp = ((t + 0.6) % 1.5) / 1.5;
+    c.beginPath(); c.moveTo(20 + sp * 70, 100 - sp * 50); c.lineTo(40 + sp * 70, 84 - sp * 50); c.stroke();
+  },
+  'sky-hopper'(c, t) {
+    c.fillStyle = '#87b5e0'; c.fillRect(0, 0, S, S);
+    c.fillStyle = '#4ade80';
+    for (let i = 0; i < 4; i++) c.beginPath(), c.roundRect(18 + (i % 2) * 62 + Math.sin(t + i) * 8, 116 - i * 30, 42, 8, 4), c.fill();
+    const by = 96 - Math.abs(Math.sin(t * 3)) * 52;
+    dot(c, S / 2, by, 12, '#84cc16');
+    dot(c, S / 2 - 4, by - 3, 2.2, '#111'); dot(c, S / 2 + 4, by - 3, 2.2, '#111');
+  },
+  'tank-duel'(c, t) {
+    c.fillStyle = '#0a0a16'; c.fillRect(0, 0, S, S);
+    c.fillStyle = '#3d2f1e'; c.beginPath(); c.moveTo(0, S);
+    for (let x = 0; x <= S; x += 8) c.lineTo(x, 96 + Math.sin(x * 0.05) * 14);
+    c.lineTo(S, S); c.fill();
+    const p = (t % 1.8) / 1.8, sx = 26 + p * 92, sy = 90 - Math.sin(p * Math.PI) * 55;
+    dot(c, sx, sy, 3.5, '#fbbf24');
+    c.fillStyle = '#4ade80'; c.fillRect(18, 84, 18, 9);
+    c.fillStyle = '#ef4444'; c.fillRect(110, 92, 18, 9);
+  },
+  'iron-fists'(c, t) {
+    c.fillStyle = '#181022'; c.fillRect(0, 0, S, S);
+    c.fillStyle = '#0d0916'; c.fillRect(0, 112, S, 32);
+    const punch = Math.max(0, Math.sin(t * 4));
+    c.strokeStyle = '#f87171'; c.lineWidth = 7; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(46, 70); c.lineTo(46 + 8 + punch * 26, 64); c.stroke(); // arm
+    c.beginPath(); c.moveTo(46, 66); c.lineTo(46, 100); c.stroke();
+    dot(c, 46, 52, 10, '#f87171');
+    c.strokeStyle = '#60a5fa';
+    const lean = punch * 8;
+    c.beginPath(); c.moveTo(100 + lean, 66); c.lineTo(100 + lean, 100); c.stroke();
+    dot(c, 100 + lean, 52, 10, '#60a5fa');
+    if (punch > 0.85) { dot(c, 88, 62, 8, '#fde68a'); }
+  },
+  'swarm-survivor'(c, t) {
+    c.fillStyle = '#0d1117'; c.fillRect(0, 0, S, S);
+    dot(c, S / 2, S / 2, 8, '#7dd3fc');
+    ring(c, S / 2, S / 2, 24 + Math.sin(t * 5) * 4, 3, 'rgba(125,211,252,0.5)');
+    for (let i = 0; i < 26; i++) {
+      const a = i * 0.7 + t * 0.3, d = 70 - ((t * 26 + i * 11) % 46);
+      dot(c, S / 2 + Math.cos(a) * d, S / 2 + Math.sin(a) * d, 4, i % 3 ? '#65a30d' : '#a855f7');
+    }
+  },
+  'lucky-wheel'(c, t) {
+    c.fillStyle = '#122016'; c.fillRect(0, 0, S, S);
+    const a0 = t * 1.5;
+    for (let i = 0; i < 12; i++) {
+      c.fillStyle = i % 2 ? '#b91c1c' : '#18181b';
+      c.beginPath(); c.moveTo(S / 2, S / 2);
+      c.arc(S / 2, S / 2, 50, a0 + i * 0.524, a0 + (i + 1) * 0.524); c.fill();
+    }
+    ring(c, S / 2, S / 2, 50, 5, '#facc15'); dot(c, S / 2, S / 2, 10, '#facc15');
+    const ba = -t * 2.6;
+    dot(c, S / 2 + Math.cos(ba) * 42, S / 2 + Math.sin(ba) * 42, 4.5, '#fff');
+  },
+  'turbo-seven'(c, t) {
+    c.fillStyle = '#2d1b4e'; c.fillRect(0, 0, S, 54);
+    c.fillStyle = '#3f7f46'; c.fillRect(0, 54, S, S - 54);
+    c.strokeStyle = '#e5e7eb'; c.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      const z = ((t * 0.8 + i / 6) % 1);
+      const y = 54 + z * z * 90, sc = 0.2 + z * 0.8;
+      c.beginPath(); c.moveTo(S / 2 - 60 * sc, y); c.lineTo(S / 2 + 60 * sc, y); c.stroke();
+    }
+    c.fillStyle = '#ef4444'; c.beginPath(); c.roundRect(S / 2 - 12, 104, 24, 16, 5); c.fill();
+    c.fillStyle = '#7f1d1d'; c.fillRect(S / 2 - 12, 100, 24, 6);
+  },
+  'isle-keep'(c, t) {
+    c.fillStyle = '#0c1420'; c.fillRect(0, 0, S, S);
+    function iso(x, y, col, h) {
+      const px = S / 2 + (x - y) * 16, py = 58 + (x + y) * 8 - h;
+      c.fillStyle = col; c.beginPath();
+      c.moveTo(px, py - 8); c.lineTo(px + 16, py); c.lineTo(px, py + 8); c.lineTo(px - 16, py); c.fill();
+      if (h) { c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.moveTo(px - 16, py); c.lineTo(px, py + 8); c.lineTo(px, py + 8 + h); c.lineTo(px - 16, py + h); c.fill(); }
+    }
+    for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) iso(x, y, (x + y) % 2 ? '#3f8a3c' : '#4a9a46', 0);
+    iso(1, 1, '#94a3b8', 14); iso(2, 2, '#c2a36b', 8);
+    const p = (t * 0.7) % 4;
+    iso(p, 3 - Math.floor(p) * 0, '#f87171', 4);
+  },
+  'depths-of-grimhold'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    c.strokeStyle = '#1e293b'; c.lineWidth = 1;
+    for (let i = 0; i <= 9; i++) {
+      c.beginPath(); c.moveTo(i * 16, 0); c.lineTo(i * 16, S); c.stroke();
+      c.beginPath(); c.moveTo(0, i * 16); c.lineTo(S, i * 16); c.stroke();
+    }
+    const px = 32 + Math.floor((t * 1.2) % 4) * 16;
+    c.fillStyle = '#fbbf24'; c.font = '16px monospace'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('@', px + 8, 72); c.fillStyle = '#4ade80'; c.fillText('g', 104, 40);
+    c.fillStyle = '#f87171'; c.fillText('D', 104, 104);
+    const g = c.createRadialGradient(px + 8, 72, 8, px + 8, 72, 52);
+    g.addColorStop(0, 'transparent'); g.addColorStop(1, 'rgba(0,0,0,0.75)');
+    c.fillStyle = g; c.fillRect(0, 0, S, S);
+  },
+  'grimhold-3d'(c, t) {
+    for (let x = 0; x < S; x += 4) {
+      const a = (x / S - 0.5) * 1.2 + Math.sin(t * 0.7) * 0.4;
+      const d = 1.4 / Math.max(0.15, Math.cos(a) * (1 + Math.sin(a * 3 + t) * 0.35));
+      const h = Math.min(S, 90 / d);
+      const sh = Math.max(20, 90 - d * 26);
+      c.fillStyle = `rgb(${sh},${sh * 0.75},${sh * 0.55})`;
+      c.fillRect(x, (S - h) / 2, 4, h);
+      c.fillStyle = '#1c1917'; c.fillRect(x, 0, 4, (S - h) / 2);
+      c.fillStyle = '#292524'; c.fillRect(x, (S + h) / 2, 4, S);
+    }
+  },
+  'echo-hunter'(c, t) {
+    c.fillStyle = '#050508'; c.fillRect(0, 0, S, S);
+    const p = (t % 2) / 2, r = p * 80;
+    ring(c, S / 2, S / 2, r, 3, `rgba(125,211,252,${1 - p})`);
+    ring(c, S / 2, S / 2, r * 0.72, 2, `rgba(125,211,252,${(1 - p) * 0.5})`);
+    // geometry appears only near the wavefront
+    for (let i = 0; i < 6; i++) {
+      const a = i * 1.05, d = 30 + i * 8;
+      const vis = Math.max(0, 1 - Math.abs(d - r) / 14);
+      c.fillStyle = `rgba(148,163,184,${vis})`;
+      c.fillRect(S / 2 + Math.cos(a) * d - 4, S / 2 + Math.sin(a) * d - 4, 8, 8);
+    }
+    dot(c, S / 2, S / 2, 4, '#7dd3fc');
+  },
+  'ant-empire'(c, t) {
+    c.fillStyle = '#0d0d12'; c.fillRect(0, 0, S, S);
+    // glowing pheromone river
+    c.strokeStyle = 'rgba(80,140,255,0.35)'; c.lineWidth = 7; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(20, 20);
+    c.quadraticCurveTo(60, 60 + Math.sin(t) * 8, 118, 118); c.stroke();
+    c.strokeStyle = 'rgba(255,120,60,0.3)';
+    c.beginPath(); c.moveTo(124, 24); c.quadraticCurveTo(80, 70, 30, 120); c.stroke();
+    dot(c, 20, 20, 9, '#1e3a5f'); dot(c, 118, 118, 7, '#4ade80');
+    // ants marching the trail
+    for (let i = 0; i < 6; i++) {
+      const p = ((t * 0.25 + i / 6) % 1);
+      const x = 20 + p * 98, y = 20 + p * 98 + Math.sin(t + i) * 3;
+      dot(c, x, y, 2, '#dbeafe');
+    }
+    for (let i = 0; i < 4; i++) {
+      const p = ((t * 0.2 + i / 4) % 1);
+      dot(c, 124 - p * 94, 24 + p * 96, 2, '#fca5a5');
+    }
+  },
+  'neon-surge'(c, t) {
+    c.fillStyle = '#050510'; c.fillRect(0, 0, S, S);
+    c.strokeStyle = 'rgba(60,90,255,0.55)'; c.lineWidth = 1;
+    const cx = S / 2 + Math.cos(t * 1.5) * 30, cy = S / 2 + Math.sin(t * 2) * 24;
+    for (let i = 0; i <= 8; i++) {
+      c.beginPath();
+      for (let j = 0; j <= 8; j++) {
+        let x = i * 18, y = j * 18;
+        const d = Math.hypot(x - cx, y - cy), push = Math.max(0, 26 - d) * 0.5;
+        if (d > 1) { x += (x - cx) / d * push; y += (y - cy) / d * push; }
+        j ? c.lineTo(x, y) : c.moveTo(x, y);
+      }
+      c.stroke();
+    }
+    c.shadowColor = '#7df'; c.shadowBlur = 12;
+    dot(c, cx, cy, 5, '#cfefff');
+    dot(c, cx + Math.cos(t * 4) * 22, cy + Math.sin(t * 4) * 22, 3.5, '#f0f');
+    c.shadowBlur = 0;
+  },
+  'brick-rogue'(c, t) {
+    c.fillStyle = '#0c0c14'; c.fillRect(0, 0, S, S);
+    const cols = ['#71717a', '#3b82f6', '#a855f7', '#fbbf24'];
+    for (let i = 0; i < 4; i++) c.fillStyle = cols[i], c.fillRect(14 + i * 30, 14, 26, 11);
+    // rarity wheel spinning
+    const a0 = t * 2.2;
+    for (let i = 0; i < 8; i++) {
+      c.fillStyle = i % 4 === 3 ? '#fbbf24' : i % 4 === 2 ? '#a855f7' : i % 4 === 1 ? '#3b82f6' : '#52525e';
+      c.beginPath(); c.moveTo(S / 2, 78);
+      c.arc(S / 2, 78, 30, a0 + i * 0.785, a0 + (i + 1) * 0.785); c.fill();
+    }
+    dot(c, S / 2, 78, 7, '#14141f');
+    const bx = S / 2 + Math.sin(t * 2.8) * 40;
+    dot(c, bx, 112, 4.5, '#fff');
+    c.fillStyle = '#38bdf8'; c.fillRect(bx - 15, 126, 30, 6);
+  },
+  'herdmind'(c, t) {
+    c.fillStyle = '#101a12'; c.fillRect(0, 0, S, S);
+    const hx = 30 + ((t * 14) % 100);
+    dot(c, hx, S / 2, 8, '#fbbf24'); // oblivious hero
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * 6.28 + t;
+      dot(c, hx - 16 + Math.cos(a) * (16 + Math.sin(t * 2 + i) * 5), S / 2 + Math.sin(a) * (14 + Math.cos(t * 2 + i) * 4), 4, '#e2e8f0');
+    }
+  },
+  'star-forge'(c, t) {
+    c.fillStyle = '#04040a'; c.fillRect(0, 0, S, S);
+    for (let i = 0; i < 20; i++) dot(c, (i * 41 + 9) % S, (i * 29 + 15) % S, 1, '#94a3b8');
+    const g = c.createRadialGradient(S / 2, S / 2, 2, S / 2, S / 2, 26);
+    g.addColorStop(0, '#fff7d6'); g.addColorStop(0.4, 'rgba(253,224,71,0.7)'); g.addColorStop(1, 'transparent');
+    c.fillStyle = g; c.fillRect(0, 0, S, S);
+    dot(c, S / 2, S / 2, 9, '#fde68a');
+    // two orbiting planets with elliptical (tilted) trails
+    for (const [rx, ry, sp, col, pr] of [[46, 16, 1.1, '#60a5fa', 4], [62, 22, 0.6, '#e0855a', 5.5]]) {
+      c.strokeStyle = 'rgba(148,163,184,0.25)'; c.lineWidth = 1;
+      c.beginPath(); c.ellipse(S / 2, S / 2, rx, ry, -0.4, 0, 7); c.stroke();
+      const a = t * sp;
+      const px = S / 2 + Math.cos(a) * rx * Math.cos(-0.4) - Math.sin(a) * ry * Math.sin(-0.4);
+      const py = S / 2 + Math.cos(a) * rx * Math.sin(-0.4) + Math.sin(a) * ry * Math.cos(-0.4);
+      dot(c, px, py, pr, col);
+    }
+  },
+  'terrarium'(c, t) {
+    c.fillStyle = '#0e1810'; c.fillRect(0, 0, S, S);
+    c.fillStyle = '#241a10'; c.fillRect(0, 110, S, 34);
+    // swaying plant
+    c.strokeStyle = '#2f7031'; c.lineWidth = 3; c.lineCap = 'round';
+    const sway = Math.sin(t * 1.4) * 5;
+    c.beginPath(); c.moveTo(36, 112); c.quadraticCurveTo(38 + sway, 70, 40 + sway * 1.6, 42); c.stroke();
+    dot(c, 40 + sway * 1.6, 40, 9, '#3f8a3c'); dot(c, 30 + sway, 62, 6, '#4a9a46'); dot(c, 50 + sway, 74, 6, '#4a9a46');
+    // hopping bibbit
+    const hop = Math.abs(Math.sin(t * 3.2));
+    dot(c, 86 + Math.sin(t * 0.8) * 14, 104 - hop * 14, 7, '#c2a36b');
+    // darting snapper
+    dot(c, 70 + Math.cos(t * 2.1) * 34, 96 + Math.sin(t * 4.2) * 6, 5, '#c14b3a');
+    // fireflies
+    for (let i = 0; i < 4; i++) dot(c, (i * 37 + t * 8) % S, 30 + Math.sin(t * 2 + i * 2) * 12, 1.5, `rgba(253,230,138,${0.4 + Math.sin(t * 5 + i) * 0.3})`);
+  },
+  'colosseum'(c, t) {
+    c.fillStyle = '#171310'; c.fillRect(0, 0, S, S);
+    ring(c, S / 2, S / 2, 58, 8, '#3a3330');
+    c.fillStyle = '#c2a36b'; c.beginPath(); c.arc(S / 2, S / 2, 52, 0, 7); c.fill();
+    // crowd dots on the ring
+    for (let i = 0; i < 26; i++) {
+      const a = i / 26 * 6.28;
+      dot(c, S / 2 + Math.cos(a) * 60, S / 2 + Math.sin(a) * 60, 1.6 + Math.sin(t * 6 + i) * 0.6, '#8a8177');
+    }
+    // two tiny armies clashing
+    for (let i = 0; i < 6; i++) {
+      const clash = Math.sin(t * 2) * 6;
+      dot(c, 48 + (i % 3) * 9 + clash, 58 + Math.floor(i / 3) * 12, 3.2, '#60a5fa');
+      dot(c, 96 - (i % 3) * 9 - clash, 62 + Math.floor(i / 3) * 12, 3.2, '#f87171');
+    }
+    if (Math.sin(t * 2) > 0.7) dot(c, S / 2, 66, 4, '#fde68a'); // clash spark
+  },
+  'tiny-metropolis'(c, t) {
+    // tiny skyline cycling through day and night
+    const day = 0.5 + 0.5 * Math.sin(t * 0.6);
+    const mix = (a, b) => Math.round(a + (b - a) * day);
+    c.fillStyle = `rgb(${mix(10, 90)},${mix(10, 160)},${mix(30, 215)})`;
+    c.fillRect(0, 0, S, S);
+    dot(c, 30 + day * 80, 34 - Math.sin(day * 3.14) * 12, 9, day > 0.5 ? '#ffe9a0' : '#e6ebf5');
+    const hs = [46, 74, 34, 88, 58, 40];
+    for (let i = 0; i < 6; i++) {
+      const bw = 20, bx = 4 + i * 23, bh = hs[i], by = S - 22 - bh;
+      c.fillStyle = i % 2 ? `rgb(${mix(30, 120)},${mix(34, 130)},${mix(58, 160)})` : `rgb(${mix(42, 160)},${mix(30, 120)},${mix(30, 110)})`;
+      c.fillRect(bx, by, bw, bh);
+      for (let f = 0; f < Math.floor(bh / 12); f++) for (let w = 0; w < 2; w++) {
+        const lit = ((i * 7 + f * 3 + w + Math.floor(t * 0.5)) % 5) < 3 && day < 0.55;
+        c.fillStyle = lit ? '#ffd97a' : `rgba(20,30,45,.8)`;
+        c.fillRect(bx + 3 + w * 9, by + 4 + f * 12, 6, 7);
+      }
+    }
+    c.fillStyle = `rgb(${mix(24, 60)},${mix(24, 60)},${mix(34, 70)})`;
+    c.fillRect(0, S - 22, S, 22);
+    const cx2 = ((t * 40) % (S + 40)) - 20;
+    c.fillStyle = '#d64545'; c.fillRect(cx2 - 7, S - 18, 14, 6);
+    dot(c, cx2 - 4, S - 11, 2.5, '#111'); dot(c, cx2 + 4, S - 11, 2.5, '#111');
+  },
+};
+
+/* ============ Season One: profile, streak, missions, featured ============ */
+function readJ(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } }
+function writeJ(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 3300);
+}
+
+const todayStr = new Date().toDateString();
+const meta = Object.assign({ lastDay: '', streak: 0, lastLevel: 0, playsToday: [], dayEarnBase: null, dayPullBase: null, claimed: [] }, readJ('arcade-meta', {}));
+function walletW() { return Object.assign({ coins: 0, earned: {}, spent: 0, tickets: 0 }, readJ('arcade-wallet', {})); }
+function saveW(w) { writeJ('arcade-wallet', w); }
+function totalEarned() { const w = walletW(); return Object.values(w.earned || {}).reduce((a, b) => a + (+b || 0), 0); }
+function vaultPulls() { return (readJ('arcade-vault', {}).pulls) || 0; }
+function levelFor(xp) { return 1 + Math.floor(Math.sqrt(xp / 60)); }
+function xpForLevel(l) { return Math.pow(l - 1, 2) * 60; }
+
+// New day: advance streak, reset missions, grant the login reward
+(function dayTick() {
+  if (meta.lastDay === todayStr) return;
+  const yesterday = new Date(Date.now() - 864e5).toDateString();
+  meta.streak = meta.lastDay === yesterday ? (meta.streak || 0) + 1 : 1;
+  meta.lastDay = todayStr;
+  meta.playsToday = [];
+  meta.dayEarnBase = totalEarned();
+  meta.dayPullBase = vaultPulls();
+  meta.claimed = [];
+  const reward = Math.min(100, 10 + meta.streak * 10);
+  const w = walletW();
+  w.coins += reward;
+  let msg = `🔥 Day ${meta.streak} streak! +${reward} 🪙`;
+  if (meta.streak % 3 === 0) { w.tickets = (w.tickets || 0) + 1; msg += ' +1 🎟'; }
+  saveW(w);
+  writeJ('arcade-meta', meta);
+  setTimeout(() => toast(msg), 600);
+})();
+
+// Level-ups grant pull tickets
+(function levelTick() {
+  const lvl = levelFor(totalEarned());
+  if (!meta.lastLevel) { meta.lastLevel = lvl; writeJ('arcade-meta', meta); return; }
+  if (lvl > meta.lastLevel) {
+    const gained = lvl - meta.lastLevel;
+    const w = walletW();
+    w.tickets = (w.tickets || 0) + gained;
+    saveW(w);
+    meta.lastLevel = lvl;
+    writeJ('arcade-meta', meta);
+    setTimeout(() => toast(`⬆ LEVEL ${lvl}! +${gained} 🎟`), 1400);
+  }
+})();
+
+// Record distinct games launched today (for missions)
+document.querySelectorAll('.card').forEach((a, i) => {
+  a.addEventListener('click', () => {
+    const g = GAMES[i];
+    if (g && !meta.playsToday.includes(g.slug)) {
+      meta.playsToday.push(g.slug);
+      writeJ('arcade-meta', meta);
+    }
+  });
+});
+
+const MISSIONS = [
+  { id: 'play3', label: 'Play 3 different games', prog: () => meta.playsToday.length, target: 3, reward: { coins: 40 } },
+  { id: 'earn150', label: 'Earn 150 coins today', prog: () => Math.max(0, totalEarned() - (meta.dayEarnBase || 0)), target: 150, reward: { coins: 60 } },
+  { id: 'pull1', label: 'Pull a card in the Vault', prog: () => Math.max(0, vaultPulls() - (meta.dayPullBase || 0)), target: 1, reward: { tickets: 1 } },
+];
+function renderMissions() {
+  const box = document.getElementById('missions');
+  box.innerHTML = '';
+  for (const m of MISSIONS) {
+    const p = Math.min(m.target, m.prog());
+    const claimed = meta.claimed.includes(m.id);
+    const rtxt = m.reward.coins ? `+${m.reward.coins} 🪙` : `+${m.reward.tickets} 🎟`;
+    const d = document.createElement('div');
+    d.className = 'mission';
+    d.innerHTML = `<div class="m-txt"><b>${m.label}</b><small>${p}/${m.target} · ${rtxt}</small></div>` +
+      (claimed ? '<span class="m-done">✔ CLAIMED</span>' : `<button class="m-claim" ${p >= m.target ? '' : 'disabled'}>CLAIM</button>`);
+    if (!claimed) {
+      const btn = d.querySelector('.m-claim');
+      btn.addEventListener('click', () => {
+        if (m.prog() < m.target || meta.claimed.includes(m.id)) return;
+        const w = walletW();
+        if (m.reward.coins) w.coins += m.reward.coins;
+        if (m.reward.tickets) w.tickets = (w.tickets || 0) + m.reward.tickets;
+        saveW(w);
+        meta.claimed.push(m.id);
+        writeJ('arcade-meta', meta);
+        toast(`✔ Mission complete! ${rtxt}`);
+        renderMeta();
+      });
+    }
+    box.appendChild(d);
+  }
+}
+function renderMeta() {
+  const w = walletW();
+  const xp = totalEarned();
+  const lvl = levelFor(xp);
+  const cur = xpForLevel(lvl), next = xpForLevel(lvl + 1);
+  document.getElementById('lvl').textContent = lvl;
+  document.getElementById('xp-label').textContent = `LEVEL ${lvl} · ${xp - cur}/${next - cur} XP`;
+  document.getElementById('xp-fill').style.width = Math.min(100, ((xp - cur) / (next - cur)) * 100) + '%';
+  document.getElementById('coin-count').textContent = (w.coins || 0).toLocaleString();
+  document.getElementById('ticket-count').textContent = w.tickets || 0;
+  document.getElementById('streak-count').textContent = meta.streak || 1;
+  const v = readJ('arcade-vault', { cards: {} });
+  const owned = Object.keys(v.cards || {}).length;
+  document.getElementById('vault-line').textContent = owned
+    ? `${owned} cards collected · ⚡ +${w.bonusPct || 0}% coin power · ${w.tickets || 0} 🎟 ready`
+    : "Pull the arcade's legends · Collection Power boosts every game";
+  renderMissions();
+}
+
+// Featured game of the day
+(function featured() {
+  const ready = GAMES.filter(g => g.ready);
+  const g = ready[Math.floor(Date.now() / 864e5) % ready.length];
+  const el = document.getElementById('featured');
+  el.href = g.href;
+  document.getElementById('featured-name').textContent = g.name;
+  document.getElementById('featured-desc').textContent = g.desc;
+  const fc = document.getElementById('featured-thumb');
+  thumbs.push(fc);
+  fc.dataset.slug = g.slug;
+})();
+
+const ctxs = thumbs.map(cv => ({ cv, c: cv.getContext('2d'), slug: cv.dataset.slug }));
+renderMeta();
+setInterval(renderMeta, 4000); // refresh when returning from a game tab
+let frame = 0;
+function tick() {
+  frame++;
+  if (frame % 2 === 0) { // 30fps is plenty
+    const t = performance.now() / 1000;
+    for (const { c, slug } of ctxs) {
+      const draw = THUMB_DRAW[slug];
+      if (draw) { c.save(); draw(c, t); c.restore(); }
+    }
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

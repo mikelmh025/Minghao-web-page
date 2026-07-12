@@ -1,0 +1,13 @@
+{
+  "name": "Hungry Hole",
+  "short_name": "HungryHole",
+  "description": "Swallow the world, one block at a time.",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#12121a",
+  "theme_color": "#12121a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Star Forge</title>
+<style>
+  :root{
+    --bg:#12121a; --panel:rgba(18,18,28,.82); --edge:rgba(140,150,255,.18);
+    --txt:#dfe3ff; --dim:#8b91b8; --gold:#ffd75e; --accent:#7f9dff; --hot:#ff8a5c;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;touch-action:none;
+    user-select:none;-webkit-user-select:none}
+  #c3d{position:fixed;inset:0;display:block;touch-action:none}
+  .hud{position:fixed;z-index:10;pointer-events:none}
+  .hud *{pointer-events:auto}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--edge);
+    border-radius:999px;padding:6px 12px;font-size:12px;color:var(--txt);backdrop-filter:blur(6px);
+    cursor:pointer;transition:background .15s,border-color .15s;white-space:nowrap}
+  .pill:hover{border-color:var(--accent)}
+  .pill.on{background:rgba(127,157,255,.22);border-color:var(--accent);color:#fff}
+  a.pill{text-decoration:none}
+  #topleft{top:10px;left:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:70vw}
+  #title{font-weight:700;letter-spacing:.14em;font-size:13px;color:var(--gold)}
+  #topright{top:10px;right:10px;display:flex;gap:8px}
+  #bottombar{bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:96vw}
+  #presets{bottom:56px;left:50%;transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:96vw}
+  #stats{top:52px;left:10px;background:var(--panel);border:1px solid var(--edge);border-radius:10px;
+    padding:8px 12px;font-size:11px;line-height:1.7;color:var(--dim);min-width:150px}
+  #stats b{color:var(--txt);font-weight:600}
+  #challenges{top:52px;right:10px;background:var(--panel);border:1px solid var(--edge);border-radius:10px;
+    padding:8px 12px;font-size:11px;max-width:230px}
+  #challenges h4{font-size:11px;letter-spacing:.1em;color:var(--gold);margin-bottom:6px}
+  .chal{display:flex;gap:6px;align-items:flex-start;margin:5px 0;color:var(--dim);line-height:1.35}
+  .chal.done{color:#8fe8a0}
+  .chal .rw{margin-left:auto;color:var(--gold);white-space:nowrap;font-size:10px;padding-left:6px}
+  #toasts{top:18vh;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+  .toast{background:rgba(20,22,40,.92);border:1px solid var(--accent);border-radius:10px;padding:10px 18px;
+    font-size:14px;animation:toast 3.4s ease forwards;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.5)}
+  .toast.gold{border-color:var(--gold);color:var(--gold)}
+  @keyframes toast{0%{opacity:0;transform:translateY(-12px)}10%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
+  #intro{position:fixed;inset:0;z-index:50;background:rgba(10,10,18,.78);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+  #introCard{background:#181828;border:1px solid var(--edge);border-radius:16px;padding:28px 30px;max-width:420px;
+    width:calc(100vw - 40px);text-align:center;box-shadow:0 12px 60px rgba(0,0,0,.6)}
+  #introCard h1{font-size:24px;letter-spacing:.2em;color:var(--gold);margin-bottom:4px}
+  #introCard h2{font-size:12px;letter-spacing:.28em;color:var(--accent);margin-bottom:16px;font-weight:500}
+  #introCard p{font-size:13px;color:var(--dim);line-height:1.6;margin:8px 0}
+  #introCard .key{color:var(--txt)}
+  #introBtn{margin-top:18px;background:linear-gradient(135deg,#ffd75e,#ff9d5c);color:#221a08;border:none;border-radius:999px;
+    padding:12px 30px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.06em}
+  #introBtn:active{transform:scale(.97)}
+  .hint{font-size:10px;color:var(--dim);opacity:.85}
+  #followTag{bottom:104px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--accent);display:none;
+    background:var(--panel);border:1px solid var(--edge);border-radius:999px;padding:4px 12px}
+  @media (max-width:640px){
+    #stats{display:none}
+    #challenges{max-width:170px;font-size:10px;top:46px}
+    .pill{padding:6px 9px;font-size:11px}
+  }
+</style>
+</head>
+<body>
+<canvas id="c3d"></canvas>
+
+<div class="hud" id="topleft">
+  <span class="pill" id="title">⭐ STAR FORGE</span>
+  <a class="pill" href="../../index.html">← Arcade</a>
+  <a class="pill" href="../../vault.html">🎴 Card Vault</a>
+  <span class="pill" id="walletPill">🪙 0</span>
+</div>
+
+<div class="hud" id="topright">
+  <span class="pill" id="modePill" title="Toggle drag mode">☄️ Fling</span>
+  <span class="pill" id="mutePill">🔊</span>
+</div>
+
+<div class="hud" id="stats">
+  Bodies <b id="stBodies">0</b><br>
+  Stable orbits <b id="stStable">0</b> <span style="opacity:.7">(best <b id="stBest">0</b>)</span><br>
+  Escaped <b id="stEsc">0</b> · Merged <b id="stMerge">0</b><br>
+  Sim time <b id="stTime">0</b>
+</div>
+
+<div class="hud" id="challenges">
+  <h4>⭐ CHALLENGES</h4>
+  <div class="chal" id="chMoon"><span>🌙</span><span>Capture a moon</span><span class="rw">+30🪙</span></div>
+  <div class="chal" id="chStable"><span>🪐</span><span>5 stable orbits at once</span><span class="rw">+40🪙</span></div>
+  <div class="chal" id="chBinary"><span>☀️</span><span>Survive a binary system 2 min <span id="binTimer"></span></span><span class="rw">+35🪙</span></div>
+  <div class="hint" style="margin-top:6px">Watching pays +1🪙 / 2 min</div>
+</div>
+
+<div class="hud" id="presets">
+  <span class="pill" data-preset="solar">🌞 Solar System</span>
+  <span class="pill" data-preset="binary">☀️☀️ Binary Stars</span>
+  <span class="pill" data-preset="ring">🪨 Asteroid Ring</span>
+  <span class="pill" data-preset="chaos">🎲 Chaos</span>
+  <span class="pill" data-preset="clear">🧹 Clear</span>
+</div>
+
+<div class="hud" id="bottombar">
+  <span class="pill" data-speed="0" id="spd0">⏸</span>
+  <span class="pill on" data-speed="1">1×</span>
+  <span class="pill" data-speed="2">10×</span>
+  <span class="pill" data-speed="3">100×</span>
+  <span class="pill" style="opacity:.35;pointer-events:none">·</span>
+  <span class="pill" data-size="asteroid">• Asteroid</span>
+  <span class="pill on" data-size="rocky">🌍 Rocky</span>
+  <span class="pill" data-size="giant">🪐 Giant</span>
+</div>
+
+<div class="hud" id="followTag">📍 following — tap empty space or pan to release</div>
+<div class="hud" id="toasts"></div>
+
+<div id="intro">
+  <div id="introCard">
+    <h1>STAR FORGE</h1>
+    <h2>FORGE YOUR SYSTEM</h2>
+    <p><span class="key">☄️ Press &amp; drag on empty space</span> to fling a new planet — the arrow is its velocity, the ghost line predicts its first orbit.</p>
+    <p><span class="key">🖐 Drag</span> orbits the camera (toggle ☄️/🖐 top-right) · <span class="key">wheel / pinch</span> zooms · <span class="key">right-drag / two fingers</span> pans · <span class="key">tap a planet</span> to follow it.</p>
+    <p>Merge worlds, capture moons, burn the careless into the star. Gravity does the rest.</p>
+    <button id="introBtn">FORGE ⭐</button>
+  </div>
+</div>
+
+<script>
+/* ================= SF_CORE_START =================
+   Star Forge physics core — pure JS, no DOM / no THREE.
+   Extractable between the SF_CORE markers for headless tests. */
+(function (global) {
+'use strict';
+
+var SF = {};
+
+SF.defaults = {
+  G: 1,
+  soft: 0.6,          // gravitational softening length
+  escapeRadius: 1500, // ~10x system radius
+  spallSpeed: 6,      // relative speed for grazing spall
+  captureTime: 14,    // sim-time a body must stay bound to count as captured
+  stableRevs: 3,      // revolutions required for "stable orbit"
+  stableRatio: 2.6    // max rApo/rPeri allowed while counting revolutions
+};
+
+SF.createSim = function (opts) {
+  opts = opts || {};
+  var d = SF.defaults;
+  return {
+    G: opts.G != null ? opts.G : d.G,
+    soft: opts.soft != null ? opts.soft : d.soft,
+    escapeRadius: opts.escapeRadius != null ? opts.escapeRadius : d.escapeRadius,
+    spallSpeed: opts.spallSpeed != null ? opts.spallSpeed : d.spallSpeed,
+    captureTime: opts.captureTime != null ? opts.captureTime : d.captureTime,
+    stableRevs: opts.stableRevs != null ? opts.stableRevs : d.stableRevs,
+    stableRatio: opts.stableRatio != null ? opts.stableRatio : d.stableRatio,
+    detectors: opts.detectors !== false,
+    bodies: [],
+    events: [],
+    time: 0,
+    nextId: 1,
+    escapedCount: 0,
+    mergeCount: 0,
+    burnCount: 0
+  };
+};
+
+SF.radiusForMass = function (m) {
+  return Math.max(0.35, 0.95 * Math.cbrt(Math.max(0.01, m)));
+};
+
+SF.typeForMass = function (m) {
+  if (m >= 8) return 'giant';
+  if (m >= 0.4) return 'rocky';
+  return 'asteroid';
+};
+
+SF.circularVelocity = function (G, M, r) {
+  return Math.sqrt(G * M / Math.max(1e-9, r));
+};
+
+SF.addBody = function (sim, o) {
+  var b = {
+    id: sim.nextId++,
+    mass: o.mass,
+    radius: o.radius != null ? o.radius : SF.radiusForMass(o.mass),
+    x: o.x || 0, y: o.y || 0, z: o.z || 0,
+    vx: o.vx || 0, vy: o.vy || 0, vz: o.vz || 0,
+    ax: 0, ay: 0, az: 0,
+    isStar: !!o.isStar,
+    type: o.type || (o.isStar ? 'star' : SF.typeForMass(o.mass)),
+    seed: o.seed != null ? o.seed : Math.floor(Math.random() * 1e9),
+    spin: o.spin != null ? o.spin : (0.15 + Math.random() * 0.55),
+    // stability-detector state
+    prevTh: null, ang: 0, rMin: Infinity, rMax: 0, stable: false,
+    // capture-detector state
+    capHost: 0, capT: 0, capturedBy: o.capturedBy || 0,
+    dead: false
+  };
+  sim.bodies.push(b);
+  return b;
+};
+
+/* shared O(n^2) softened gravity kernel (used by step + predict) */
+function accumulate(bs, G, soft2) {
+  var n = bs.length, i, j, a, b, dx, dy, dz, d2, inv, f;
+  for (i = 0; i < n; i++) { a = bs[i]; a.ax = 0; a.ay = 0; a.az = 0; }
+  for (i = 0; i < n; i++) {
+    a = bs[i];
+    for (j = i + 1; j < n; j++) {
+      b = bs[j];
+      dx = b.x - a.x; dy = b.y - a.y; dz = b.z - a.z;
+      d2 = dx * dx + dy * dy + dz * dz + soft2;
+      inv = 1 / (d2 * Math.sqrt(d2));
+      f = G * inv;
+      a.ax += f * b.mass * dx; a.ay += f * b.mass * dy; a.az += f * b.mass * dz;
+      b.ax -= f * a.mass * dx; b.ay -= f * a.mass * dy; b.az -= f * a.mass * dz;
+    }
+  }
+}
+
+/* semi-implicit (symplectic) Euler */
+function drift(bs, dt) {
+  for (var i = 0; i < bs.length; i++) {
+    var b = bs[i];
+    b.vx += b.ax * dt; b.vy += b.ay * dt; b.vz += b.az * dt;
+    b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+  }
+}
+
+function mergePair(sim, a, b) {
+  // "a" survives (heavier body)
+  if (b.mass > a.mass) { var t = a; a = b; b = t; }
+  var M = a.mass + b.mass;
+  var px = a.mass * a.vx + b.mass * b.vx;
+  var py = a.mass * a.vy + b.mass * b.vy;
+  var pz = a.mass * a.vz + b.mass * b.vz;
+  var cx = (a.mass * a.x + b.mass * b.x) / M;
+  var cy = (a.mass * a.y + b.mass * b.y) / M;
+  var cz = (a.mass * a.z + b.mass * b.z) / M;
+  var rvx = b.vx - a.vx, rvy = b.vy - a.vy, rvz = b.vz - a.vz;
+  var relSpeed = Math.sqrt(rvx * rvx + rvy * rvy + rvz * rvz);
+  var dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+  var dLen = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-9;
+  // tangential fraction of the impact (1 = perfectly grazing)
+  var radial = Math.abs((rvx * dx + rvy * dy + rvz * dz) / (dLen * (relSpeed || 1e-9)));
+  var grazing = relSpeed > sim.spallSpeed && radial < 0.55 && M > 0.6 && !a.isStar && !b.isStar;
+
+  var volR = Math.cbrt(a.radius * a.radius * a.radius + b.radius * b.radius * b.radius);
+  var frags = [];
+  if (grazing) {
+    var nf = 2 + (relSpeed > sim.spallSpeed * 1.6 ? 1 : 0);
+    var mf = Math.min(0.06, M * 0.03);
+    // fragment velocities: tangential ejecta; momentum accounted exactly below
+    var tx = rvx / relSpeed, ty = rvy / relSpeed, tz = rvz / relSpeed;
+    for (var k = 0; k < nf; k++) {
+      var ang = (k / nf) * Math.PI * 2;
+      var ux = Math.cos(ang), uz = Math.sin(ang);
+      frags.push({
+        mass: mf,
+        x: cx + ux * volR * 1.8, y: cy, z: cz + uz * volR * 1.8,
+        vx: px / M + (tx * 0.4 + ux) * relSpeed * 0.45,
+        vy: py / M + (Math.random() - 0.5) * 0.4,
+        vz: pz / M + (tz * 0.4 + uz) * relSpeed * 0.45,
+        type: 'asteroid'
+      });
+    }
+  }
+  var fragMass = 0, fpx = 0, fpy = 0, fpz = 0;
+  for (var q = 0; q < frags.length; q++) {
+    fragMass += frags[q].mass;
+    fpx += frags[q].mass * frags[q].vx;
+    fpy += frags[q].mass * frags[q].vy;
+    fpz += frags[q].mass * frags[q].vz;
+  }
+  var mRem = M - fragMass;
+  a.mass = mRem;
+  a.x = cx; a.y = cy; a.z = cz;
+  a.vx = (px - fpx) / mRem; a.vy = (py - fpy) / mRem; a.vz = (pz - fpz) / mRem;
+  a.radius = volR * Math.cbrt(mRem / M);
+  a.type = a.isStar ? 'star' : SF.typeForMass(a.mass);
+  // reset detector state — orbit changed
+  a.prevTh = null; a.ang = 0; a.rMin = Infinity; a.rMax = 0; a.stable = false;
+  b.dead = true;
+  sim.mergeCount++;
+  sim.events.push({ type: 'merge', x: cx, y: cy, z: cz, mass: M, relSpeed: relSpeed,
+    survivorId: a.id, goneId: b.id, radius: a.radius, spalled: frags.length });
+  for (var w = 0; w < frags.length; w++) SF.addBody(sim, frags[w]);
+}
+
+function burnup(sim, star, b) {
+  var M = star.mass + b.mass;
+  star.vx = (star.mass * star.vx + b.mass * b.vx) / M;
+  star.vy = (star.mass * star.vy + b.mass * b.vy) / M;
+  star.vz = (star.mass * star.vz + b.mass * b.vz) / M;
+  star.mass = M;
+  b.dead = true;
+  sim.burnCount++;
+  sim.events.push({ type: 'burnup', x: b.x, y: b.y, z: b.z, mass: b.mass, starId: star.id, goneId: b.id });
+}
+
+function handleCollisions(sim) {
+  var bs = sim.bodies, n = bs.length, i, j;
+  var any = false;
+  for (i = 0; i < n; i++) {
+    var a = bs[i];
+    if (a.dead) continue;
+    for (j = i + 1; j < n; j++) {
+      var b = bs[j];
+      if (b.dead || a.dead) continue;
+      var dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+      var rr = a.radius + b.radius;
+      if (dx * dx + dy * dy + dz * dz < rr * rr * 0.81) {
+        if (a.isStar && b.isStar) { mergePair(sim, a, b); }
+        else if (a.isStar) { burnup(sim, a, b); }
+        else if (b.isStar) { burnup(sim, b, a); }
+        else { mergePair(sim, a, b); }
+        any = true;
+      }
+    }
+  }
+  if (any) {
+    for (i = sim.bodies.length - 1; i >= 0; i--) if (sim.bodies[i].dead) sim.bodies.splice(i, 1);
+  }
+}
+
+function handleBounds(sim) {
+  var er2 = sim.escapeRadius * sim.escapeRadius;
+  for (var i = sim.bodies.length - 1; i >= 0; i--) {
+    var b = sim.bodies[i];
+    if (b.isStar) continue;
+    if (b.x * b.x + b.y * b.y + b.z * b.z > er2) {
+      sim.escapedCount++;
+      sim.events.push({ type: 'escaped', x: b.x, y: b.y, z: b.z, goneId: b.id, mass: b.mass });
+      sim.bodies.splice(i, 1);
+    }
+  }
+}
+
+function primaryStar(sim) {
+  var s = null;
+  for (var i = 0; i < sim.bodies.length; i++) {
+    var b = sim.bodies[i];
+    if (b.isStar && (!s || b.mass > s.mass)) s = b;
+  }
+  return s;
+}
+
+function updateDetectors(sim, dtTotal) {
+  var star = primaryStar(sim);
+  var bs = sim.bodies, i, j, b;
+  var TAU = Math.PI * 2;
+
+  // --- stability: revolutions around the primary star with bounded radius ratio
+  if (star) {
+    for (i = 0; i < bs.length; i++) {
+      b = bs[i];
+      if (b.isStar) continue;
+      var dx = b.x - star.x, dz = b.z - star.z;
+      var r = Math.sqrt(dx * dx + dz * dz);
+      var th = Math.atan2(dz, dx);
+      if (b.prevTh != null) {
+        var dth = th - b.prevTh;
+        if (dth > Math.PI) dth -= TAU; else if (dth < -Math.PI) dth += TAU;
+        b.ang += dth;
+      }
+      b.prevTh = th;
+      if (r < b.rMin) b.rMin = r;
+      if (r > b.rMax) b.rMax = r;
+      if (b.rMax / Math.max(1e-6, b.rMin) > sim.stableRatio) {
+        // orbit too eccentric / drifting — restart the count
+        b.rMin = r; b.rMax = r; b.ang = 0;
+        if (b.stable) { b.stable = false; sim.events.push({ type: 'unstable', id: b.id }); }
+      } else if (!b.stable && Math.abs(b.ang) >= sim.stableRevs * TAU) {
+        b.stable = true;
+        sim.events.push({ type: 'stable', id: b.id });
+      }
+    }
+  }
+
+  // --- moon capture: small body energetically bound to a planet inside its Hill sphere
+  if (star) {
+    for (i = 0; i < bs.length; i++) {
+      var s = bs[i];
+      if (s.isStar) continue;
+      var best = null, bestD2 = Infinity;
+      for (j = 0; j < bs.length; j++) {
+        var P = bs[j];
+        if (P === s || P.isStar || P.mass < s.mass * 5 || P.mass < 2) continue;
+        var pdx = s.x - P.x, pdy = s.y - P.y, pdz = s.z - P.z;
+        var d2 = pdx * pdx + pdy * pdy + pdz * pdz;
+        if (d2 >= bestD2) continue;
+        var d = Math.sqrt(d2);
+        var sx = P.x - star.x, sz = P.z - star.z, sy = P.y - star.y;
+        var dStar = Math.sqrt(sx * sx + sy * sy + sz * sz);
+        var hill = dStar * Math.cbrt(P.mass / (3 * star.mass));
+        if (d > hill * 0.9) continue;
+        var rvx = s.vx - P.vx, rvy = s.vy - P.vy, rvz = s.vz - P.vz;
+        var e = 0.5 * (rvx * rvx + rvy * rvy + rvz * rvz) - sim.G * (P.mass + s.mass) / d;
+        if (e < 0) { best = P; bestD2 = d2; }
+      }
+      if (best) {
+        if (s.capHost === best.id) s.capT += dtTotal;
+        else { s.capHost = best.id; s.capT = dtTotal; }
+        if (s.capT >= sim.captureTime && s.capturedBy !== best.id) {
+          s.capturedBy = best.id;
+          sim.events.push({ type: 'capture', moonId: s.id, hostId: best.id, x: s.x, y: s.y, z: s.z });
+        }
+      } else {
+        s.capHost = 0; s.capT = 0;
+        if (s.capturedBy) s.capturedBy = 0; // drifted free — may be captured again
+      }
+    }
+  }
+}
+
+SF.step = function (sim, dt, substeps) {
+  substeps = substeps || 1;
+  var soft2 = sim.soft * sim.soft;
+  for (var s = 0; s < substeps; s++) {
+    accumulate(sim.bodies, sim.G, soft2);
+    drift(sim.bodies, dt);
+    sim.time += dt;
+    handleCollisions(sim);
+    handleBounds(sim);
+  }
+  if (sim.detectors) updateDetectors(sim, dt * substeps);
+  return sim.events;
+};
+
+SF.drainEvents = function (sim) {
+  var ev = sim.events;
+  sim.events = [];
+  return ev;
+};
+
+SF.stableCount = function (sim) {
+  var n = 0;
+  for (var i = 0; i < sim.bodies.length; i++)
+    if (!sim.bodies[i].isStar && sim.bodies[i].stable) n++;
+  return n;
+};
+
+SF.totalMass = function (sim) {
+  var m = 0;
+  for (var i = 0; i < sim.bodies.length; i++) m += sim.bodies[i].mass;
+  return m;
+};
+
+SF.totalMomentum = function (sim) {
+  var p = { x: 0, y: 0, z: 0 };
+  for (var i = 0; i < sim.bodies.length; i++) {
+    var b = sim.bodies[i];
+    p.x += b.mass * b.vx; p.y += b.mass * b.vy; p.z += b.mass * b.vz;
+  }
+  return p;
+};
+
+SF.totalEnergy = function (sim) {
+  var bs = sim.bodies, E = 0, i, j;
+  var soft2 = sim.soft * sim.soft;
+  for (i = 0; i < bs.length; i++) {
+    var b = bs[i];
+    E += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+    for (j = i + 1; j < bs.length; j++) {
+      var o = bs[j];
+      var dx = o.x - b.x, dy = o.y - b.y, dz = o.z - b.z;
+      E -= sim.G * b.mass * o.mass / Math.sqrt(dx * dx + dy * dy + dz * dz + soft2);
+    }
+  }
+  return E;
+};
+
+/* Integrate a ghost body forward through a cloned sim (same kernel as step)
+   for the fling preview. Returns flat [x,y,z,...] plus hit flag. */
+SF.predict = function (sim, ghost, steps, dt) {
+  var bs = [];
+  for (var i = 0; i < sim.bodies.length; i++) {
+    var b = sim.bodies[i];
+    bs.push({ mass: b.mass, radius: b.radius, isStar: b.isStar,
+      x: b.x, y: b.y, z: b.z, vx: b.vx, vy: b.vy, vz: b.vz, ax: 0, ay: 0, az: 0 });
+  }
+  var g = { mass: ghost.mass, radius: ghost.radius != null ? ghost.radius : SF.radiusForMass(ghost.mass),
+    isStar: false, x: ghost.x, y: ghost.y, z: ghost.z, vx: ghost.vx, vy: ghost.vy, vz: ghost.vz,
+    ax: 0, ay: 0, az: 0 };
+  bs.push(g);
+  var soft2 = sim.soft * sim.soft;
+  var pts = [], hit = false;
+  var er2 = sim.escapeRadius * sim.escapeRadius;
+  for (var s = 0; s < steps; s++) {
+    accumulate(bs, sim.G, soft2);
+    drift(bs, dt);
+    for (var k = 0; k < bs.length - 1; k++) {
+      var o = bs[k];
+      var dx = g.x - o.x, dy = g.y - o.y, dz = g.z - o.z;
+      var rr = g.radius + o.radius;
+      if (dx * dx + dy * dy + dz * dz < rr * rr * 0.81) { hit = true; break; }
+    }
+    pts.push(g.x, g.y, g.z);
+    if (hit || g.x * g.x + g.y * g.y + g.z * g.z > er2) break;
+  }
+  return { points: pts, hit: hit };
+};
+
+SF.hasNaN = function (sim) {
+  for (var i = 0; i < sim.bodies.length; i++) {
+    var b = sim.bodies[i];
+    if (!isFinite(b.x + b.y + b.z + b.vx + b.vy + b.vz + b.mass)) return true;
+  }
+  return false;
+};
+
+if (typeof module !== 'undefined' && module.exports) module.exports = SF;
+if (global) global.SFCore = SF;
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));
+/* ================= SF_CORE_END ================= */
+</script>
+
+<script src="../../lib/three.min.js"></script>
+
+<script>
+(function () {
+'use strict';
+if (typeof THREE === 'undefined') {
+  document.getElementById('intro').innerHTML =
+    '<div id="introCard"><h1>STAR FORGE</h1><p>Missing lib/three.min.js</p></div>';
+  return;
+}
+var SF = window.SFCore;
+
+/* ============ constants / state ============ */
+var GAME_ID = 'star-forge';
+var SAVE_KEY = 'arcade-star-forge';
+var WALLET_KEY = 'arcade-wallet';
+var SIM_RATE = 2.5;         // sim-units per real second at 1x
+var DT = 0.02;              // physics substep
+var TRAIL = 300;
+var SPEEDS = [0, 1, 10, 100];
+var MASS_PRESETS = { asteroid: 0.08, rocky: 1.2, giant: 18 };
+
+var speedIdx = 1, pausedByBlur = false, preBlurIdx = 1;
+var flingMode = true;
+var pickSize = 'rocky';
+var followId = 0;
+var currentPreset = 'solar';
+var binaryStart = 0;      // wallclock ms when binary preset loaded (0 = n/a)
+var watchAccum = 0, watchCoinsSession = 0;
+var muted = false;
+
+/* ============ save / wallet ============ */
+function loadSave() {
+  try {
+    var s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (s && typeof s === 'object') return { done: s.done || {}, bestStable: s.bestStable || 0, muted: !!s.muted };
+  } catch (e) {}
+  return { done: {}, bestStable: 0, muted: false };
+}
+function storeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
+var save = loadSave();
+muted = save.muted;
+
+function walletCoins() {
+  try {
+    var w = JSON.parse(localStorage.getItem(WALLET_KEY));
+    if (w && typeof w.coins === 'number') return w.coins;
+  } catch (e) {}
+  return 0;
+}
+function awardCoins(base) {
+  try {
+    var w = JSON.parse(localStorage.getItem(WALLET_KEY)) || { coins: 0, earned: {}, spent: 0, tickets: 0 };
+    var n = Math.max(1, Math.round(base * (1 + (w.bonusPct || 0) / 100)));
+    w.coins = (typeof w.coins === 'number' ? w.coins : 0) + n;
+    w.earned = w.earned || {};
+    w.earned[GAME_ID] = (w.earned[GAME_ID] || 0) + n;
+    localStorage.setItem(WALLET_KEY, JSON.stringify(w));
+    updateWallet();
+    return n;
+  } catch (e) { return 0; }
+}
+function updateWallet() { document.getElementById('walletPill').textContent = '🪙 ' + walletCoins(); }
+updateWallet();
+
+/* ============ audio ============ */
+var AC = null, master = null, noiseBuf = null, droneNodes = null;
+function initAudio() {
+  if (AC) return;
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain();
+    master.gain.value = muted ? 0 : 0.55;
+    master.connect(AC.destination);
+    var len = AC.sampleRate;
+    noiseBuf = AC.createBuffer(1, len, AC.sampleRate);
+    var d = noiseBuf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    startDrone();
+  } catch (e) { AC = null; }
+}
+function startDrone() {
+  if (!AC || droneNodes) return;
+  var g = AC.createGain(); g.gain.value = 0.028;
+  var lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 160; lp.Q.value = 2;
+  var o1 = AC.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = 54;
+  var o2 = AC.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = 54.45;
+  var o3 = AC.createOscillator(); o3.type = 'sine'; o3.frequency.value = 27;
+  var lfo = AC.createOscillator(); lfo.frequency.value = 0.05;
+  var lfoG = AC.createGain(); lfoG.gain.value = 60;
+  lfo.connect(lfoG); lfoG.connect(lp.frequency);
+  o1.connect(lp); o2.connect(lp); o3.connect(lp);
+  lp.connect(g); g.connect(master);
+  o1.start(); o2.start(); o3.start(); lfo.start();
+  droneNodes = [o1, o2, o3, lfo];
+}
+function noise(dur, filterType, f0, f1, vol, delay) {
+  if (!AC) return;
+  var t = AC.currentTime + (delay || 0);
+  var src = AC.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  var flt = AC.createBiquadFilter(); flt.type = filterType;
+  flt.frequency.setValueAtTime(f0, t);
+  flt.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  var g = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(flt); flt.connect(g); g.connect(master);
+  src.start(t); src.stop(t + dur + 0.05);
+}
+function tone(f0, f1, dur, type, vol, delay) {
+  if (!AC) return;
+  var t = AC.currentTime + (delay || 0);
+  var o = AC.createOscillator(); o.type = type || 'sine';
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  var g = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(master);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+var sfx = {
+  whoosh: function () { noise(0.35, 'bandpass', 300, 1600, 0.14); },
+  collide: function (big) {
+    noise(0.5, 'lowpass', 300, 60, big ? 0.35 : 0.2);
+    noise(0.08, 'highpass', 2500, 4000, 0.12);
+    tone(70, 30, 0.5, 'sine', big ? 0.3 : 0.16);
+  },
+  sizzle: function () { noise(0.7, 'highpass', 2600, 5200, 0.16); tone(220, 40, 0.6, 'sawtooth', 0.06); },
+  chime: function () { [880, 1174, 1568].forEach(function (f, i) { tone(f, f, 0.4, 'triangle', 0.12, i * 0.11); }); },
+  reward: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, f, 0.25, 'triangle', 0.14, i * 0.09); }); }
+};
+document.getElementById('mutePill').addEventListener('click', function () {
+  muted = !muted; save.muted = muted; storeSave();
+  this.textContent = muted ? '🔇' : '🔊';
+  if (master) master.gain.value = muted ? 0 : 0.55;
+});
+document.getElementById('mutePill').textContent = muted ? '🔇' : '🔊';
+
+/* ============ three.js scene ============ */
+var canvas = document.getElementById('c3d');
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x090910);
+
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.5, 20000);
+scene.add(new THREE.AmbientLight(0x334, 0.55));
+
+window.addEventListener('resize', function () {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* glow texture factory */
+function glowTexture(inner, outer) {
+  var c = document.createElement('canvas'); c.width = c.height = 128;
+  var ctx = c.getContext('2d');
+  var g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, inner);
+  g.addColorStop(0.35, outer);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+  var t = new THREE.CanvasTexture(c);
+  return t;
+}
+var TEX = {
+  starGlow: glowTexture('rgba(255,250,220,1)', 'rgba(255,170,60,0.45)'),
+  blueGlow: glowTexture('rgba(190,220,255,0.9)', 'rgba(90,140,255,0.3)'),
+  cyanGlow: glowTexture('rgba(200,255,250,0.9)', 'rgba(80,200,220,0.3)'),
+  warmGlow: glowTexture('rgba(255,220,180,0.9)', 'rgba(255,140,80,0.3)'),
+  flash: glowTexture('rgba(255,255,255,1)', 'rgba(255,200,120,0.6)'),
+  nebA: glowTexture('rgba(120,80,200,0.5)', 'rgba(60,30,120,0.18)'),
+  nebB: glowTexture('rgba(60,140,180,0.4)', 'rgba(20,60,110,0.15)')
+};
+
+/* starfield */
+(function () {
+  var N = 4000;
+  var pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+  for (var i = 0; i < N; i++) {
+    var r = 2600 + Math.random() * 2600;
+    var th = Math.random() * Math.PI * 2;
+    var ph = Math.acos(2 * Math.random() - 1);
+    pos[i * 3] = r * Math.sin(ph) * Math.cos(th);
+    pos[i * 3 + 1] = r * Math.cos(ph);
+    pos[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+    var tint = Math.random();
+    var v = 0.5 + Math.random() * 0.5;
+    col[i * 3] = v * (tint < 0.15 ? 1.0 : tint > 0.85 ? 0.75 : 0.92);
+    col[i * 3 + 1] = v * 0.9;
+    col[i * 3 + 2] = v * (tint < 0.15 ? 0.75 : 1.0);
+  }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  var m = new THREE.PointsMaterial({ size: 7, sizeAttenuation: true, vertexColors: true,
+    transparent: true, opacity: 0.9, depthWrite: false });
+  scene.add(new THREE.Points(g, m));
+})();
+
+/* nebula sprites */
+(function () {
+  for (var i = 0; i < 7; i++) {
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: i % 2 ? TEX.nebA : TEX.nebB, transparent: true, opacity: 0.05 + Math.random() * 0.05,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    var r = 1800 + Math.random() * 1500;
+    var th = Math.random() * Math.PI * 2;
+    var y = (Math.random() - 0.5) * 1600;
+    sp.position.set(r * Math.cos(th), y, r * Math.sin(th));
+    sp.scale.setScalar(1400 + Math.random() * 1600);
+    scene.add(sp);
+  }
+})();
+
+/* ============ procedural planet textures ============ */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function hsl(h, s, l) { return 'hsl(' + (h % 360) + ',' + s + '%,' + l + '%)'; }
+function planetTexture(type, seed) {
+  var rng = mulberry32(seed);
+  var c = document.createElement('canvas'); c.width = 256; c.height = 128;
+  var x = c.getContext('2d');
+  var i, y, hue;
+  if (type === 'giant') {
+    hue = rng() < 0.5 ? 18 + rng() * 30 : 190 + rng() * 60;
+    var bands = 9 + Math.floor(rng() * 6);
+    for (i = 0; i < bands; i++) {
+      var y0 = Math.floor(i * 128 / bands);
+      var y1 = Math.floor((i + 1) * 128 / bands);
+      x.fillStyle = hsl(hue + rng() * 24 - 12, 42 + rng() * 30, 28 + rng() * 34);
+      x.fillRect(0, y0, 256, y1 - y0 + 1);
+      // wobble streaks
+      x.globalAlpha = 0.25;
+      x.fillStyle = hsl(hue + rng() * 40 - 20, 50, 55 + rng() * 20);
+      for (var s = 0; s < 4; s++) {
+        var sy = y0 + rng() * (y1 - y0);
+        x.beginPath();
+        x.ellipse(rng() * 256, sy, 20 + rng() * 60, 1.5 + rng() * 3, 0, 0, Math.PI * 2);
+        x.fill();
+      }
+      x.globalAlpha = 1;
+    }
+    if (rng() < 0.5) { // great spot
+      x.fillStyle = hsl(hue + 20, 60, 42);
+      x.beginPath(); x.ellipse(60 + rng() * 140, 40 + rng() * 50, 16 + rng() * 10, 8 + rng() * 5, 0, 0, Math.PI * 2); x.fill();
+    }
+  } else if (type === 'ice') {
+    x.fillStyle = hsl(195 + rng() * 20, 35, 78); x.fillRect(0, 0, 256, 128);
+    for (i = 0; i < 26; i++) {
+      x.strokeStyle = 'rgba(' + (150 + rng() * 60 | 0) + ',' + (200 + rng() * 40 | 0) + ',255,' + (0.15 + rng() * 0.25) + ')';
+      x.lineWidth = 0.5 + rng() * 2;
+      x.beginPath();
+      x.moveTo(rng() * 256, rng() * 128);
+      x.bezierCurveTo(rng() * 256, rng() * 128, rng() * 256, rng() * 128, rng() * 256, rng() * 128);
+      x.stroke();
+    }
+    for (i = 0; i < 300; i++) {
+      x.fillStyle = 'rgba(255,255,255,' + rng() * 0.4 + ')';
+      x.fillRect(rng() * 256, rng() * 128, 1.5, 1.5);
+    }
+  } else if (type === 'rocky') {
+    hue = rng() < 0.55 ? 15 + rng() * 40 : 90 + rng() * 130;
+    x.fillStyle = hsl(hue, 26 + rng() * 22, 34 + rng() * 16); x.fillRect(0, 0, 256, 128);
+    for (i = 0; i < 900; i++) {
+      x.fillStyle = hsl(hue + rng() * 30 - 15, 30, 20 + rng() * 45);
+      x.globalAlpha = 0.3 + rng() * 0.4;
+      x.fillRect(rng() * 256, rng() * 128, 1 + rng() * 2.5, 1 + rng() * 2.5);
+    }
+    x.globalAlpha = 0.35;
+    for (i = 0; i < 8; i++) { // continents / maria
+      x.fillStyle = hsl(hue + 15, 30, 25);
+      x.beginPath();
+      x.ellipse(rng() * 256, rng() * 128, 15 + rng() * 40, 10 + rng() * 25, rng() * 3, 0, Math.PI * 2);
+      x.fill();
+    }
+    x.globalAlpha = 1;
+  } else { // asteroid
+    x.fillStyle = hsl(30, 8, 32); x.fillRect(0, 0, 256, 128);
+    for (i = 0; i < 700; i++) {
+      var v = 20 + rng() * 40;
+      x.fillStyle = hsl(30, 6, v);
+      x.fillRect(rng() * 256, rng() * 128, 1 + rng() * 3, 1 + rng() * 3);
+    }
+    for (i = 0; i < 14; i++) { // craters
+      var cx = rng() * 256, cy = rng() * 128, cr = 3 + rng() * 9;
+      x.fillStyle = 'rgba(0,0,0,0.35)';
+      x.beginPath(); x.arc(cx, cy, cr, 0, Math.PI * 2); x.fill();
+      x.strokeStyle = 'rgba(255,255,255,0.18)'; x.lineWidth = 1.4;
+      x.beginPath(); x.arc(cx, cy, cr, 0, Math.PI * 2); x.stroke();
+    }
+  }
+  var t = new THREE.CanvasTexture(c);
+  return t;
+}
+
+/* ============ sim & mesh management ============ */
+var sim = SF.createSim();
+var sphereGeo = new THREE.SphereGeometry(1, 28, 20);
+var visuals = {};   // body.id -> {mesh, glow, trail, light?, baseType}
+var fading = [];    // {mesh, glow?, t}
+var bursts = [];    // debris particle systems
+var flashes = [];   // flash sprites
+
+function visualType(b) {
+  if (b.isStar) return 'star';
+  if (b.type === 'rocky' && (b.seed % 7) < 2) return 'ice';
+  return b.type;
+}
+function trailColorFor(t) {
+  if (t === 'star') return new THREE.Color(1, 0.85, 0.4);
+  if (t === 'giant') return new THREE.Color(1, 0.62, 0.32);
+  if (t === 'ice') return new THREE.Color(0.55, 0.9, 1);
+  if (t === 'rocky') return new THREE.Color(0.45, 0.75, 1);
+  return new THREE.Color(0.6, 0.6, 0.65);
+}
+function makeTrail(color) {
+  var g = new THREE.BufferGeometry();
+  var pos = new THREE.BufferAttribute(new Float32Array((TRAIL + 1) * 3), 3);
+  var col = new THREE.BufferAttribute(new Float32Array((TRAIL + 1) * 3), 3);
+  g.setAttribute('position', pos);
+  g.setAttribute('color', col);
+  g.setDrawRange(0, 0);
+  var line = new THREE.Line(g, new THREE.LineBasicMaterial({
+    vertexColors: true, transparent: true, opacity: 0.85,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  }));
+  line.frustumCulled = false;
+  scene.add(line);
+  return { line: line, pts: new Float32Array(TRAIL * 3), n: 0, head: 0, color: color, acc: 999 };
+}
+function createVisual(b) {
+  var vt = visualType(b);
+  var mesh, glow = null, light = null;
+  if (b.isStar) {
+    mesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: 0xfff3cf }));
+    glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.starGlow, transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.95 }));
+    glow.scale.setScalar(b.radius * 7);
+    light = new THREE.PointLight(0xffe8c0, 2.4, 0, 0.9);
+    scene.add(light);
+  } else {
+    mesh = new THREE.Mesh(sphereGeo, new THREE.MeshLambertMaterial({ map: planetTexture(vt, b.seed) }));
+    if (vt !== 'asteroid') {
+      var gmap = vt === 'giant' ? TEX.warmGlow : vt === 'ice' ? TEX.cyanGlow : TEX.blueGlow;
+      glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: gmap, transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.35 }));
+      glow.scale.setScalar(b.radius * 3.4);
+    }
+  }
+  mesh.scale.setScalar(b.radius);
+  mesh.rotation.z = (mulberry32(b.seed)() - 0.5) * 0.5; // axial tilt
+  scene.add(mesh);
+  if (glow) scene.add(glow);
+  var v = { mesh: mesh, glow: glow, light: light, trail: makeTrail(trailColorFor(vt)), baseType: vt, radius: b.radius };
+  visuals[b.id] = v;
+  return v;
+}
+function removeVisual(id, fade) {
+  var v = visuals[id];
+  if (!v) return;
+  delete visuals[id];
+  scene.remove(v.trail.line);
+  v.trail.line.geometry.dispose();
+  if (v.light) scene.remove(v.light);
+  if (fade) {
+    fading.push({ mesh: v.mesh, glow: v.glow, t: 1 });
+  } else {
+    scene.remove(v.mesh);
+    if (v.glow) scene.remove(v.glow);
+  }
+}
+function syncVisuals() {
+  var seen = {};
+  for (var i = 0; i < sim.bodies.length; i++) {
+    var b = sim.bodies[i];
+    seen[b.id] = true;
+    var v = visuals[b.id] || createVisual(b);
+    if (Math.abs(v.radius - b.radius) > 1e-6) {
+      v.radius = b.radius;
+      v.mesh.scale.setScalar(b.radius);
+      if (v.glow) v.glow.scale.setScalar(b.radius * (b.isStar ? 7 : 3.4));
+      var vt = visualType(b);
+      if (!b.isStar && vt !== v.baseType) {
+        v.baseType = vt;
+        v.mesh.material.map = planetTexture(vt, b.seed);
+        v.mesh.material.needsUpdate = true;
+      }
+    }
+    v.mesh.position.set(b.x, b.y, b.z);
+    if (v.glow) v.glow.position.set(b.x, b.y, b.z);
+    if (v.light) v.light.position.set(b.x, b.y, b.z);
+  }
+  for (var id in visuals) if (!seen[id]) removeVisual(id, true);
+}
+function pushTrailPoint(v, b) {
+  var t = v.trail;
+  t.pts[t.head * 3] = b.x; t.pts[t.head * 3 + 1] = b.y; t.pts[t.head * 3 + 2] = b.z;
+  t.head = (t.head + 1) % TRAIL;
+  if (t.n < TRAIL) t.n++;
+}
+function sampleTrails(simDt) {
+  for (var i = 0; i < sim.bodies.length; i++) {
+    var b = sim.bodies[i];
+    var v = visuals[b.id];
+    if (!v) v = createVisual(b);
+    v.trail.acc += simDt;
+    if (v.trail.acc >= 0.35) { v.trail.acc = 0; pushTrailPoint(v, b); }
+  }
+}
+function renderTrails() {
+  for (var i = 0; i < sim.bodies.length; i++) {
+    var b = sim.bodies[i];
+    var v = visuals[b.id];
+    if (!v) continue;
+    var t = v.trail, n = t.n;
+    var pos = t.line.geometry.attributes.position;
+    var col = t.line.geometry.attributes.color;
+    var start = (t.head - n + TRAIL) % TRAIL;
+    for (var k = 0; k < n; k++) {
+      var src = ((start + k) % TRAIL) * 3;
+      pos.array[k * 3] = t.pts[src];
+      pos.array[k * 3 + 1] = t.pts[src + 1];
+      pos.array[k * 3 + 2] = t.pts[src + 2];
+      var f = (k + 1) / (n + 1); f = f * f;
+      col.array[k * 3] = t.color.r * f;
+      col.array[k * 3 + 1] = t.color.g * f;
+      col.array[k * 3 + 2] = t.color.b * f;
+    }
+    // live head point
+    pos.array[n * 3] = b.x; pos.array[n * 3 + 1] = b.y; pos.array[n * 3 + 2] = b.z;
+    col.array[n * 3] = t.color.r; col.array[n * 3 + 1] = t.color.g; col.array[n * 3 + 2] = t.color.b;
+    pos.needsUpdate = true; col.needsUpdate = true;
+    t.line.geometry.setDrawRange(0, n + 1);
+  }
+}
+
+/* ============ FX ============ */
+function spawnFlash(x, y, z, size, colorTex) {
+  var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: colorTex || TEX.flash, transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, opacity: 1 }));
+  sp.position.set(x, y, z);
+  sp.scale.setScalar(size);
+  scene.add(sp);
+  flashes.push({ sp: sp, t: 1, size: size });
+}
+function spawnBurst(x, y, z, n, speed, color) {
+  var pos = new Float32Array(n * 3), vel = new Float32Array(n * 3);
+  for (var i = 0; i < n; i++) {
+    pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
+    var th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+    var s = speed * (0.3 + Math.random() * 0.7);
+    vel[i * 3] = s * Math.sin(ph) * Math.cos(th);
+    vel[i * 3 + 1] = s * Math.cos(ph) * 0.5;
+    vel[i * 3 + 2] = s * Math.sin(ph) * Math.sin(th);
+  }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  var m = new THREE.PointsMaterial({ color: color || 0xffc080, size: 1.6, sizeAttenuation: true,
+    transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
+  var p = new THREE.Points(g, m);
+  p.frustumCulled = false;
+  scene.add(p);
+  bursts.push({ p: p, vel: vel, t: 1.2 });
+}
+function updateFX(dt) {
+  var i;
+  for (i = flashes.length - 1; i >= 0; i--) {
+    var f = flashes[i];
+    f.t -= dt * 2.2;
+    if (f.t <= 0) { scene.remove(f.sp); flashes.splice(i, 1); continue; }
+    f.sp.material.opacity = f.t;
+    f.sp.scale.setScalar(f.size * (1 + (1 - f.t) * 1.6));
+  }
+  for (i = bursts.length - 1; i >= 0; i--) {
+    var bu = bursts[i];
+    bu.t -= dt;
+    if (bu.t <= 0) { scene.remove(bu.p); bu.p.geometry.dispose(); bursts.splice(i, 1); continue; }
+    var pos = bu.p.geometry.attributes.position;
+    for (var k = 0; k < pos.count; k++) {
+      pos.array[k * 3] += bu.vel[k * 3] * dt;
+      pos.array[k * 3 + 1] += bu.vel[k * 3 + 1] * dt;
+      pos.array[k * 3 + 2] += bu.vel[k * 3 + 2] * dt;
+    }
+    pos.needsUpdate = true;
+    bu.p.material.opacity = Math.min(1, bu.t);
+  }
+  for (i = fading.length - 1; i >= 0; i--) {
+    var fa = fading[i];
+    fa.t -= dt * 1.4;
+    if (fa.t <= 0) {
+      scene.remove(fa.mesh);
+      if (fa.glow) scene.remove(fa.glow);
+      fading.splice(i, 1);
+      continue;
+    }
+    if (fa.mesh.material.transparent !== true) { fa.mesh.material.transparent = true; }
+    fa.mesh.material.opacity = fa.t;
+    if (fa.glow) fa.glow.material.opacity = fa.t * 0.4;
+  }
+}
+
+/* ============ camera ============ */
+var cam = { theta: 0.85, phi: 1.05, dist: 220, target: new THREE.Vector3(0, 0, 0) };
+function clampCam() {
+  cam.phi = Math.max(0.12, Math.min(1.52, cam.phi));
+  cam.dist = Math.max(20, Math.min(1400, cam.dist));
+}
+function applyCamera() {
+  clampCam();
+  var sp = Math.sin(cam.phi), cp = Math.cos(cam.phi);
+  camera.position.set(
+    cam.target.x + cam.dist * sp * Math.cos(cam.theta),
+    cam.target.y + cam.dist * cp,
+    cam.target.z + cam.dist * sp * Math.sin(cam.theta)
+  );
+  camera.lookAt(cam.target);
+}
+
+/* ============ input ============ */
+var raycaster = new THREE.Raycaster();
+var eclipticPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+var pointers = {};      // id -> {x,y,sx,sy,button}
+var dragState = null;   // 'rotate' | 'pan' | 'fling' | 'pinch'
+var flingStart = null, flingCur = null;
+var pinchD0 = 0, pinchMid0 = null;
+var arrow = null, ghostLine = null;
+
+function ndc(e) {
+  return new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+}
+function planePoint(e) {
+  raycaster.setFromCamera(ndc(e), camera);
+  var out = new THREE.Vector3();
+  return raycaster.ray.intersectPlane(eclipticPlane, out) ? out : null;
+}
+function pickBody(e) {
+  raycaster.setFromCamera(ndc(e), camera);
+  var meshes = [];
+  for (var id in visuals) { visuals[id].mesh.userData.bid = +id; meshes.push(visuals[id].mesh); }
+  var hits = raycaster.intersectObjects(meshes, false);
+  if (hits.length) return hits[0].object.userData.bid;
+  // generous pick: nearest body within a few px
+  var best = 0, bestPx = 30;
+  var v3 = new THREE.Vector3();
+  for (var i = 0; i < sim.bodies.length; i++) {
+    var b = sim.bodies[i];
+    v3.set(b.x, b.y, b.z).project(camera);
+    if (v3.z > 1) continue;
+    var px = (v3.x - ndc(e).x) * window.innerWidth / 2;
+    var py = (v3.y - ndc(e).y) * window.innerHeight / 2;
+    var d = Math.sqrt(px * px + py * py);
+    if (d < bestPx) { bestPx = d; best = b.id; }
+  }
+  return best;
+}
+function beginFling(e) {
+  var p = planePoint(e);
+  if (!p) return false;
+  flingStart = p.clone();
+  flingCur = p.clone();
+  if (!arrow) {
+    arrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), flingStart, 1, 0xffd75e, 3, 1.6);
+    scene.add(arrow);
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(600 * 3), 3));
+    g.setDrawRange(0, 0);
+    ghostLine = new THREE.Line(g, new THREE.LineDashedMaterial({ color: 0x9fe8ff, transparent: true,
+      opacity: 0.75, dashSize: 3, gapSize: 2 }));
+    ghostLine.frustumCulled = false;
+    scene.add(ghostLine);
+  }
+  arrow.visible = true; ghostLine.visible = true;
+  updateFlingPreview();
+  return true;
+}
+function flingVelocity() {
+  var d = new THREE.Vector3().subVectors(flingCur, flingStart);
+  return d.multiplyScalar(0.14);
+}
+function updateFlingPreview() {
+  if (!flingStart) return;
+  var vel = flingVelocity();
+  var len = vel.length() / 0.14;
+  arrow.position.copy(flingStart);
+  if (len > 0.5) {
+    arrow.setDirection(vel.clone().normalize());
+    arrow.setLength(len, Math.min(8, 2 + len * 0.15), Math.min(4, 1 + len * 0.08));
+    arrow.visible = true;
+  } else arrow.visible = false;
+  var mass = MASS_PRESETS[pickSize];
+  var pred = SF.predict(sim, {
+    mass: mass, x: flingStart.x, y: flingStart.y, z: flingStart.z,
+    vx: vel.x, vy: vel.y, vz: vel.z
+  }, 520, 0.16);
+  var pos = ghostLine.geometry.attributes.position;
+  var n = Math.min(600, pred.points.length / 3);
+  for (var i = 0; i < n; i++) {
+    pos.array[i * 3] = pred.points[i * 3];
+    pos.array[i * 3 + 1] = pred.points[i * 3 + 1];
+    pos.array[i * 3 + 2] = pred.points[i * 3 + 2];
+  }
+  pos.needsUpdate = true;
+  ghostLine.geometry.setDrawRange(0, n);
+  ghostLine.computeLineDistances();
+  ghostLine.material.color.setHex(pred.hit ? 0xff8a5c : 0x9fe8ff);
+}
+function endFling(commit) {
+  if (flingStart && commit) {
+    var vel = flingVelocity();
+    var mass = MASS_PRESETS[pickSize];
+    SF.addBody(sim, {
+      mass: mass, x: flingStart.x, y: flingStart.y, z: flingStart.z,
+      vx: vel.x, vy: vel.y, vz: vel.z
+    });
+    sfx.whoosh();
+  }
+  flingStart = flingCur = null;
+  if (arrow) { arrow.visible = false; ghostLine.visible = false; }
+}
+function pointerCount() { var n = 0; for (var k in pointers) n++; return n; }
+
+canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+canvas.addEventListener('pointerdown', function (e) {
+  initAudio();
+  canvas.setPointerCapture(e.pointerId);
+  pointers[e.pointerId] = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, button: e.button };
+  var n = pointerCount();
+  if (n === 2) {
+    // enter pinch: cancel any fling
+    endFling(false);
+    var ids = Object.keys(pointers);
+    var a = pointers[ids[0]], b = pointers[ids[1]];
+    pinchD0 = Math.hypot(a.x - b.x, a.y - b.y);
+    pinchMid0 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    dragState = 'pinch';
+    return;
+  }
+  if (e.button === 2) { dragState = 'pan'; return; }
+  if (flingMode) {
+    if (e.shiftKey || e.ctrlKey || e.button === 1) { dragState = 'rotate'; return; }
+    var hit = pickBody(e);
+    if (hit) { dragState = 'tap-' + hit; return; }
+    dragState = beginFling(e) ? 'fling' : 'rotate';
+  } else {
+    dragState = 'rotate';
+  }
+});
+canvas.addEventListener('pointermove', function (e) {
+  var p = pointers[e.pointerId];
+  if (!p) return;
+  var dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  if (dragState === 'pinch') {
+    var ids = Object.keys(pointers);
+    if (ids.length >= 2) {
+      var a = pointers[ids[0]], b = pointers[ids[1]];
+      var d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchD0 > 0) cam.dist *= pinchD0 / Math.max(20, d);
+      pinchD0 = d;
+      var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if (pinchMid0) panBy(mid.x - pinchMid0.x, mid.y - pinchMid0.y);
+      pinchMid0 = mid;
+    }
+    return;
+  }
+  if (dragState && dragState.indexOf('tap-') === 0) {
+    var moved = Math.hypot(e.clientX - p.sx, e.clientY - p.sy);
+    if (moved > 8) dragState = 'rotate';
+    else return;
+  }
+  if (dragState === 'rotate') {
+    cam.theta += dx * 0.0055;
+    cam.phi -= dy * 0.0045;
+  } else if (dragState === 'pan') {
+    panBy(dx, dy);
+  } else if (dragState === 'fling') {
+    var pt = planePoint(e);
+    if (pt) { flingCur.copy(pt); updateFlingPreview(); }
+  }
+});
+function panBy(dx, dy) {
+  followId = 0; updateFollowTag();
+  var scale = cam.dist * 0.0016;
+  var right = new THREE.Vector3().subVectors(camera.position, cam.target).cross(camera.up).normalize();
+  var fwd = new THREE.Vector3().subVectors(cam.target, camera.position); fwd.y = 0; fwd.normalize();
+  cam.target.addScaledVector(right, dx * scale);
+  cam.target.addScaledVector(fwd, dy * scale);
+}
+function finishPointer(e) {
+  var p = pointers[e.pointerId];
+  delete pointers[e.pointerId];
+  if (!p) return;
+  if (dragState && dragState.indexOf('tap-') === 0) {
+    var id = +dragState.slice(4);
+    followId = id; updateFollowTag();
+  } else if (dragState === 'fling') {
+    var moved = Math.hypot(e.clientX - p.sx, e.clientY - p.sy);
+    if (moved < 6) { followId = 0; updateFollowTag(); endFling(false); }
+    else endFling(true);
+  } else if (dragState === 'rotate' && !flingMode) {
+    var mv = Math.hypot(e.clientX - p.sx, e.clientY - p.sy);
+    if (mv < 6) {
+      var hit = pickBody(e);
+      followId = hit || 0; updateFollowTag();
+    }
+  }
+  dragState = pointerCount() >= 2 ? 'pinch' : null;
+  if (dragState !== 'fling') { }
+}
+canvas.addEventListener('pointerup', finishPointer);
+canvas.addEventListener('pointercancel', function (e) { delete pointers[e.pointerId]; endFling(false); dragState = null; });
+canvas.addEventListener('wheel', function (e) {
+  e.preventDefault();
+  cam.dist *= Math.exp(e.deltaY * 0.0011);
+}, { passive: false });
+
+window.addEventListener('keydown', function (e) {
+  if (e.code === 'Space') { e.preventDefault(); setSpeed(speedIdx === 0 ? 1 : 0); }
+  else if (e.key === '1') setSpeed(1);
+  else if (e.key === '2') setSpeed(2);
+  else if (e.key === '3') setSpeed(3);
+  else if (e.key === 'f' || e.key === 'F') setFlingMode(!flingMode);
+});
+
+function updateFollowTag() {
+  document.getElementById('followTag').style.display = followId ? 'block' : 'none';
+}
+
+/* ============ UI wiring ============ */
+function setSpeed(i) {
+  speedIdx = i;
+  var pills = document.querySelectorAll('[data-speed]');
+  for (var k = 0; k < pills.length; k++)
+    pills[k].classList.toggle('on', +pills[k].getAttribute('data-speed') === i);
+}
+function setFlingMode(on) {
+  flingMode = on;
+  document.getElementById('modePill').textContent = on ? '☄️ Fling' : '🖐 Orbit';
+}
+document.getElementById('modePill').addEventListener('click', function () { setFlingMode(!flingMode); });
+Array.prototype.forEach.call(document.querySelectorAll('[data-speed]'), function (el) {
+  el.addEventListener('click', function () { initAudio(); setSpeed(+el.getAttribute('data-speed')); });
+});
+Array.prototype.forEach.call(document.querySelectorAll('[data-size]'), function (el) {
+  el.addEventListener('click', function () {
+    pickSize = el.getAttribute('data-size');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-size]'), function (o) {
+      o.classList.toggle('on', o === el);
+    });
+  });
+});
+Array.prototype.forEach.call(document.querySelectorAll('[data-preset]'), function (el) {
+  el.addEventListener('click', function () { initAudio(); loadPreset(el.getAttribute('data-preset')); });
+});
+
+function toast(msg, gold) {
+  var d = document.createElement('div');
+  d.className = 'toast' + (gold ? ' gold' : '');
+  d.innerHTML = msg;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function () { d.remove(); }, 3500);
+}
+
+/* ============ presets ============ */
+function clearSim() {
+  for (var id in visuals) removeVisual(id, false);
+  sim = SF.createSim();
+  followId = 0; updateFollowTag();
+  binaryStart = 0;
+  document.getElementById('binTimer').textContent = '';
+}
+function addPlanetCirc(star, r, mass, angDeg, opts) {
+  opts = opts || {};
+  var a = (angDeg || Math.random() * 360) * Math.PI / 180;
+  var v = SF.circularVelocity(sim.G, star.mass, r) * (opts.vScale || 1);
+  return SF.addBody(sim, {
+    mass: mass,
+    x: star.x + r * Math.cos(a), y: 0, z: star.z + r * Math.sin(a),
+    vx: star.vx - v * Math.sin(a), vy: 0, vz: star.vz + v * Math.cos(a),
+    capturedBy: opts.capturedBy || 0
+  });
+}
+function loadPreset(name) {
+  clearSim();
+  currentPreset = name;
+  var star, i;
+  if (name === 'clear') {
+    star = SF.addBody(sim, { mass: 1000, radius: 8, isStar: true });
+    cam.target.set(0, 0, 0); cam.dist = 220;
+    toast('🧹 A lone star. Forge something.');
+  } else if (name === 'solar') {
+    star = SF.addBody(sim, { mass: 1000, radius: 8, isStar: true });
+    addPlanetCirc(star, 32, 0.9, 10);
+    addPlanetCirc(star, 52, 2.2, 140);
+    var giant = addPlanetCirc(star, 84, 16, 250);
+    addPlanetCirc(star, 128, 3.0, 60);
+    // moon around the giant
+    var mr = 3.6, ma = Math.random() * Math.PI * 2;
+    var mv = SF.circularVelocity(sim.G, giant.mass, mr);
+    SF.addBody(sim, {
+      mass: 0.06,
+      x: giant.x + mr * Math.cos(ma), y: 0, z: giant.z + mr * Math.sin(ma),
+      vx: giant.vx - mv * Math.sin(ma), vy: 0, vz: giant.vz + mv * Math.cos(ma),
+      capturedBy: giant.id
+    });
+    cam.target.set(0, 0, 0); cam.dist = 260;
+    toast('🌞 Solar System forged');
+  } else if (name === 'binary') {
+    var M = 600, sep = 42;
+    var v = Math.sqrt(sim.G * M / (2 * sep));
+    SF.addBody(sim, { mass: M, radius: 6.4, isStar: true, x: -sep / 2, z: 0, vz: -v });
+    SF.addBody(sim, { mass: M, radius: 6.4, isStar: true, x: sep / 2, z: 0, vz: v });
+    var fake = { mass: 2 * M, x: 0, z: 0, vx: 0, vz: 0 };
+    addPlanetCirc(fake, 95, 2, 30);
+    addPlanetCirc(fake, 130, 14, 160);
+    addPlanetCirc(fake, 170, 2.5, 280);
+    cam.target.set(0, 0, 0); cam.dist = 340;
+    binaryStart = performance.now();
+    toast('☀️☀️ Binary stars — survive the chaos 2 min!');
+  } else if (name === 'ring') {
+    star = SF.addBody(sim, { mass: 1000, radius: 8, isStar: true });
+    for (i = 0; i < 30; i++) {
+      var r = 58 + Math.random() * 22;
+      addPlanetCirc(star, r, 0.05 + Math.random() * 0.1, (i / 30) * 360 + Math.random() * 8,
+        { vScale: 0.97 + Math.random() * 0.06 });
+    }
+    cam.target.set(0, 0, 0); cam.dist = 240;
+    toast('🪨 Asteroid ring seeded');
+  } else if (name === 'chaos') {
+    star = SF.addBody(sim, { mass: 1000, radius: 8, isStar: true });
+    for (i = 0; i < 12; i++) {
+      var rr = 30 + Math.random() * 120;
+      var mm = Math.random() < 0.25 ? 8 + Math.random() * 14 : 0.1 + Math.random() * 3;
+      addPlanetCirc(star, rr, mm, Math.random() * 360,
+        { vScale: 0.6 + Math.random() * 0.8 });
+    }
+    cam.target.set(0, 0, 0); cam.dist = 300;
+    toast('🎲 Chaos unleashed');
+  }
+}
+
+/* ============ challenges ============ */
+var CHALS = {
+  moon: { el: 'chMoon', coins: 30, label: 'Capture a moon' },
+  stable5: { el: 'chStable', coins: 40, label: '5 stable orbits at once' },
+  binary: { el: 'chBinary', coins: 35, label: 'Survive a binary system 2 min' }
+};
+function refreshChalUI() {
+  for (var k in CHALS) {
+    var el = document.getElementById(CHALS[k].el);
+    el.classList.toggle('done', !!save.done[k]);
+    if (save.done[k]) el.querySelector('.rw').textContent = '✓';
+  }
+}
+function completeChallenge(key) {
+  if (save.done[key]) return;
+  save.done[key] = true;
+  storeSave();
+  var got = awardCoins(CHALS[key].coins);
+  toast('🏆 ' + CHALS[key].label + ' — +' + got + '🪙', true);
+  sfx.reward();
+  refreshChalUI();
+}
+refreshChalUI();
+
+/* ============ HUD ============ */
+var elBodies = document.getElementById('stBodies');
+var elStable = document.getElementById('stStable');
+var elBest = document.getElementById('stBest');
+var elEsc = document.getElementById('stEsc');
+var elMerge = document.getElementById('stMerge');
+var elTime = document.getElementById('stTime');
+elBest.textContent = save.bestStable;
+function updateHUD() {
+  elBodies.textContent = sim.bodies.length;
+  var st = SF.stableCount(sim);
+  elStable.textContent = st;
+  if (st > save.bestStable) { save.bestStable = st; storeSave(); }
+  elBest.textContent = save.bestStable;
+  elEsc.textContent = sim.escapedCount;
+  elMerge.textContent = sim.mergeCount;
+  elTime.textContent = Math.round(sim.time);
+  if (st >= 5) completeChallenge('stable5');
+  if (binaryStart) {
+    var planets = 0;
+    for (var i = 0; i < sim.bodies.length; i++) if (!sim.bodies[i].isStar) planets++;
+    var stars = sim.bodies.length - planets;
+    if (planets < 1 || stars < 2) {
+      binaryStart = 0;
+      document.getElementById('binTimer').textContent = '';
+    } else {
+      var el = (performance.now() - binaryStart) / 1000;
+      if (el >= 120) {
+        binaryStart = 0;
+        document.getElementById('binTimer').textContent = '';
+        completeChallenge('binary');
+      } else {
+        document.getElementById('binTimer').textContent = '(' + Math.ceil(120 - el) + 's)';
+      }
+    }
+  }
+}
+setInterval(updateHUD, 300);
+setInterval(updateWallet, 4000);
+
+/* ============ events from sim ============ */
+var lastStableToast = 0;
+function now2() { return performance.now(); }
+function handleEvents() {
+  var evs = SF.drainEvents(sim);
+  for (var i = 0; i < evs.length; i++) {
+    var e = evs[i];
+    if (e.type === 'merge') {
+      removeVisual(e.goneId, false);
+      spawnFlash(e.x, e.y, e.z, 6 + e.radius * 3);
+      spawnBurst(e.x, e.y, e.z, e.spalled ? 40 : 26, 6 + e.relSpeed, 0xffc080);
+      sfx.collide(e.mass > 10);
+      if (e.spalled) toast('💥 Grazing impact — fragments spalled!');
+    } else if (e.type === 'burnup') {
+      removeVisual(e.goneId, false);
+      spawnFlash(e.x, e.y, e.z, 14 + e.mass, TEX.starGlow);
+      spawnBurst(e.x, e.y, e.z, 30, 10, 0xffe090);
+      sfx.sizzle();
+    } else if (e.type === 'escaped') {
+      removeVisual(e.goneId, true);
+      toast('🚀 A body escaped the system (' + sim.escapedCount + ')');
+      if (followId === e.goneId) { followId = 0; updateFollowTag(); }
+    } else if (e.type === 'capture') {
+      spawnFlash(e.x, e.y, e.z, 8, TEX.cyanGlow);
+      toast('🌙 Moon captured!', true);
+      sfx.chime();
+      completeChallenge('moon');
+    } else if (e.type === 'stable') {
+      if (now2() - lastStableToast > 2500) {
+        lastStableToast = now2();
+        toast('🪐 Stable orbit confirmed (' + SF.stableCount(sim) + ' total)');
+      }
+    }
+  }
+}
+
+/* ============ intro / lifecycle ============ */
+document.getElementById('introBtn').addEventListener('click', function () {
+  document.getElementById('intro').style.display = 'none';
+  initAudio();
+  if (AC && AC.state === 'suspended') AC.resume();
+});
+window.addEventListener('blur', function () {
+  if (speedIdx !== 0) { preBlurIdx = speedIdx; setSpeed(0); pausedByBlur = true; }
+});
+window.addEventListener('focus', function () {
+  if (pausedByBlur) { setSpeed(preBlurIdx); pausedByBlur = false; }
+});
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden && speedIdx !== 0) { preBlurIdx = speedIdx; setSpeed(0); pausedByBlur = true; }
+  else if (!document.hidden && pausedByBlur) { setSpeed(preBlurIdx); pausedByBlur = false; }
+});
+
+/* ============ main loop ============ */
+loadPreset('solar');
+applyCamera();
+var lastT = performance.now();
+var spinBodies = new THREE.Vector3();
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  var dtReal = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+
+  var speed = SPEEDS[speedIdx];
+  var advance = speed * SIM_RATE * dtReal;
+  if (advance > 0) {
+    var n = Math.min(300, Math.max(1, Math.ceil(advance / DT)));
+    var dtEff = advance / n;
+    var chunks = Math.min(4, n);
+    var base = Math.floor(n / chunks), rem = n - base * chunks;
+    for (var c = 0; c < chunks; c++) {
+      var cnt = base + (c < rem ? 1 : 0);
+      if (cnt > 0) {
+        SF.step(sim, dtEff, cnt);
+        sampleTrails(dtEff * cnt);
+      }
+    }
+    handleEvents();
+    // idle watch trickle
+    if (!document.hidden) {
+      watchAccum += dtReal;
+      if (watchAccum >= 120 && watchCoinsSession < 30) {
+        watchAccum -= 120;
+        watchCoinsSession++;
+        var got = awardCoins(1);
+        toast('🪙 +' + got + ' for watching the forge (' + watchCoinsSession + '/30)');
+      }
+    }
+  }
+
+  syncVisuals();
+  renderTrails();
+  updateFX(dtReal);
+
+  // axial spin + star pulse
+  for (var id in visuals) {
+    var v = visuals[id];
+    if (v.baseType === 'star') {
+      var pulse = 1 + Math.sin(now * 0.0016 + (+id)) * 0.05;
+      if (v.glow) v.glow.scale.setScalar(v.radius * 7 * pulse);
+    } else {
+      v.mesh.rotation.y += dtReal * (0.2 + v.radius * 0.1) * (speed > 0 ? Math.min(speed, 10) : 0.4);
+    }
+  }
+
+  // follow
+  if (followId) {
+    var fb = null;
+    for (var i = 0; i < sim.bodies.length; i++) if (sim.bodies[i].id === followId) { fb = sim.bodies[i]; break; }
+    if (fb) {
+      spinBodies.set(fb.x, fb.y, fb.z);
+      cam.target.lerp(spinBodies, Math.min(1, dtReal * 6));
+    } else { followId = 0; updateFollowTag(); }
+  }
+
+  // live fling preview while time flows
+  if (flingStart && speed > 0) updateFlingPreview();
+
+  applyCamera();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

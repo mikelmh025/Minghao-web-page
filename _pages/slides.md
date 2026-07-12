@@ -34,6 +34,18 @@ simulator, and a ring-attention animation with a causal-bubble toggle.
 
 **[▶ Open the deck]({{ base_path }}/decks/llm-infra.html)**
 
+The Arcade — 31 Homemade Web Games
+======
+
+A side project: a full web arcade of **31 games**, each a self-contained HTML file built
+with canvas/WebGL and synthesized audio — action games, roguelikes, a fighting game,
+zero-player simulations (an ant colony with real pheromone stigmergy, an ecosystem that
+visibly *evolves*), a true-3D gravity sandbox, and a shared meta-layer with a coin economy
+and a collectible card gacha. Mouse & keyboard on desktop, touch on phones. No tracking,
+no accounts, no real money — progress lives in your browser.
+
+**[▶ Enter the Arcade]({{ base_path }}/arcade/arcade.html)**
+
 ---
 
-*Best viewed on desktop. Both decks are self-contained HTML — no tracking, no dependencies.*
+*Best viewed on desktop. The decks and games are self-contained HTML — no tracking, no dependencies.*

@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Star Defense</title>
+<style>
+  :root{
+    --bg:#12121a; --card:#1c1c2a; --card2:#232336; --line:#32324a;
+    --ink:#e8eaff; --dim:#9aa0c0; --accent:#5ee6ff; --bad:#ff5d6e; --good:#6dffa8;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; margin:0; }
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none;
+    display:flex; flex-direction:column;
+  }
+  #topbar{
+    display:flex; align-items:center; gap:10px; padding:8px 12px; flex:0 0 auto;
+    border-bottom:1px solid var(--line); background:#15151f;
+  }
+  #topbar .title{ font-weight:700; letter-spacing:.06em; font-size:15px; }
+  #topbar .title span{ color:var(--accent); }
+  a.pill, button.pill, .pill{
+    appearance:none; border:1px solid var(--line); background:var(--card);
+    color:var(--ink); border-radius:999px; padding:6px 14px; font-size:13px;
+    text-decoration:none; cursor:pointer; font-family:inherit; line-height:1.2;
+    white-space:nowrap;
+  }
+  button.pill:active{ transform:scale(.96); }
+  button.pill:disabled{ opacity:.4; cursor:default; }
+  .stat{ border:1px solid var(--line); background:var(--card); border-radius:999px;
+    padding:5px 12px; font-size:13px; font-variant-numeric:tabular-nums; }
+  .stat b{ font-weight:700; }
+  .stat .lab{ color:var(--dim); font-size:11px; margin-right:4px; text-transform:uppercase; letter-spacing:.08em;}
+  #stats{ display:flex; gap:8px; margin-left:auto; align-items:center; flex-wrap:wrap; }
+  #stage{ position:relative; flex:1 1 auto; min-height:0; overflow:hidden; }
+  canvas{ display:block; width:100%; height:100%; touch-action:none; }
+  #buildbar{
+    flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 12px;
+    border-top:1px solid var(--line); background:#15151f; flex-wrap:wrap;
+  }
+  .buildBtn{
+    display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+    border:1px solid var(--line); background:var(--card); border-radius:14px;
+    padding:6px 12px 6px 24px; color:var(--ink); cursor:pointer; font-family:inherit;
+    position:relative; min-width:96px;
+  }
+  .buildBtn::before{
+    content:""; position:absolute; left:9px; top:50%; transform:translateY(-50%);
+    width:8px; height:8px; border-radius:50%; background:var(--c,#fff);
+    box-shadow:0 0 8px var(--c,#fff);
+  }
+  .buildBtn .nm{ font-size:12px; font-weight:600; }
+  .buildBtn .cs{ font-size:11px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .buildBtn.sel{ border-color:var(--c,#fff); background:var(--card2); box-shadow:0 0 0 1px var(--c,#fff) inset; }
+  .buildBtn.broke{ opacity:.45; }
+  .buildBtn:active{ transform:scale(.97); }
+  #waveBox{ margin-left:auto; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  #preview{ font-size:12px; color:var(--dim); max-width:340px; }
+  #preview b{ color:var(--ink); }
+  #sendBtn{ background:#173447; border-color:#2b5b77; color:#aeeaff; font-weight:600; }
+  #hint{ font-size:10px; color:#6b7194; width:100%; text-align:center; margin-top:2px; }
+  .overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(10,10,16,.82); backdrop-filter:blur(3px); z-index:20;
+  }
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:20px;
+    padding:26px 32px; max-width:440px; width:calc(100% - 48px); text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .card h1{ margin:0 0 6px; font-size:26px; letter-spacing:.05em; }
+  .card h1 span{ color:var(--accent); }
+  .card p{ color:var(--dim); font-size:13px; line-height:1.55; margin:8px 0; }
+  .card .big{
+    margin-top:16px; font-size:15px; padding:10px 30px; font-weight:700;
+    background:linear-gradient(180deg,#1c4d63,#14384a); border-color:#3d7a99; color:#c9f2ff;
+  }
+  .card .row{ display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+  #panel{
+    position:absolute; z-index:15; background:var(--card2); border:1px solid var(--line);
+    border-radius:14px; padding:10px 12px; min-width:180px; display:none;
+    box-shadow:0 10px 30px rgba(0,0,0,.5); font-size:12px;
+  }
+  #panel h3{ margin:0 0 2px; font-size:13px; }
+  #panel .tier{ color:var(--dim); font-size:11px; margin-bottom:6px; }
+  #panel .st{ color:var(--dim); line-height:1.5; }
+  #panel .row{ display:flex; gap:8px; margin-top:8px; }
+  #panel button{ flex:1; font-size:12px; padding:6px 8px; }
+  #panel .up{ background:#173a2a; border-color:#2c6b4d; color:#a8ffcf; }
+  #panel .sl{ background:#3a1a22; border-color:#6b2c3a; color:#ffb3c0; }
+  .kbd{ display:inline-block; border:1px solid var(--line); border-radius:5px; padding:0 5px;
+    font-size:11px; background:#101018; color:var(--dim); }
+  @media (max-width:640px){
+    #topbar .title{ display:none; }
+    #preview{ display:none; }
+    .buildBtn{ min-width:78px; padding-left:20px; }
+    .buildBtn .nm{ font-size:11px; }
+  }
+  .luckyLine{ color:#6dffa8; font-weight:800; font-size:18px; text-shadow:0 0 10px rgba(255,209,102,.85);
+    animation:luckyPop .6s ease-out both; margin:6px 0; }
+  .ticketLine{ color:#22d3ee; font-weight:700; animation:ticketPulse 1.1s ease-in-out infinite; margin:6px 0; }
+  @keyframes luckyPop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
+  @keyframes ticketPulse{0%,100%{opacity:1;text-shadow:0 0 4px #22d3ee}50%{opacity:.65;text-shadow:0 0 16px #22d3ee}}
+  .vaultLink{ display:inline-block; margin-top:12px; color:#c9a6ff; font-size:13px; text-decoration:none;
+    border:1px solid rgba(201,166,255,.45); border-radius:999px; padding:5px 14px; }
+  .vaultLink:hover{ background:rgba(201,166,255,.12); }
+</style>
+</head>
+<body>
+  <div id="topbar">
+    <a class="pill" href="../../arcade.html">&larr; Arcade</a>
+    <div class="title">STAR <span>DEFENSE</span></div>
+    <div id="stats">
+      <div class="stat"><span class="lab">Credits</span><b id="stCredits">220</b></div>
+      <div class="stat"><span class="lab">Station</span><b id="stHP">20</b></div>
+      <div class="stat"><span class="lab">Wave</span><b id="stWave">1</b></div>
+      <button class="pill" id="speedBtn" title="Game speed">1&times;</button>
+      <button class="pill" id="muteBtn" title="Sound">&#128266;</button>
+      <button class="pill" id="pauseBtn" title="Pause (P)">&#10074;&#10074;</button>
+    </div>
+  </div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="panel"></div>
+    <div class="overlay" id="overlay" style="display:none"></div>
+  </div>
+  <div id="buildbar">
+    <button class="buildBtn" data-type="pulse"></button>
+    <button class="buildBtn" data-type="missile"></button>
+    <button class="buildBtn" data-type="cryo"></button>
+    <button class="buildBtn" data-type="rail"></button>
+    <button class="buildBtn" data-type="tesla"></button>
+    <button class="buildBtn" data-type="drone"></button>
+    <div id="waveBox">
+      <div id="preview"></div>
+      <button class="pill" id="sendBtn">Send wave</button>
+    </div>
+    <div id="hint">Tap empty space (away from the path) to build &middot; tap a turret to upgrade &middot; right-click / long-press to sell (60% refund) &middot; +5% interest on held credits each wave (max +50)</div>
+  </div>
+
+<script>
+"use strict";
+/* ================================================================
+   SIMULATION CORE  (DOM-free; exported for headless node testing)
+   ================================================================ */
+var SD = (function () {
+
+  var W = 960, H = 540;
+  var PATH_MARGIN = 40;         // min build distance from path
+  var STATION_MARGIN = 64;
+  var TURRET_SPACING = 36;
+  var START_CREDITS = 220;
+  var START_HP = 20;
+  var SELL_RATE = 0.6;
+  var INTEREST_RATE = 0.05, INTEREST_CAP = 50;
+  var PREWAVE_TIME = 12;
+  var FINAL_WAVE = 15;
+
+  /* ---------- path (Catmull-Rom through S-curve waypoints) ---------- */
+  var WAYPOINTS = [
+    [-50, 120], [150, 120], [290, 420], [450, 165],
+    [560, 430], [720, 105], [850, 300], [906, 300]
+  ];
+  function catmull(p0, p1, p2, p3, t) {
+    var t2 = t * t, t3 = t2 * t;
+    return [
+      0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
+      0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
+    ];
+  }
+  var PTS = [], CUM = [0], TOTAL = 0;
+  (function buildPath() {
+    var wp = WAYPOINTS, i, s, pt;
+    for (i = 0; i < wp.length - 1; i++) {
+      var p0 = wp[Math.max(0, i - 1)], p1 = wp[i], p2 = wp[i + 1], p3 = wp[Math.min(wp.length - 1, i + 2)];
+      for (s = 0; s < 24; s++) PTS.push(catmull(p0, p1, p2, p3, s / 24));
+    }
+    PTS.push(wp[wp.length - 1].slice());
+    for (i = 1; i < PTS.length; i++) {
+      var dx = PTS[i][0] - PTS[i - 1][0], dy = PTS[i][1] - PTS[i - 1][1];
+      TOTAL += Math.sqrt(dx * dx + dy * dy);
+      CUM.push(TOTAL);
+    }
+  })();
+  var STATION = { x: PTS[PTS.length - 1][0], y: PTS[PTS.length - 1][1] };
+
+  function pointAt(d) {
+    if (d <= 0) return { x: PTS[0][0], y: PTS[0][1], a: 0 };
+    if (d >= TOTAL) d = TOTAL - 0.001;
+    var lo = 0, hi = CUM.length - 1, mid;
+    while (lo < hi - 1) { mid = (lo + hi) >> 1; if (CUM[mid] <= d) lo = mid; else hi = mid; }
+    var seg = CUM[hi] - CUM[lo] || 1e-6;
+    var t = (d - CUM[lo]) / seg;
+    var x = PTS[lo][0] + (PTS[hi][0] - PTS[lo][0]) * t;
+    var y = PTS[lo][1] + (PTS[hi][1] - PTS[lo][1]) * t;
+    var a = Math.atan2(PTS[hi][1] - PTS[lo][1], PTS[hi][0] - PTS[lo][0]);
+    return { x: x, y: y, a: a };
+  }
+  function distToPath(x, y) {
+    var best = Infinity, i, dx, dy, d2;
+    for (i = 0; i < PTS.length; i += 2) {
+      dx = PTS[i][0] - x; dy = PTS[i][1] - y; d2 = dx * dx + dy * dy;
+      if (d2 < best) best = d2;
+    }
+    return Math.sqrt(best);
+  }
+
+  /* ---------- definitions ---------- */
+  var ENEMIES = {
+    scout:    { name: "Scout",    hp: 14,  speed: 85,  bounty: 6,   dmg: 1, r: 9,  color: "#7be07b" },
+    fighter:  { name: "Fighter",  hp: 34,  speed: 58,  bounty: 10,  dmg: 1, r: 12, color: "#e0c05a" },
+    tank:     { name: "Tank",     hp: 115, speed: 33,  bounty: 22,  dmg: 3, r: 16, color: "#d97b4f" },
+    swarm:    { name: "Swarm",    hp: 6,   speed: 108, bounty: 3,   dmg: 1, r: 6,  color: "#b98bf0" },
+    shielded: { name: "Shielded", hp: 42,  speed: 50,  bounty: 16,  dmg: 2, r: 12, color: "#5ab8e0", shield: 38 },
+    boss:     { name: "BOSS",     hp: 360, speed: 26,  bounty: 120, dmg: 5, r: 24, color: "#ff5d6e", boss: true }
+  };
+
+  var TURRETS = {
+    pulse: {
+      name: "Pulse Laser", cost: 50, color: "#3ee6ff", kind: "laser",
+      desc: "Fast single-target laser",
+      tiers: [
+        { dmg: 7,  rate: 3.2, range: 115 },
+        { dmg: 12, rate: 3.8, range: 122, cost: 40 },
+        { dmg: 19, rate: 4.5, range: 135, cost: 70 }
+      ]
+    },
+    missile: {
+      name: "Missile Pod", cost: 90, color: "#ffb340", kind: "missile",
+      desc: "Slow splash; pops shields",
+      tiers: [
+        { dmg: 22, rate: 0.8, range: 150, splash: 48 },
+        { dmg: 34, rate: 0.9, range: 160, splash: 52, cost: 70 },
+        { dmg: 50, rate: 1.0, range: 170, splash: 60, cost: 120 }
+      ]
+    },
+    cryo: {
+      name: "Cryo Beam", cost: 70, color: "#9fd8ff", kind: "cryo",
+      desc: "Cone that slows enemies",
+      tiers: [
+        { dps: 4,  slow: 0.45, range: 105, cone: 0.50 },
+        { dps: 7,  slow: 0.55, range: 115, cone: 0.55, cost: 55 },
+        { dps: 10, slow: 0.65, range: 125, cone: 0.62, cost: 95 }
+      ]
+    },
+    rail: {
+      name: "Rail Cannon", cost: 160, color: "#ff5d8f", kind: "rail",
+      desc: "Huge damage, long range",
+      tiers: [
+        { dmg: 65,  rate: 0.35, range: 230 },
+        { dmg: 105, rate: 0.38, range: 245, cost: 120 },
+        { dmg: 170, rate: 0.45, range: 260, cost: 200 }
+      ]
+    },
+    tesla: {
+      name: "Tesla Coil", cost: 110, color: "#ffe95d", kind: "tesla",
+      desc: "Chain lightning, 3 targets",
+      tiers: [
+        { dmg: 12, rate: 1.5, range: 125, chains: 3, falloff: 0.75 },
+        { dmg: 18, rate: 1.7, range: 135, chains: 4, falloff: 0.80, cost: 85 },
+        { dmg: 27, rate: 1.9, range: 145, chains: 5, falloff: 0.85, cost: 145 }
+      ]
+    },
+    drone: {
+      name: "Drone Bay", cost: 140, color: "#8dff6d", kind: "drone",
+      desc: "2 dive-bombing drones",
+      tiers: [
+        { dmg: 30, range: 150, drones: 2, respawn: 6 },
+        { dmg: 48, range: 165, drones: 2, respawn: 5, cost: 100 },
+        { dmg: 70, range: 180, drones: 3, respawn: 4, cost: 170 }
+      ]
+    }
+  };
+
+  /* ---------- waves ---------- */
+  function waveComposition(n) {
+    var c = [];
+    function g(type, count, interval, delay) { c.push({ type: type, count: count, interval: interval || 1, delay: delay || 0 }); }
+    switch (n) {
+      case 1:  g("scout", 6, 1.2); break;
+      case 2:  g("scout", 8, 0.9); g("fighter", 2, 1.6, 4); break;
+      case 3:  g("swarm", 10, 0.4); g("scout", 6, 1.0, 3); break;
+      case 4:  g("fighter", 6, 1.4); g("scout", 6, 0.8, 2); break;
+      case 5:  g("scout", 4, 0.9); g("boss", 1, 1, 5); break;
+      case 6:  g("shielded", 3, 2.0); g("fighter", 5, 1.2, 2); break;
+      case 7:  g("swarm", 16, 0.35); g("scout", 8, 0.8, 3); break;
+      case 8:  g("tank", 3, 2.4); g("fighter", 6, 1.1, 2); break;
+      case 9:  g("shielded", 5, 1.8); g("swarm", 12, 0.35, 4); break;
+      case 10: g("tank", 2, 2.2); g("fighter", 6, 1.0, 3); g("boss", 1, 1, 9); break;
+      case 11: g("tank", 5, 2.0); g("shielded", 4, 1.6, 3); break;
+      case 12: g("swarm", 22, 0.3); g("scout", 12, 0.6, 4); break;
+      case 13: g("fighter", 10, 0.9); g("tank", 4, 2.0, 2); g("shielded", 4, 1.5, 5); break;
+      case 14: g("scout", 10, 0.6); g("fighter", 8, 0.9, 3); g("tank", 4, 1.8, 6); g("shielded", 5, 1.4, 8); g("swarm", 10, 0.3, 10); break;
+      case 15: g("tank", 4, 2.0); g("shielded", 6, 1.4, 3); g("boss", 1, 1, 10); break;
+      default: {
+        var k = n - 15;
+        g("scout", 8 + 2 * k, 0.6);
+        g("fighter", 6 + k, 0.9, 2);
+        g("swarm", 10 + 3 * k, 0.3, 4);
+        g("tank", 2 + k, 1.8, 5);
+        g("shielded", 3 + k, 1.5, 7);
+        if (n % 5 === 0) g("boss", 1 + Math.floor(k / 10), 4, 12);
+      }
+    }
+    return c;
+  }
+  function hpMul(n) {
+    var m = 1 + 0.10 * (n - 1);
+    if (n > FINAL_WAVE) m += 0.18 * (n - FINAL_WAVE);
+    if (n >= 8) m *= 1.08;   // waves 8+ scale slightly harder (new turret economy)
+    return m;
+  }
+  function previewCounts(n) {
+    var comp = waveComposition(n), out = {}, i;
+    for (i = 0; i < comp.length; i++) out[comp[i].type] = (out[comp[i].type] || 0) + comp[i].count;
+    return out;
+  }
+
+  /* ---------- state ---------- */
+  function createGame() {
+    return {
+      credits: START_CREDITS, hp: START_HP, maxhp: START_HP,
+      wave: 1, phase: "prewave", countdown: PREWAVE_TIME, time: 0, waveTime: 0,
+      enemies: [], turrets: [], projectiles: [], spawnQueue: [], events: [],
+      endless: false, over: false, won: false, uid: 1,
+      stats: { kills: 0, earned: 0, leaks: 0, built: 0 }
+    };
+  }
+  function ev(state, e) {
+    state.events.push(e);
+    if (state.events.length > 400) state.events.splice(0, state.events.length - 400);
+  }
+
+  /* ---------- placement / economy ---------- */
+  function canPlace(state, x, y) {
+    if (!(x >= 26 && x <= W - 26 && y >= 26 && y <= H - 26)) return false;
+    if (distToPath(x, y) < PATH_MARGIN) return false;
+    var dx = x - STATION.x, dy = y - STATION.y;
+    if (Math.sqrt(dx * dx + dy * dy) < STATION_MARGIN) return false;
+    for (var i = 0; i < state.turrets.length; i++) {
+      var t = state.turrets[i];
+      dx = x - t.x; dy = y - t.y;
+      if (Math.sqrt(dx * dx + dy * dy) < TURRET_SPACING) return false;
+    }
+    return true;
+  }
+  function placeTurret(state, type, x, y) {
+    var def = TURRETS[type];
+    if (!def || state.over) return false;
+    if (state.credits < def.cost) return false;
+    if (!canPlace(state, x, y)) return false;
+    state.credits -= def.cost;
+    state.stats.built++;
+    var t = { id: state.uid++, type: type, x: x, y: y, lvl: 0, cd: 0, angle: Math.PI, invested: def.cost, fireVis: 0 };
+    state.turrets.push(t);
+    ev(state, { t: "build", x: x, y: y, type: type });
+    return t;
+  }
+  function upgradeCost(t) {
+    return t.lvl < 2 ? TURRETS[t.type].tiers[t.lvl + 1].cost : null;
+  }
+  function upgradeTurret(state, t) {
+    var c = upgradeCost(t);
+    if (c === null || state.credits < c) return false;
+    state.credits -= c; t.lvl++; t.invested += c;
+    ev(state, { t: "upgrade", x: t.x, y: t.y });
+    return true;
+  }
+  function sellValue(t) { return Math.round(t.invested * SELL_RATE); }
+  function sellTurret(state, t) {
+    var i = state.turrets.indexOf(t);
+    if (i < 0) return false;
+    state.turrets.splice(i, 1);
+    var v = sellValue(t);
+    state.credits += v;
+    ev(state, { t: "sell", x: t.x, y: t.y, refund: v });
+    return true;
+  }
+
+  /* ---------- waves ---------- */
+  function sendWave(state, manual) {
+    if (state.phase !== "prewave" || state.over) return 0;
+    var bonus = 0;
+    if (manual && state.countdown > 0.5) {
+      bonus = Math.ceil(state.countdown * 2);
+      state.credits += bonus;
+      state.stats.earned += bonus;
+    }
+    var comp = waveComposition(state.wave), q = [], i, j;
+    for (i = 0; i < comp.length; i++) {
+      for (j = 0; j < comp[i].count; j++) q.push({ type: comp[i].type, t: comp[i].delay + j * comp[i].interval });
+    }
+    q.sort(function (a, b) { return a.t - b.t; });
+    state.spawnQueue = q;
+    state.waveTime = 0;
+    state.phase = "wave";
+    ev(state, { t: "wavestart", wave: state.wave, bonus: bonus });
+    return bonus;
+  }
+
+  function spawnEnemy(state, type) {
+    var def = ENEMIES[type];
+    var mul = hpMul(state.wave);
+    var hp = Math.round(def.hp * mul);
+    if (def.boss && state.wave === FINAL_WAVE) hp = Math.round(hp * 1.8);
+    var e = {
+      id: state.uid++, type: type, hp: hp, maxhp: hp,
+      shield: def.shield ? Math.round(def.shield * mul) : 0,
+      maxshield: def.shield ? Math.round(def.shield * mul) : 0,
+      speed: def.speed, d: 0, x: PTS[0][0], y: PTS[0][1], a: 0,
+      off: (Math.random() * 2 - 1) * (def.boss ? 0 : 10),
+      slowT: 0, slowAmt: 0, dead: false,
+      bounty: def.bounty, dmg: def.dmg, r: def.r, boss: !!def.boss
+    };
+    state.enemies.push(e);
+    return e;
+  }
+
+  /* ---------- damage ---------- */
+  function applyDamage(state, e, dmg, src) {
+    if (e.dead) return false;
+    if (e.shield > 0) {
+      if (src === "missile" || src === "rail" || src === "drone") {
+        e.shield -= dmg;
+        if (e.shield <= 0) { e.shield = 0; ev(state, { t: "shieldPop", x: e.x, y: e.y }); }
+        else ev(state, { t: "hit", x: e.x, y: e.y, amt: dmg, shield: true });
+      } else if (src !== "cryo") {
+        ev(state, { t: "absorb", x: e.x, y: e.y });
+      }
+      return false;
+    }
+    e.hp -= dmg;
+    if (src !== "cryo") ev(state, { t: "hit", x: e.x, y: e.y, amt: dmg });
+    if (e.hp <= 0) {
+      e.dead = true;
+      state.credits += e.bounty;
+      state.stats.kills++;
+      state.stats.earned += e.bounty;
+      ev(state, { t: "kill", x: e.x, y: e.y, bounty: e.bounty, boss: e.boss, etype: e.type });
+      return true;
+    }
+    return false;
+  }
+
+  function pickTarget(state, t, range, avoidShielded) {
+    var best = null, bestD = -1, alt = null, altD = -1, i, e, dx, dy;
+    var r2 = range * range;
+    for (i = 0; i < state.enemies.length; i++) {
+      e = state.enemies[i];
+      if (e.dead) continue;
+      dx = e.x - t.x; dy = e.y - t.y;
+      if (dx * dx + dy * dy > r2) continue;
+      if (avoidShielded && e.shield > 0) {
+        if (e.d > altD) { altD = e.d; alt = e; }
+        continue;
+      }
+      if (e.d > bestD) { bestD = e.d; best = e; }
+    }
+    return best || (avoidShielded ? null : alt);
+  }
+
+  /* ---------- main update ---------- */
+  function update(state, dt) {
+    if (state.over || state.phase === "won") return;
+    state.time += dt;
+
+    if (state.phase === "prewave") {
+      state.countdown -= dt;
+      if (state.countdown <= 0) sendWave(state, false);
+    }
+
+    // spawn
+    if (state.phase === "wave") {
+      state.waveTime += dt;
+      while (state.spawnQueue.length && state.spawnQueue[0].t <= state.waveTime) {
+        spawnEnemy(state, state.spawnQueue.shift().type);
+      }
+    }
+
+    // enemies move
+    var i, e;
+    for (i = state.enemies.length - 1; i >= 0; i--) {
+      e = state.enemies[i];
+      if (e.dead) { state.enemies.splice(i, 1); continue; }
+      var slow = 0;
+      if (e.slowT > 0) { e.slowT -= dt; slow = e.slowAmt * (e.boss ? 0.5 : 1); }
+      e.d += e.speed * (1 - slow) * dt;
+      if (e.d >= TOTAL) {
+        state.enemies.splice(i, 1);
+        state.hp -= e.dmg;
+        state.stats.leaks++;
+        ev(state, { t: "leak", dmg: e.dmg, etype: e.type });
+        if (state.hp <= 0) {
+          state.hp = 0; state.over = true; state.phase = "lost";
+          ev(state, { t: "gameover" });
+          return;
+        }
+        continue;
+      }
+      var p = pointAt(e.d);
+      var nx = Math.cos(p.a + Math.PI / 2), ny = Math.sin(p.a + Math.PI / 2);
+      e.x = p.x + nx * e.off; e.y = p.y + ny * e.off; e.a = p.a;
+    }
+
+    // turrets
+    var t, def, tier, tgt;
+    for (i = 0; i < state.turrets.length; i++) {
+      t = state.turrets[i];
+      def = TURRETS[t.type];
+      tier = def.tiers[t.lvl];
+      if (t.cd > 0) t.cd -= dt;
+      if (t.fireVis > 0) t.fireVis -= dt;
+
+      if (def.kind === "cryo") {
+        tgt = pickTarget(state, t, tier.range, false);
+        if (tgt) {
+          t.angle = Math.atan2(tgt.y - t.y, tgt.x - t.x);
+          t.fireVis = 0.12;
+          var r2 = tier.range * tier.range, j, e2, dx, dy, ang, dA;
+          for (j = 0; j < state.enemies.length; j++) {
+            e2 = state.enemies[j];
+            if (e2.dead) continue;
+            dx = e2.x - t.x; dy = e2.y - t.y;
+            if (dx * dx + dy * dy > r2) continue;
+            ang = Math.atan2(dy, dx);
+            dA = Math.abs(((ang - t.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+            if (dA > tier.cone) continue;
+            if (e2.slowT <= 0 || tier.slow >= e2.slowAmt) { e2.slowAmt = tier.slow; e2.slowT = 0.35; }
+            applyDamage(state, e2, tier.dps * dt, "cryo");
+          }
+        }
+        continue;
+      }
+
+      if (def.kind === "tesla") {
+        tgt = pickTarget(state, t, tier.range, true);
+        if (!tgt) continue;
+        t.angle = Math.atan2(tgt.y - t.y, tgt.x - t.x);
+        if (t.cd > 0) continue;
+        t.cd = 1 / tier.rate;
+        t.fireVis = 0.15;
+        var chain = [], cur = tgt, cdmg = tier.dmg, hitIds = {};
+        while (cur && chain.length < tier.chains) {
+          applyDamage(state, cur, Math.max(1, Math.round(cdmg)), "tesla");
+          chain.push([cur.x, cur.y]);
+          hitIds[cur.id] = true;
+          cdmg *= tier.falloff;
+          var nxt = null, nd2 = 110 * 110;   // lightning jump reach
+          for (var q2 = 0; q2 < state.enemies.length; q2++) {
+            var en = state.enemies[q2];
+            if (en.dead || hitIds[en.id]) continue;
+            var hdx = en.x - chain[chain.length - 1][0], hdy = en.y - chain[chain.length - 1][1];
+            var hd2 = hdx * hdx + hdy * hdy;
+            if (hd2 < nd2) { nd2 = hd2; nxt = en; }
+          }
+          cur = nxt;
+        }
+        ev(state, { t: "shoot", kind: "tesla", x1: t.x, y1: t.y, a: t.angle, chain: chain });
+        continue;
+      }
+
+      if (def.kind === "drone") {
+        if (!t.drones) t.drones = [];
+        while (t.drones.length < tier.drones)
+          t.drones.push({ alive: true, x: t.x, y: t.y, a: 0, orb: Math.random() * 6.283, respawnT: 0 });
+        for (var di = 0; di < t.drones.length; di++) {
+          var dr = t.drones[di];
+          if (!dr.alive) {
+            dr.respawnT -= dt;
+            if (dr.respawnT <= 0) {
+              dr.alive = true; dr.x = t.x; dr.y = t.y;
+              ev(state, { t: "droneSpawn", x: t.x, y: t.y });
+            }
+            continue;
+          }
+          var dtgt = pickTarget(state, t, tier.range, false);
+          if (dtgt) {
+            var ddx2 = dtgt.x - dr.x, ddy2 = dtgt.y - dr.y;
+            var ddd = Math.sqrt(ddx2 * ddx2 + ddy2 * ddy2) || 1;
+            dr.a = Math.atan2(ddy2, ddx2);
+            dr.x += (ddx2 / ddd) * 190 * dt;
+            dr.y += (ddy2 / ddd) * 190 * dt;
+            t.angle = dr.a;
+            if (ddd < dtgt.r + 6) {          // dive impact: drone detonates
+              applyDamage(state, dtgt, tier.dmg, "drone");
+              ev(state, { t: "droneHit", x: dr.x, y: dr.y });
+              dr.alive = false;
+              dr.respawnT = tier.respawn;
+            }
+          } else {
+            dr.orb += dt * 2.2;              // orbit the bay while idle
+            var oxr = t.x + Math.cos(dr.orb + di * 2.6) * 26;
+            var oyr = t.y + Math.sin(dr.orb + di * 2.6) * 26;
+            var mdx = oxr - dr.x, mdy = oyr - dr.y;
+            var md = Math.sqrt(mdx * mdx + mdy * mdy);
+            if (md > 0.5) {
+              var mstep = Math.min(md, 130 * dt);
+              dr.x += mdx / md * mstep; dr.y += mdy / md * mstep;
+              dr.a = dr.orb + di * 2.6 + Math.PI / 2;
+            }
+          }
+        }
+        continue;
+      }
+
+      tgt = pickTarget(state, t, tier.range, def.kind === "laser");
+      if (!tgt) continue;
+      t.angle = Math.atan2(tgt.y - t.y, tgt.x - t.x);
+      if (t.cd > 0) continue;
+      t.cd = 1 / tier.rate;
+
+      if (def.kind === "laser") {
+        applyDamage(state, tgt, tier.dmg, "laser");
+        ev(state, { t: "shoot", kind: "laser", x1: t.x, y1: t.y, x2: tgt.x, y2: tgt.y, a: t.angle });
+      } else if (def.kind === "rail") {
+        applyDamage(state, tgt, tier.dmg, "rail");
+        ev(state, { t: "shoot", kind: "rail", x1: t.x, y1: t.y, x2: tgt.x, y2: tgt.y, a: t.angle });
+      } else if (def.kind === "missile") {
+        state.projectiles.push({
+          x: t.x, y: t.y, tx: tgt.x, ty: tgt.y, target: tgt,
+          speed: 300, dmg: tier.dmg, splash: tier.splash, a: t.angle
+        });
+        ev(state, { t: "shoot", kind: "missile", x1: t.x, y1: t.y, a: t.angle });
+      }
+    }
+
+    // projectiles (missiles)
+    for (i = state.projectiles.length - 1; i >= 0; i--) {
+      var pr = state.projectiles[i];
+      if (pr.target && !pr.target.dead) { pr.tx = pr.target.x; pr.ty = pr.target.y; }
+      var pdx = pr.tx - pr.x, pdy = pr.ty - pr.y;
+      var pd = Math.sqrt(pdx * pdx + pdy * pdy);
+      if (pd < 12) {
+        state.projectiles.splice(i, 1);
+        ev(state, { t: "explosion", x: pr.tx, y: pr.ty, r: pr.splash });
+        var s2 = pr.splash * pr.splash;
+        for (var j2 = 0; j2 < state.enemies.length; j2++) {
+          var e3 = state.enemies[j2];
+          if (e3.dead) continue;
+          var ddx = e3.x - pr.tx, ddy = e3.y - pr.ty;
+          if (ddx * ddx + ddy * ddy <= s2) applyDamage(state, e3, pr.dmg, "missile");
+        }
+        continue;
+      }
+      pr.a = Math.atan2(pdy, pdx);
+      var step = pr.speed * dt;
+      pr.x += (pdx / pd) * step;
+      pr.y += (pdy / pd) * step;
+    }
+
+    // wave clear
+    if (state.phase === "wave" && state.spawnQueue.length === 0 && state.enemies.length === 0) {
+      var bonus = 25 + state.wave * 3;
+      var interest = Math.min(INTEREST_CAP, Math.floor(state.credits * INTEREST_RATE));
+      state.credits += bonus + interest;
+      state.stats.earned += bonus + interest;
+      ev(state, { t: "waveclear", wave: state.wave, bonus: bonus, interest: interest });
+      if (state.wave >= FINAL_WAVE && !state.endless) {
+        state.phase = "won"; state.won = true;
+        ev(state, { t: "win" });
+      } else {
+        state.wave++;
+        state.phase = "prewave";
+        state.countdown = PREWAVE_TIME;
+      }
+    }
+  }
+
+  return {
+    W: W, H: H, PTS: PTS, TOTAL: TOTAL, STATION: STATION,
+    PATH_MARGIN: PATH_MARGIN, PREWAVE_TIME: PREWAVE_TIME, FINAL_WAVE: FINAL_WAVE,
+    ENEMIES: ENEMIES, TURRETS: TURRETS,
+    pointAt: pointAt, distToPath: distToPath,
+    waveComposition: waveComposition, previewCounts: previewCounts, hpMul: hpMul,
+    createGame: createGame, update: update, sendWave: sendWave,
+    canPlace: canPlace, placeTurret: placeTurret,
+    upgradeTurret: upgradeTurret, upgradeCost: upgradeCost,
+    sellTurret: sellTurret, sellValue: sellValue
+  };
+})();
+
+if (typeof module !== "undefined" && module.exports) { module.exports = SD; }
+
+/* ================================================================
+   BROWSER LAYER  (rendering, input, audio, UI)
+   ================================================================ */
+if (typeof window !== "undefined" && typeof document !== "undefined") (function () {
+
+  /* ---- arcade wallet (shared across games) + haptics ---- */
+  function awardCoinsPlus(slug, base){
+    try{
+      const w=JSON.parse(localStorage.getItem('arcade-wallet'))||{coins:0,earned:{},spent:0,tickets:0};
+      let n=Math.max(1,Math.min(200,Math.round(base)));
+      n=Math.round(n*(1+(w.bonusPct||0)/100));
+      let lucky=1; const r=Math.random();
+      if(r<0.01)lucky=5; else if(r<0.04)lucky=3; else if(r<0.14)lucky=2;
+      n*=lucky;
+      const ticket=Math.random()<0.03;
+      w.coins+=n; w.earned[slug]=(w.earned[slug]||0)+n;
+      if(ticket)w.tickets=(w.tickets||0)+1;
+      localStorage.setItem('arcade-wallet',JSON.stringify(w));
+      return {n,lucky,ticket,total:w.coins};
+    }catch(e){return {n:0,lucky:1,ticket:false,total:0}}
+  }
+  function awardCoins(slug, n){return awardCoinsPlus(slug, n).total}
+  function walletCoins(){try{var w=JSON.parse(localStorage.getItem('arcade-wallet'));return (w&&w.coins)||0}catch(err){return 0}}
+  function vib(ms){ if (navigator.vibrate) navigator.vibrate(ms); }
+  var coinsAwarded = false;
+  function awardRunCoins() {
+    if (coinsAwarded) return "";
+    coinsAwarded = true;
+    var rw = awardCoinsPlus('star-defense', state.wave * 4);
+    var html = '<p style="color:#ffd166;font-weight:600">+' + rw.n + ' 🪙 <span style="color:#9aa0c0;font-weight:400">(wallet: ' + rw.total + ')</span></p>';
+    if (rw.lucky > 1) {
+      html += '<p class="luckyLine">🍀 LUCKY ×' + rw.lucky + '!</p>';
+      // rising arpeggio on the game's synth + haptic
+      tone(523, 523, 0.12, "triangle", 0.12);
+      setTimeout(function () { tone(659, 659, 0.12, "triangle", 0.12); }, 100);
+      setTimeout(function () { tone(784, 784, 0.12, "triangle", 0.12); }, 200);
+      setTimeout(function () { tone(1046, 1046, 0.25, "triangle", 0.14); }, 300);
+      vib(30);
+    }
+    if (rw.ticket) html += '<p class="ticketLine">🎟 PULL TICKET!</p>';
+    return html;
+  }
+
+  var LS_KEY = "arcade-star-defense";
+  var W = SD.W, H = SD.H;
+  var cv = document.getElementById("cv");
+  var ctx = cv.getContext("2d");
+  var stage = document.getElementById("stage");
+  var overlay = document.getElementById("overlay");
+  var panel = document.getElementById("panel");
+
+  var state = SD.createGame();
+  var started = false, paused = false, speed = 1, muted = false;
+  var buildType = null, selected = null;
+  var pointerPos = null, pointerInside = false;
+  var scale = 1, ox = 0, oy = 0, dpr = 1;
+  var shakeT = 0, shakeMag = 0, flareT = 0;
+  var best = { bestWave: 0 };
+  try { best = JSON.parse(localStorage.getItem(LS_KEY)) || { bestWave: 0 }; } catch (err) { best = { bestWave: 0 }; }
+  if (typeof best.bestWave !== "number") best.bestWave = 0;
+
+  /* ---------- fx pools ---------- */
+  var particles = [], floaters = [], beams = [], flashes = [], bolts = [];
+
+  function addFloater(x, y, text, color, size) {
+    floaters.push({ x: x, y: y, text: text, color: color || "#fff", t: 0, life: 1.0, size: size || 12 });
+    if (floaters.length > 80) floaters.shift();
+  }
+  function addBoom(x, y, color, n, sp) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, v = (0.3 + Math.random() * 0.7) * (sp || 120);
+      particles.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 0.35 + Math.random() * 0.4, color: color, size: 1.5 + Math.random() * 2.5 });
+    }
+    if (particles.length > 500) particles.splice(0, particles.length - 500);
+  }
+
+  /* ---------- audio ---------- */
+  var AC = null, lastPew = 0;
+  function ensureAudio() {
+    if (AC) { if (AC.state === "suspended") AC.resume(); return; }
+    try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (err) { AC = null; }
+  }
+  function tone(freq0, freq1, dur, type, vol) {
+    if (!AC || muted) return;
+    var t0 = AC.currentTime;
+    var o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq0, t0);
+    o.frequency.exponentialRampToValueAtTime(Math.max(20, freq1), t0 + dur);
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  function noise(dur, vol, cutoff) {
+    if (!AC || muted) return;
+    var t0 = AC.currentTime;
+    var len = Math.floor(AC.sampleRate * dur);
+    var buf = AC.createBuffer(1, len, AC.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    var src = AC.createBufferSource(); src.buffer = buf;
+    var f = AC.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = cutoff;
+    var g = AC.createGain(); g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(f); f.connect(g); g.connect(AC.destination);
+    src.start(t0);
+  }
+  var sfx = {
+    pew: function () { var n = performance.now(); if (n - lastPew < 55) return; lastPew = n; tone(900, 240, 0.08, "square", 0.05); },
+    rail: function () { tone(180, 40, 0.25, "sawtooth", 0.12); noise(0.15, 0.08, 2200); },
+    boom: function () { noise(0.3, 0.14, 1400); tone(160, 50, 0.2, "triangle", 0.08); },
+    bigboom: function () { noise(0.8, 0.3, 900); tone(120, 30, 0.6, "sawtooth", 0.15); },
+    build: function () { tone(300, 640, 0.12, "triangle", 0.1); },
+    sell: function () { tone(500, 220, 0.15, "triangle", 0.09); },
+    alarm: function () { tone(700, 180, 0.3, "sawtooth", 0.12); },
+    click: function () { tone(600, 500, 0.05, "square", 0.05); },
+    chime: function () { tone(520, 1040, 0.25, "sine", 0.1); },
+    zap: function () { var n = performance.now(); if (n - lastPew < 70) return; lastPew = n; tone(1400, 180, 0.09, "sawtooth", 0.06); }
+  };
+
+  /* ---------- canvas sizing ---------- */
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    var r = stage.getBoundingClientRect();
+    cv.width = Math.max(1, Math.round(r.width * dpr));
+    cv.height = Math.max(1, Math.round(r.height * dpr));
+    scale = Math.min(r.width / W, r.height / H);
+    ox = (r.width - W * scale) / 2;
+    oy = (r.height - H * scale) / 2;
+    positionPanel();
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  function toGame(e) {
+    var r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left - ox) / scale, y: (e.clientY - r.top - oy) / scale };
+  }
+
+  /* ---------- starfield ---------- */
+  var stars = [];
+  (function () {
+    for (var i = 0; i < 130; i++) {
+      stars.push({ x: Math.random() * W, y: Math.random() * H, s: Math.random() < 0.25 ? 1.6 : 0.9, p: Math.random() * Math.PI * 2 });
+    }
+  })();
+
+  /* ---------- persistence ---------- */
+  function saveBest() {
+    if (state.wave > best.bestWave) {
+      best.bestWave = state.wave;
+      try { localStorage.setItem(LS_KEY, JSON.stringify(best)); } catch (err) {}
+    }
+  }
+
+  /* ---------- UI elements ---------- */
+  var stCredits = document.getElementById("stCredits");
+  var stHP = document.getElementById("stHP");
+  var stWave = document.getElementById("stWave");
+  var previewEl = document.getElementById("preview");
+  var sendBtn = document.getElementById("sendBtn");
+  var speedBtn = document.getElementById("speedBtn");
+  var muteBtn = document.getElementById("muteBtn");
+  var pauseBtn = document.getElementById("pauseBtn");
+  var buildBtns = Array.prototype.slice.call(document.querySelectorAll(".buildBtn"));
+
+  buildBtns.forEach(function (b) {
+    var type = b.dataset.type, def = SD.TURRETS[type];
+    b.style.setProperty("--c", def.color);
+    b.innerHTML = '<span class="nm">' + def.name + '</span><span class="cs">' + def.cost + 'c &middot; ' + def.desc + '</span>';
+    b.addEventListener("click", function () {
+      if (!started) return;
+      ensureAudio(); sfx.click();
+      if (buildType === type) buildType = null;
+      else if (state.credits >= def.cost) buildType = type;
+      else { addFloater(W / 2, H / 2, "Need " + def.cost + "c", "#ff8090", 14); buildType = null; }
+      selectTurret(null);
+      refreshBuildBar();
+    });
+  });
+  function refreshBuildBar() {
+    buildBtns.forEach(function (b) {
+      var def = SD.TURRETS[b.dataset.type];
+      b.classList.toggle("sel", buildType === b.dataset.type);
+      b.classList.toggle("broke", state.credits < def.cost);
+    });
+  }
+
+  sendBtn.addEventListener("click", function () {
+    if (!started || paused) return;
+    ensureAudio();
+    if (state.phase === "prewave") {
+      var bonus = SD.sendWave(state, true);
+      if (bonus > 0) addFloater(W / 2, 60, "Early bonus +" + bonus + "c", "#6dffa8", 15);
+      sfx.chime();
+    }
+  });
+  speedBtn.addEventListener("click", function () {
+    speed = speed === 1 ? 2 : 1;
+    speedBtn.innerHTML = speed + "&times;";
+    sfx.click();
+  });
+  muteBtn.addEventListener("click", function () {
+    ensureAudio();
+    muted = !muted;
+    muteBtn.innerHTML = muted ? "&#128263;" : "&#128266;";
+  });
+  pauseBtn.addEventListener("click", function () { togglePause(); });
+
+  function togglePause(force) {
+    if (!started || state.over || state.phase === "won") return;
+    paused = force !== undefined ? force : !paused;
+    pauseBtn.innerHTML = paused ? "&#9654;" : "&#10074;&#10074;";
+    if (paused) showPause(); else hideOverlay();
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "p" || e.key === "P") { togglePause(); }
+    else if (e.key === "Escape") {
+      if (buildType) { buildType = null; refreshBuildBar(); }
+      else if (selected) selectTurret(null);
+      else togglePause();
+    }
+    else if (e.key >= "1" && e.key <= "6" && started) {
+      var types = ["pulse", "missile", "cryo", "rail", "tesla", "drone"];
+      var ty = types[+e.key - 1];
+      buildType = buildType === ty ? null : ty;
+      selectTurret(null); refreshBuildBar();
+    }
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden && started && !paused && !state.over && state.phase !== "won") togglePause(true);
+  });
+
+  /* ---------- overlays ---------- */
+  function showOverlay(html) { overlay.innerHTML = html; overlay.style.display = "flex"; }
+  function hideOverlay() { overlay.style.display = "none"; }
+
+  function showTitle() {
+    showOverlay(
+      '<div class="card">' +
+      '<h1>STAR <span>DEFENSE</span></h1>' +
+      '<p>Alien ships are riding the warp lane toward your station. Build turrets beside the path and hold the line for <b style="color:#e8eaff">15 waves</b>.</p>' +
+      '<p>Tap a turret type below, then tap open space to build. Tap your turrets to upgrade. Right-click or long-press to sell. Shielded ships are immune to lasers &mdash; pop shields with missiles, rail slugs or drones. Tesla coils arc between packs; drone bays dive-bomb anything close. A boss warps in every 5th wave.</p>' +
+      '<p><span class="kbd">1&ndash;6</span> select turret &nbsp; <span class="kbd">P</span>/<span class="kbd">Esc</span> pause</p>' +
+      (best.bestWave > 0 ? '<p style="color:#6dffa8">Best wave reached: ' + best.bestWave + '</p>' : '') +
+      '<p style="color:#9aa0c0;font-size:12px">🪙 Wallet: ' + walletCoins() + ' coins</p>' +
+      '<button class="pill big" id="playBtn">&#9654; Play</button>' +
+      '</div>'
+    );
+    document.getElementById("playBtn").addEventListener("click", function () {
+      ensureAudio(); sfx.chime();
+      started = true;
+      hideOverlay();
+    });
+  }
+  function showPause() {
+    showOverlay(
+      '<div class="card"><h1>Paused</h1>' +
+      '<p>Wave ' + state.wave + ' &middot; ' + state.credits + 'c &middot; station ' + state.hp + '/' + state.maxhp + '</p>' +
+      '<div class="row"><button class="pill big" id="resumeBtn">Resume</button>' +
+      '<button class="pill" id="restartBtn1" style="margin-top:16px">Restart</button></div></div>'
+    );
+    document.getElementById("resumeBtn").addEventListener("click", function () { togglePause(false); });
+    document.getElementById("restartBtn1").addEventListener("click", restart);
+  }
+  function showWin() {
+    saveBest();
+    showOverlay(
+      '<div class="card"><h1 style="color:#6dffa8">VICTORY</h1>' +
+      '<p>The station held through all ' + SD.FINAL_WAVE + ' waves.<br>Kills: ' + state.stats.kills + ' &middot; Credits earned: ' + state.stats.earned + ' &middot; Leaks: ' + state.stats.leaks + '</p>' +
+      awardRunCoins() +
+      '<p style="color:#6dffa8">Best wave reached: ' + best.bestWave + '</p>' +
+      '<div class="row"><button class="pill big" id="endlessBtn">Continue (Endless)</button>' +
+      '<button class="pill" id="restartBtn2" style="margin-top:16px">Restart</button></div>' +
+      '<a class="vaultLink" href="../../vault.html">🎴 Card Vault</a></div>'
+    );
+    document.getElementById("endlessBtn").addEventListener("click", function () {
+      state.endless = true; state.won = false; state.phase = "prewave";
+      state.wave++; state.countdown = SD.PREWAVE_TIME;
+      hideOverlay(); sfx.chime();
+    });
+    document.getElementById("restartBtn2").addEventListener("click", restart);
+  }
+  function showLose() {
+    saveBest();
+    vib(40);
+    showOverlay(
+      '<div class="card"><h1 style="color:#ff5d6e">STATION LOST</h1>' +
+      '<p>Overrun on wave ' + state.wave + '.<br>Kills: ' + state.stats.kills + ' &middot; Credits earned: ' + state.stats.earned + '</p>' +
+      awardRunCoins() +
+      '<p style="color:#6dffa8">Best wave reached: ' + best.bestWave + '</p>' +
+      '<button class="pill big" id="restartBtn3">Try again</button>' +
+      '<br><a class="vaultLink" href="../../vault.html">🎴 Card Vault</a></div>'
+    );
+    document.getElementById("restartBtn3").addEventListener("click", restart);
+  }
+  function restart() {
+    state = SD.createGame();
+    particles.length = floaters.length = beams.length = flashes.length = bolts.length = 0;
+    coinsAwarded = false;
+    buildType = null; selected = null; paused = false; shakeT = 0; flareT = 0;
+    pauseBtn.innerHTML = "&#10074;&#10074;";
+    refreshBuildBar(); selectTurret(null);
+    hideOverlay(); sfx.click();
+  }
+  showTitle();
+
+  /* ---------- turret selection panel ---------- */
+  function selectTurret(t) {
+    selected = t;
+    if (!t) { panel.style.display = "none"; return; }
+    renderPanel();
+  }
+  function renderPanel() {
+    var t = selected;
+    if (!t || state.turrets.indexOf(t) < 0) { panel.style.display = "none"; return; }
+    var def = SD.TURRETS[t.type], tier = def.tiers[t.lvl];
+    var up = SD.upgradeCost(t);
+    var stats = "";
+    if (def.kind === "cryo") stats = "Slow " + Math.round(tier.slow * 100) + "% &middot; " + tier.dps + " dps &middot; range " + tier.range;
+    else if (def.kind === "tesla") stats = tier.dmg + " dmg &middot; " + tier.rate.toFixed(1) + "/s &middot; chains " + tier.chains + " &middot; range " + tier.range;
+    else if (def.kind === "drone") stats = tier.drones + " drones &middot; " + tier.dmg + " dmg dive &middot; respawn " + tier.respawn + "s &middot; range " + tier.range;
+    else stats = tier.dmg + " dmg &middot; " + tier.rate.toFixed(1) + "/s &middot; range " + tier.range + (tier.splash ? " &middot; splash " + tier.splash : "");
+    panel.innerHTML =
+      '<h3 style="color:' + def.color + '">' + def.name + '</h3>' +
+      '<div class="tier">Tier ' + (t.lvl + 1) + ' / 3</div>' +
+      '<div class="st">' + stats + '</div>' +
+      '<div class="row">' +
+      (up !== null
+        ? '<button class="pill up" id="pUp"' + (state.credits < up ? " disabled" : "") + '>Upgrade ' + up + 'c</button>'
+        : '<button class="pill up" disabled>MAX</button>') +
+      '<button class="pill sl" id="pSell">Sell +' + SD.sellValue(t) + 'c</button></div>';
+    panel.style.display = "block";
+    positionPanel();
+    var upBtn = document.getElementById("pUp");
+    if (upBtn) upBtn.addEventListener("click", function () {
+      if (SD.upgradeTurret(state, t)) { sfx.build(); addFloater(t.x, t.y - 20, "Upgraded!", def.color, 13); renderPanel(); refreshBuildBar(); }
+    });
+    document.getElementById("pSell").addEventListener("click", function () {
+      doSell(t);
+    });
+  }
+  function positionPanel() {
+    if (!selected || panel.style.display === "none") return;
+    var px = ox + selected.x * scale, py = oy + selected.y * scale;
+    var r = stage.getBoundingClientRect();
+    var w = panel.offsetWidth || 190, h = panel.offsetHeight || 110;
+    var left = Math.min(Math.max(8, px - w / 2), r.width - w - 8);
+    var top = py - h - 28 * scale;
+    if (top < 8) top = py + 28 * scale;
+    panel.style.left = left + "px";
+    panel.style.top = top + "px";
+  }
+  function doSell(t) {
+    var v = SD.sellValue(t);
+    if (SD.sellTurret(state, t)) {
+      sfx.sell();
+      addFloater(t.x, t.y, "+" + v + "c", "#6dffa8", 13);
+      addBoom(t.x, t.y, "#9aa0c0", 8, 70);
+      if (selected === t) selectTurret(null);
+      refreshBuildBar();
+    }
+  }
+  function turretAt(x, y) {
+    for (var i = 0; i < state.turrets.length; i++) {
+      var t = state.turrets[i];
+      var dx = t.x - x, dy = t.y - y;
+      if (dx * dx + dy * dy < 20 * 20) return t;
+    }
+    return null;
+  }
+
+  /* ---------- pointer input ---------- */
+  var pDown = null, longPressTimer = null, suppressUp = false;
+  cv.addEventListener("pointerdown", function (e) {
+    if (!started || paused) return;
+    ensureAudio();
+    var p = toGame(e);
+    pointerPos = p; pointerInside = true;
+    pDown = { x: p.x, y: p.y, id: e.pointerId };
+    suppressUp = false;
+    var t = turretAt(p.x, p.y);
+    if (t && !buildType) {
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(function () {
+        suppressUp = true;
+        doSell(t);
+      }, 650);
+    }
+    e.preventDefault();
+  });
+  cv.addEventListener("pointermove", function (e) {
+    var p = toGame(e);
+    pointerPos = p;
+    pointerInside = p.x >= 0 && p.x <= W && p.y >= 0 && p.y <= H;
+    if (pDown) {
+      var dx = p.x - pDown.x, dy = p.y - pDown.y;
+      if (dx * dx + dy * dy > 100) clearTimeout(longPressTimer);
+    }
+  });
+  cv.addEventListener("pointerup", function (e) {
+    clearTimeout(longPressTimer);
+    if (!started || paused || suppressUp) { pDown = null; return; }
+    var p = toGame(e);
+    pointerPos = p;
+    if (buildType) {
+      var def = SD.TURRETS[buildType];
+      if (state.credits < def.cost) {
+        addFloater(p.x, p.y, "Need " + def.cost + "c", "#ff8090", 13);
+        buildType = null; refreshBuildBar();
+      } else if (SD.canPlace(state, p.x, p.y)) {
+        SD.placeTurret(state, buildType, p.x, p.y);
+        sfx.build();
+        addBoom(p.x, p.y, def.color, 10, 80);
+        if (state.credits < def.cost) { buildType = null; }
+        refreshBuildBar();
+      } else {
+        addFloater(p.x, p.y, "Too close to path", "#ff8090", 12);
+      }
+    } else {
+      var moved = pDown && ((p.x - pDown.x) * (p.x - pDown.x) + (p.y - pDown.y) * (p.y - pDown.y) > 150);
+      if (!moved) {
+        var t = turretAt(p.x, p.y);
+        if (t) { sfx.click(); selectTurret(t); }
+        else selectTurret(null);
+      }
+    }
+    pDown = null;
+  });
+  cv.addEventListener("pointercancel", function () { clearTimeout(longPressTimer); pDown = null; });
+  cv.addEventListener("pointerleave", function () { pointerInside = false; });
+  cv.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+    if (!started || paused) return;
+    var p = toGame(e);
+    var t = turretAt(p.x, p.y);
+    if (t) doSell(t);
+    else if (buildType) { buildType = null; refreshBuildBar(); }
+  });
+
+  /* ---------- event consumption ---------- */
+  function consumeEvents() {
+    for (var i = 0; i < state.events.length; i++) {
+      var e = state.events[i];
+      switch (e.t) {
+        case "shoot":
+          if (e.kind === "laser") {
+            beams.push({ x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, color: "#3ee6ff", w: 2, t: 0, life: 0.07 });
+            flashes.push({ x: e.x1, y: e.y1, a: e.a, color: "#aef4ff", t: 0, life: 0.06 });
+            sfx.pew();
+          } else if (e.kind === "rail") {
+            beams.push({ x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, color: "#ff5d8f", w: 4, t: 0, life: 0.16 });
+            flashes.push({ x: e.x1, y: e.y1, a: e.a, color: "#ffc0d4", t: 0, life: 0.12 });
+            addBoom(e.x2, e.y2, "#ff5d8f", 6, 100);
+            sfx.rail();
+          } else if (e.kind === "tesla") {
+            var tprev = [e.x1, e.y1];
+            for (var ci = 0; ci < e.chain.length; ci++) {
+              bolts.push({ x1: tprev[0], y1: tprev[1], x2: e.chain[ci][0], y2: e.chain[ci][1], t: 0, life: 0.16 });
+              addBoom(e.chain[ci][0], e.chain[ci][1], "#ffe95d", 3, 70);
+              tprev = e.chain[ci];
+            }
+            flashes.push({ x: e.x1, y: e.y1, a: e.a, color: "#fff7c0", t: 0, life: 0.08 });
+            sfx.zap();
+          } else {
+            flashes.push({ x: e.x1, y: e.y1, a: e.a, color: "#ffd9a0", t: 0, life: 0.08 });
+            sfx.pew();
+          }
+          break;
+        case "explosion":
+          addBoom(e.x, e.y, "#ffb340", 18, 150);
+          sfx.boom();
+          break;
+        case "droneHit":
+          addBoom(e.x, e.y, "#8dff6d", 12, 130);
+          sfx.boom();
+          break;
+        case "droneSpawn":
+          addBoom(e.x, e.y, "#8dff6d", 5, 60);
+          break;
+        case "hit":
+          addFloater(e.x + (Math.random() * 14 - 7), e.y - 10, String(Math.round(e.amt)), e.shield ? "#7fd4ff" : "#ffe9a0", 11);
+          break;
+        case "absorb":
+          if (Math.random() < 0.35) addFloater(e.x, e.y - 12, "IMMUNE", "#7fd4ff", 10);
+          break;
+        case "shieldPop":
+          addBoom(e.x, e.y, "#7fd4ff", 14, 120);
+          addFloater(e.x, e.y - 14, "SHIELD DOWN", "#7fd4ff", 12);
+          sfx.boom();
+          break;
+        case "kill":
+          addBoom(e.x, e.y, e.boss ? "#ff5d6e" : "#ffd080", e.boss ? 60 : 12, e.boss ? 260 : 130);
+          addFloater(e.x, e.y - 14, "+" + e.bounty + "c", "#6dffa8", e.boss ? 18 : 11);
+          if (e.boss) { shakeT = 0.7; shakeMag = 14; sfx.bigboom(); }
+          else sfx.boom();
+          vib(15);
+          refreshBuildBar();
+          break;
+        case "leak":
+          flareT = 0.8;
+          addFloater(SD.STATION.x - 30, SD.STATION.y - 40, "-" + e.dmg + " HP", "#ff5d6e", 16);
+          shakeT = Math.max(shakeT, 0.25); shakeMag = Math.max(shakeMag, 6);
+          sfx.alarm();
+          break;
+        case "waveclear":
+          addFloater(W / 2, 90, "Wave " + e.wave + " clear  +" + e.bonus + "c" + (e.interest ? "  interest +" + e.interest + "c" : ""), "#6dffa8", 16);
+          sfx.chime();
+          saveBest();
+          refreshBuildBar();
+          break;
+        case "wavestart":
+          addFloater(W / 2, 60, "WAVE " + e.wave, "#aeeaff", 20);
+          break;
+        case "win": showWin(); break;
+        case "gameover": showLose(); break;
+      }
+    }
+    state.events.length = 0;
+  }
+
+  /* ---------- drawing ---------- */
+  function drawPath(now) {
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(SD.PTS[0][0], SD.PTS[0][1]);
+    for (var i = 1; i < SD.PTS.length; i++) ctx.lineTo(SD.PTS[i][0], SD.PTS[i][1]);
+    ctx.strokeStyle = "#1b2036"; ctx.lineWidth = 30; ctx.stroke();
+    ctx.strokeStyle = "#232b4d"; ctx.lineWidth = 22; ctx.stroke();
+    ctx.save();
+    ctx.strokeStyle = "rgba(94,230,255,.35)"; ctx.lineWidth = 2;
+    ctx.setLineDash([6, 14]);
+    ctx.lineDashOffset = -now * 40;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawStation(now) {
+    var s = SD.STATION;
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    // shield flare
+    if (flareT > 0) {
+      var fa = flareT / 0.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, 34 + (1 - fa) * 26, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255,93,110," + (fa * 0.9) + ")";
+      ctx.lineWidth = 3 + fa * 3;
+      ctx.stroke();
+    }
+    ctx.rotate(now * 0.3);
+    ctx.strokeStyle = "#5ee6ff"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (var i = 0; i < 6; i++) {
+      var a = i * Math.PI / 3;
+      ctx[i ? "lineTo" : "moveTo"](Math.cos(a) * 24, Math.sin(a) * 24);
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.rotate(-now * 0.6);
+    ctx.fillStyle = "#1c4d63";
+    ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#aef4ff"; ctx.stroke();
+    var pulse = 0.5 + 0.5 * Math.sin(now * 4);
+    ctx.fillStyle = "rgba(174,244,255," + (0.4 + 0.5 * pulse) + ")";
+    ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // HP arc
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 30, -Math.PI / 2, -Math.PI / 2 + (state.hp / state.maxhp) * Math.PI * 2);
+    ctx.strokeStyle = state.hp > 8 ? "#6dffa8" : "#ff5d6e";
+    ctx.lineWidth = 3; ctx.stroke();
+  }
+
+  function drawTurret(t, now) {
+    var def = SD.TURRETS[t.type], tier = def.tiers[t.lvl];
+    ctx.save();
+    ctx.translate(t.x, t.y);
+    // base
+    ctx.fillStyle = "#20202f";
+    ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = def.color; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.rotate(t.angle);
+    ctx.strokeStyle = def.color; ctx.fillStyle = def.color;
+    if (def.kind === "laser") {
+      ctx.beginPath(); ctx.moveTo(2, -6); ctx.lineTo(15, 0); ctx.lineTo(2, 6); ctx.closePath();
+      ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+    } else if (def.kind === "missile") {
+      ctx.fillStyle = "#2a2a3d";
+      ctx.fillRect(-7, -8, 14, 16);
+      ctx.strokeRect(-7, -8, 14, 16);
+      ctx.fillStyle = def.color;
+      ctx.fillRect(4, -6, 8, 4); ctx.fillRect(4, 2, 8, 4);
+    } else if (def.kind === "cryo") {
+      for (var i = 0; i < 6; i++) {
+        ctx.rotate(Math.PI / 3);
+        ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(11, 0); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(14, 0); ctx.lineTo(0, 3); ctx.closePath(); ctx.fill();
+    } else if (def.kind === "tesla") {
+      // coil tower: stacked rings + crackling orb
+      ctx.fillStyle = "#2a2a3d";
+      ctx.fillRect(-7, -5, 11, 10); ctx.strokeRect(-7, -5, 11, 10);
+      ctx.strokeStyle = def.color;
+      ctx.beginPath(); ctx.moveTo(-4, -5); ctx.lineTo(-4, 5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(9, 0); ctx.stroke();
+      var crackle = 0.5 + 0.5 * Math.sin(now * 9 + t.x * 0.3);
+      ctx.fillStyle = def.color;
+      ctx.globalAlpha = 0.45 + 0.55 * crackle;
+      ctx.beginPath(); ctx.arc(12, 0, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.arc(12, 0, 6 + crackle * 2.5, -0.7, 0.7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(12, 0, 6 + crackle * 2.5, Math.PI - 0.7, Math.PI + 0.7); ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else if (def.kind === "drone") {
+      // hex landing pad with lit strip
+      ctx.fillStyle = "#2a2a3d";
+      ctx.beginPath();
+      for (var hI = 0; hI < 6; hI++) {
+        var hA = hI * Math.PI / 3 + Math.PI / 6;
+        ctx[hI ? "lineTo" : "moveTo"](Math.cos(hA) * 10, Math.sin(hA) * 10);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = def.color;
+      var strip = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(now * 3 + t.y * 0.2));
+      ctx.globalAlpha = strip;
+      ctx.fillRect(-1.6, -8, 3.2, 16);
+      ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+    } else { // rail
+      ctx.fillStyle = "#2a2a3d";
+      ctx.fillRect(-6, -7, 12, 14); ctx.strokeRect(-6, -7, 12, 14);
+      ctx.fillStyle = def.color;
+      ctx.fillRect(0, -2.5, 22, 5);
+      var charge = 1 - Math.min(1, Math.max(0, t.cd * tier.rate));
+      ctx.globalAlpha = 0.4 + 0.6 * charge;
+      ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+    // drones (orbiting / diving)
+    if (def.kind === "drone" && t.drones) {
+      for (var dj = 0; dj < t.drones.length; dj++) {
+        var dr = t.drones[dj];
+        if (!dr.alive) continue;
+        ctx.save();
+        ctx.translate(dr.x, dr.y);
+        ctx.rotate(dr.a || 0);
+        ctx.fillStyle = def.color;
+        ctx.strokeStyle = def.color;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-2, 0); ctx.lineTo(-4, 4); ctx.closePath();
+        ctx.globalAlpha = 0.92; ctx.fill(); ctx.globalAlpha = 1;
+        ctx.strokeRect(-1, -5.5, 2, 11);   // rotor bar
+        ctx.restore();
+      }
+    }
+    // cryo cone
+    if (def.kind === "cryo" && t.fireVis > 0) {
+      ctx.save();
+      ctx.translate(t.x, t.y); ctx.rotate(t.angle);
+      ctx.fillStyle = "rgba(159,216,255,.14)";
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, tier.range, -tier.cone, tier.cone);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    // tier pips
+    for (var p = 0; p <= t.lvl; p++) {
+      ctx.fillStyle = def.color;
+      ctx.beginPath(); ctx.arc(t.x - 6 + p * 6, t.y + 19, 2, 0, Math.PI * 2); ctx.fill();
+    }
+    // selection ring + range
+    if (selected === t) {
+      ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(t.x, t.y, 18, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = def.color; ctx.globalAlpha = 0.35;
+      ctx.beginPath(); ctx.arc(t.x, t.y, tier.range, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawEnemy(e, now) {
+    var def = SD.ENEMIES[e.type];
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(e.a);
+    var frozen = e.slowT > 0;
+    ctx.strokeStyle = frozen ? "#bfe8ff" : def.color;
+    ctx.fillStyle = frozen ? "#6fa8cc" : def.color;
+    ctx.lineWidth = 1.6;
+    if (e.type === "scout") {
+      ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-7, -6); ctx.lineTo(-3, 0); ctx.lineTo(-7, 6); ctx.closePath();
+      ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+    } else if (e.type === "fighter") {
+      ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-4, -9); ctx.lineTo(-9, -3); ctx.lineTo(-9, 3); ctx.lineTo(-4, 9); ctx.closePath();
+      ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+    } else if (e.type === "tank") {
+      ctx.beginPath();
+      for (var i = 0; i < 6; i++) {
+        var a = i * Math.PI / 3;
+        ctx[i ? "lineTo" : "moveTo"](Math.cos(a) * 14, Math.sin(a) * 14);
+      }
+      ctx.closePath();
+      ctx.globalAlpha = 0.8; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+      ctx.fillStyle = "#12121a";
+      ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+    } else if (e.type === "swarm") {
+      ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(0, -4); ctx.lineTo(-5, 0); ctx.lineTo(0, 4); ctx.closePath();
+      ctx.fill();
+    } else if (e.type === "shielded") {
+      ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+      ctx.fillStyle = "#12121a";
+      ctx.fillRect(-3, -3, 6, 6);
+    } else { // boss
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 24, 13, 0, 0, Math.PI * 2);
+      ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+      ctx.fillStyle = "#12121a";
+      ctx.beginPath(); ctx.ellipse(0, -3, 11, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ffd080";
+      var blink = 0.5 + 0.5 * Math.sin(now * 6);
+      ctx.globalAlpha = blink;
+      ctx.beginPath(); ctx.arc(0, -3, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+    // shield bubble
+    if (e.shield > 0) {
+      ctx.strokeStyle = "rgba(127,212,255," + (0.5 + 0.3 * Math.sin(now * 5)) + ")";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 6, 0, Math.PI * 2); ctx.stroke();
+    }
+    // hp bar
+    if (e.hp < e.maxhp && !e.boss) {
+      var w = e.r * 2.2;
+      ctx.fillStyle = "rgba(0,0,0,.5)";
+      ctx.fillRect(e.x - w / 2, e.y - e.r - 9, w, 3);
+      ctx.fillStyle = "#6dffa8";
+      ctx.fillRect(e.x - w / 2, e.y - e.r - 9, w * (e.hp / e.maxhp), 3);
+    }
+  }
+
+  function draw(now) {
+    var r = stage.getBoundingClientRect();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#12121a";
+    ctx.fillRect(0, 0, r.width, r.height);
+
+    var sx = 0, sy = 0;
+    if (shakeT > 0) {
+      sx = (Math.random() * 2 - 1) * shakeMag * shakeT;
+      sy = (Math.random() * 2 - 1) * shakeMag * shakeT;
+    }
+    ctx.translate(ox + sx * scale, oy + sy * scale);
+    ctx.scale(scale, scale);
+
+    // field
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = "#0d0d16";
+    ctx.fillRect(0, 0, W, H);
+
+    // stars
+    for (var i = 0; i < stars.length; i++) {
+      var st = stars[i];
+      var tw = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(now * 1.3 + st.p));
+      ctx.fillStyle = "rgba(200,210,255," + (tw * 0.8) + ")";
+      ctx.fillRect(st.x, st.y, st.s, st.s);
+    }
+
+    drawPath(now);
+    drawStation(now);
+
+    for (i = 0; i < state.turrets.length; i++) drawTurret(state.turrets[i], now);
+    for (i = 0; i < state.enemies.length; i++) drawEnemy(state.enemies[i], now);
+
+    // missiles
+    for (i = 0; i < state.projectiles.length; i++) {
+      var pr = state.projectiles[i];
+      ctx.save();
+      ctx.translate(pr.x, pr.y); ctx.rotate(pr.a);
+      ctx.fillStyle = "#ffb340";
+      ctx.fillRect(-5, -1.7, 10, 3.4);
+      ctx.fillStyle = "rgba(255,180,80,.55)";
+      ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(-11 - Math.random() * 5, 0); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,200,120,.6)"; ctx.stroke();
+      ctx.restore();
+    }
+
+    // beams
+    for (i = beams.length - 1; i >= 0; i--) {
+      var b = beams[i];
+      var a = 1 - b.t / b.life;
+      ctx.strokeStyle = b.color;
+      ctx.globalAlpha = a;
+      ctx.lineWidth = b.w * (0.5 + a);
+      ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    // tesla bolts: animated jagged lightning, re-jittered every frame
+    for (i = bolts.length - 1; i >= 0; i--) {
+      var bo = bolts[i];
+      var boA = 1 - bo.t / bo.life;
+      var bdx = bo.x2 - bo.x1, bdy = bo.y2 - bo.y1;
+      var blen = Math.sqrt(bdx * bdx + bdy * bdy) || 1;
+      var bnx = -bdy / blen, bny = bdx / blen;
+      var segsN = Math.max(3, Math.min(7, Math.round(blen / 22)));
+      ctx.globalAlpha = boA;
+      for (var pass = 0; pass < 2; pass++) {
+        ctx.strokeStyle = pass === 0 ? "rgba(255,233,93,0.95)" : "rgba(255,255,255,0.8)";
+        ctx.lineWidth = pass === 0 ? 2.6 : 1.1;
+        ctx.beginPath();
+        ctx.moveTo(bo.x1, bo.y1);
+        for (var si = 1; si < segsN; si++) {
+          var ft = si / segsN;
+          var jag = (Math.random() * 2 - 1) * 7 * boA;
+          ctx.lineTo(bo.x1 + bdx * ft + bnx * jag, bo.y1 + bdy * ft + bny * jag);
+        }
+        ctx.lineTo(bo.x2, bo.y2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    // muzzle flashes
+    for (i = flashes.length - 1; i >= 0; i--) {
+      var f = flashes[i];
+      var fa = 1 - f.t / f.life;
+      ctx.save();
+      ctx.translate(f.x, f.y); ctx.rotate(f.a);
+      ctx.fillStyle = f.color;
+      ctx.globalAlpha = fa;
+      ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(22, -4); ctx.lineTo(19, 0); ctx.lineTo(22, 4); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+    // particles
+    for (i = 0; i < particles.length; i++) {
+      var pa = particles[i];
+      var al = 1 - pa.t / pa.life;
+      ctx.fillStyle = pa.color;
+      ctx.globalAlpha = al;
+      ctx.fillRect(pa.x - pa.size / 2, pa.y - pa.size / 2, pa.size, pa.size);
+    }
+    ctx.globalAlpha = 1;
+    // floaters
+    ctx.textAlign = "center";
+    for (i = 0; i < floaters.length; i++) {
+      var fl = floaters[i];
+      var fla = 1 - fl.t / fl.life;
+      ctx.font = "600 " + fl.size + "px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillStyle = fl.color;
+      ctx.globalAlpha = Math.min(1, fla * 2);
+      ctx.fillText(fl.text, fl.x, fl.y - fl.t * 30);
+    }
+    ctx.globalAlpha = 1;
+
+    // ghost placement preview
+    if (buildType && pointerInside && pointerPos && started && !paused) {
+      var gdef = SD.TURRETS[buildType], gtier = gdef.tiers[0];
+      var ok = SD.canPlace(state, pointerPos.x, pointerPos.y) && state.credits >= gdef.cost;
+      var col = ok ? gdef.color : "#ff4455";
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(pointerPos.x, pointerPos.y, gtier.range, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(pointerPos.x, pointerPos.y, gtier.range, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(pointerPos.x, pointerPos.y, 14, 0, Math.PI * 2); ctx.stroke();
+      if (!ok) {
+        ctx.beginPath();
+        ctx.moveTo(pointerPos.x - 8, pointerPos.y - 8); ctx.lineTo(pointerPos.x + 8, pointerPos.y + 8);
+        ctx.moveTo(pointerPos.x + 8, pointerPos.y - 8); ctx.lineTo(pointerPos.x - 8, pointerPos.y + 8);
+        ctx.lineWidth = 2.5; ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // boss HP bar
+    var boss = null;
+    for (i = 0; i < state.enemies.length; i++) if (state.enemies[i].boss) { boss = state.enemies[i]; break; }
+    if (boss) {
+      var bw = 380;
+      ctx.fillStyle = "rgba(0,0,0,.55)";
+      ctx.fillRect(W / 2 - bw / 2 - 3, 14, bw + 6, 18);
+      ctx.fillStyle = "#3a1a22";
+      ctx.fillRect(W / 2 - bw / 2, 17, bw, 12);
+      ctx.fillStyle = "#ff5d6e";
+      ctx.fillRect(W / 2 - bw / 2, 17, bw * Math.max(0, boss.hp / boss.maxhp), 12);
+      ctx.font = "700 11px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillStyle = "#ffd0d6";
+      ctx.fillText("MOTHERSHIP", W / 2, 26.5);
+    }
+
+    // prewave banner
+    if (state.phase === "prewave" && started) {
+      ctx.font = "600 13px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillStyle = "rgba(174,234,255,.85)";
+      ctx.fillText("Wave " + state.wave + " in " + Math.ceil(state.countdown) + "s", W / 2, 30);
+    }
+
+    ctx.restore();
+
+    // letterbox edges
+    ctx.strokeStyle = "#26263a";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+  }
+
+  /* ---------- HUD ---------- */
+  var typeShort = { scout: "Scout", fighter: "Fighter", tank: "Tank", swarm: "Swarm", shielded: "Shielded", boss: "BOSS" };
+  function updateHUD() {
+    stCredits.textContent = state.credits;
+    stHP.textContent = state.hp + "/" + state.maxhp;
+    stWave.textContent = state.wave + (state.endless ? "" : "/" + SD.FINAL_WAVE);
+    if (state.phase === "prewave") {
+      var pc = SD.previewCounts(state.wave), parts = [], k;
+      for (k in pc) parts.push(pc[k] + "&times; " + typeShort[k]);
+      previewEl.innerHTML = "<b>Next wave " + state.wave + ":</b> " + parts.join(", ");
+      sendBtn.disabled = false;
+      sendBtn.textContent = "Send now +" + Math.max(0, Math.ceil(state.countdown * 2)) + "c (" + Math.ceil(Math.max(0, state.countdown)) + "s)";
+    } else if (state.phase === "wave") {
+      previewEl.innerHTML = "<b>Wave " + state.wave + "</b> &mdash; hostiles left: " + (state.spawnQueue.length + state.enemies.length);
+      sendBtn.disabled = true;
+      sendBtn.textContent = "Wave active";
+    } else {
+      sendBtn.disabled = true;
+      sendBtn.textContent = state.phase === "won" ? "Victory" : "—";
+    }
+  }
+
+  /* ---------- fx update ---------- */
+  function updateFx(dt) {
+    var i;
+    for (i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.t += dt;
+      if (p.t >= p.life) { particles.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= 0.94; p.vy *= 0.94;
+    }
+    for (i = floaters.length - 1; i >= 0; i--) { floaters[i].t += dt; if (floaters[i].t >= floaters[i].life) floaters.splice(i, 1); }
+    for (i = beams.length - 1; i >= 0; i--) { beams[i].t += dt; if (beams[i].t >= beams[i].life) beams.splice(i, 1); }
+    for (i = bolts.length - 1; i >= 0; i--) { bolts[i].t += dt; if (bolts[i].t >= bolts[i].life) bolts.splice(i, 1); }
+    for (i = flashes.length - 1; i >= 0; i--) { flashes[i].t += dt; if (flashes[i].t >= flashes[i].life) flashes.splice(i, 1); }
+    if (shakeT > 0) shakeT -= dt;
+    if (flareT > 0) flareT -= dt;
+  }
+
+  /* ---------- main loop ---------- */
+  var last = performance.now();
+  function frame(now) {
+    requestAnimationFrame(frame);
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (started && !paused) {
+      for (var s = 0; s < speed; s++) SD.update(state, dt);
+      consumeEvents();
+      updateFx(dt * speed);
+      if (selected && state.turrets.indexOf(selected) < 0) selectTurret(null);
+      if (selected) positionPanel();
+    }
+    draw(now / 1000);
+    updateHUD();
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

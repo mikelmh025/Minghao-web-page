@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#12121a">
+<title>The Card Vault</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: #0e0e16; color: #f0f0f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; min-height: 100vh; }
+body { padding: max(20px, env(safe-area-inset-top)) 16px max(30px, env(safe-area-inset-bottom)); overflow-x: hidden; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; max-width: 900px; margin: 0 auto 6px; flex-wrap: wrap; gap: 8px; }
+.pill { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight: 700; color: #eee; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.pill.gold { color: #fde68a; border-color: rgba(250,204,21,0.4); }
+.pill.cyan { color: #a5f3fc; border-color: rgba(103,232,249,0.4); }
+
+h1 { text-align: center; font-size: clamp(30px, 7vw, 46px); font-weight: 900; letter-spacing: 4px; margin: 10px 0 2px;
+  background: linear-gradient(180deg, #fde68a, #b45309); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.sub { text-align: center; color: #9a9ab0; font-size: 13px; margin-bottom: 18px; }
+
+.pull-zone { max-width: 560px; margin: 0 auto 26px; text-align: center; background: radial-gradient(ellipse at top, rgba(250,204,21,0.08), transparent 70%), rgba(255,255,255,0.04); border: 1px solid rgba(250,204,21,0.25); border-radius: 22px; padding: 22px 18px 18px; }
+.pull-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 12px 0 10px; }
+.pull-btn { font-size: 17px; font-weight: 900; letter-spacing: 1px; padding: 15px 30px; border: none; border-radius: 15px; cursor: pointer; color: #1a1207;
+  background: linear-gradient(180deg, #fde68a, #f59e0b); box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35); transition: transform 0.12s; }
+.pull-btn:hover { transform: scale(1.05); }
+.pull-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+.pull-btn small { display: block; font-size: 11px; font-weight: 700; opacity: 0.75; }
+.pity { font-size: 12px; color: #9a9ab0; }
+.pity b { color: #fbbf24; }
+.odds { font-size: 10px; color: #62627a; margin-top: 8px; letter-spacing: 0.5px; }
+
+.section-h { max-width: 900px; margin: 0 auto 10px; display: flex; align-items: baseline; justify-content: space-between; }
+.section-h h2 { font-size: 15px; letter-spacing: 2px; color: #8888a0; text-transform: uppercase; }
+.section-h span { font-size: 12px; color: #62627a; }
+
+.binder { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.cardlet { position: relative; aspect-ratio: 3/4.2; border-radius: 12px; cursor: pointer; overflow: hidden; border: 2px solid #2a2a3a; background: #14141f; transition: transform 0.12s; }
+.cardlet:hover { transform: translateY(-3px) scale(1.03); }
+.cardlet.unowned { filter: grayscale(1) brightness(0.45); }
+.cardlet .art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 42px; }
+.cardlet .nm { position: absolute; bottom: 0; left: 0; right: 0; font-size: 9px; font-weight: 800; text-align: center; padding: 4px 2px; background: rgba(0,0,0,0.55); letter-spacing: 0.3px; }
+.cardlet .cnt { position: absolute; top: 4px; right: 5px; font-size: 10px; font-weight: 900; background: rgba(0,0,0,0.6); border-radius: 999px; padding: 2px 7px; }
+.cardlet .rt { position: absolute; top: 4px; left: 5px; font-size: 9px; font-weight: 900; letter-spacing: 1px; padding: 2px 6px; border-radius: 6px; }
+.r-N  { border-color: #3f3f50 !important; } .r-N .rt { background: #3f3f50; color: #c8c8d8; }
+.r-R  { border-color: #3b82f6 !important; } .r-R .rt { background: #1d4ed8; color: #dbeafe; }
+.r-SR { border-color: #a855f7 !important; box-shadow: 0 0 12px rgba(168,85,247,0.35); } .r-SR .rt { background: #7e22ce; color: #f3e8ff; }
+.r-SSR{ border-color: #fbbf24 !important; box-shadow: 0 0 16px rgba(251,191,36,0.5); } .r-SSR .rt { background: linear-gradient(90deg,#f59e0b,#fde68a); color: #451a03; }
+.r-UR { border-color: #f0abfc !important; box-shadow: 0 0 20px rgba(240,171,252,0.65); } .r-UR .rt { background: linear-gradient(90deg,#f0abfc,#67e8f9,#fde68a); color: #2e1065; }
+.cardlet.foil::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 45%, transparent 60%); background-size: 250% 250%; animation: foil 3.2s linear infinite; pointer-events: none; }
+@keyframes foil { 0% { background-position: 120% 0; } 100% { background-position: -130% 0; } }
+
+/* ceremony */
+#ceremony { position: fixed; inset: 0; background: rgba(6,6,12,0.96); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+#ceremony.hidden { display: none; }
+.beam { position: absolute; top: 0; bottom: 0; left: 50%; width: 130px; transform: translateX(-50%); opacity: 0; pointer-events: none; }
+.beam.show { animation: beam-in 1.1s ease-out forwards; }
+@keyframes beam-in { 0% { opacity: 0; transform: translateX(-50%) scaleX(0.1); } 40% { opacity: 1; } 100% { opacity: 0.85; transform: translateX(-50%) scaleX(1); } }
+.bigcard { width: min(64vw, 250px); aspect-ratio: 3/4.2; border-radius: 18px; perspective: 900px; position: relative; }
+.bigcard .inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 0.65s cubic-bezier(0.3, 1.2, 0.4, 1); }
+.bigcard.flipped .inner { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; border: 3px solid #333348; }
+.face.back { background: repeating-linear-gradient(45deg, #191926, #191926 10px, #202033 10px, #202033 20px); display: flex; align-items: center; justify-content: center; font-size: 52px; }
+.face.front { transform: rotateY(180deg); background: #14141f; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 14px; text-align: center; }
+.face.front .em { font-size: 76px; filter: drop-shadow(0 4px 14px rgba(0,0,0,0.6)); }
+.face.front .nm2 { font-size: 17px; font-weight: 900; letter-spacing: 1px; }
+.face.front .fl { font-size: 11px; color: #9a9ab0; line-height: 1.5; }
+.face.front .pk { font-size: 11px; color: #86efac; font-weight: 700; }
+.rar-banner { font-size: clamp(26px, 6vw, 40px); font-weight: 900; letter-spacing: 6px; opacity: 0; }
+.rar-banner.show { animation: rar-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+@keyframes rar-pop { 0% { opacity: 0; transform: scale(2.2); } 100% { opacity: 1; transform: scale(1); } }
+.new-tag { font-size: 14px; font-weight: 900; color: #86efac; letter-spacing: 2px; min-height: 18px; }
+#cer-next { margin-top: 4px; }
+#multi-strip { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 90vw; min-height: 40px; }
+#multi-strip .mini { width: 30px; height: 42px; border-radius: 6px; border: 2px solid #333; background: #191926; }
+#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 51; }
+@keyframes shake { 0%,100% { transform: translate(0,0); } 20% { transform: translate(-6px,3px); } 40% { transform: translate(5px,-4px); } 60% { transform: translate(-4px,-3px); } 80% { transform: translate(4px,4px); } }
+.shaking { animation: shake 0.4s linear; }
+
+/* detail modal */
+#detail { position: fixed; inset: 0; background: rgba(6,6,12,0.85); z-index: 40; display: flex; align-items: center; justify-content: center; }
+#detail.hidden { display: none; }
+.detail-box { background: #16161f; border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 22px; max-width: 320px; text-align: center; }
+.detail-box .em { font-size: 62px; }
+.detail-box h3 { margin: 8px 0 4px; }
+.detail-box p { font-size: 12px; color: #9a9ab0; line-height: 1.5; margin: 4px 0; }
+.detail-box .perk { color: #86efac; font-weight: 700; font-size: 13px; }
+.craft-btn { margin-top: 12px; }
+footer { text-align: center; color: #55556a; font-size: 11px; margin-top: 28px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a class="pill" href="arcade.html">← Arcade</a>
+  <span class="pill gold">🪙 <span id="coins">0</span></span>
+  <span class="pill cyan">🎟 <span id="tickets">0</span></span>
+  <span class="pill">✨ <span id="shards">0</span> shards</span>
+  <span class="pill" id="power">⚡ +0% coins</span>
+</div>
+<h1>THE CARD VAULT</h1>
+<p class="sub">Pull cards of the arcade's legends. Collection Power boosts your coin earnings in every game.</p>
+
+<div class="pull-zone">
+  <div class="pull-btns">
+    <button class="pull-btn" id="pull1">PULL ×1<small>100 🪙 or 1 🎟</small></button>
+    <button class="pull-btn" id="pull10">PULL ×10<small>900 🪙 · R+ guaranteed</small></button>
+  </div>
+  <div class="pity">SR guaranteed within <b id="pity-sr">10</b> · SSR guaranteed within <b id="pity-ssr">40</b></div>
+  <div class="odds">Odds — N 70% · R 22% · SR 6.5% · SSR 1.45% · UR 0.05%</div>
+</div>
+
+<div class="section-h"><h2>Collection</h2><span id="coll-count">0 / 0</span></div>
+<div class="binder" id="binder"></div>
+
+<div id="ceremony" class="hidden">
+  <div class="beam" id="beam"></div>
+  <div class="rar-banner" id="rar"></div>
+  <div class="bigcard" id="bigcard">
+    <div class="inner">
+      <div class="face back">🎴</div>
+      <div class="face front" id="front"></div>
+    </div>
+  </div>
+  <div class="new-tag" id="newtag"></div>
+  <div id="multi-strip"></div>
+  <button class="pull-btn" id="cer-next">TAP</button>
+</div>
+<canvas id="confetti"></canvas>
+
+<div id="detail" class="hidden">
+  <div class="detail-box" id="detail-box"></div>
+</div>
+
+<footer>All pulls use Arcade Coins earned by playing — nothing here costs real money, ever.</footer>
+
+<script>
+/* ================= card database ================= */
+const RARITY = { N: { p: 0.70, shards: 1, craft: 10, perk: 1, col: '#c8c8d8' },
+                 R: { p: 0.22, shards: 3, craft: 30, perk: 2, col: '#60a5fa' },
+                 SR: { p: 0.065, shards: 10, craft: 100, perk: 4, col: '#c084fc' },
+                 SSR: { p: 0.0145, shards: 30, craft: 300, perk: 8, col: '#fbbf24' },
+                 UR: { p: 0.0005, shards: 100, craft: 999, perk: 15, col: '#f0abfc' } };
+
+const CARDS = [
+  // N — everyday things of the arcade (18)
+  ['n01','N','🚦','Traffic Cone','Somebody\'s gotta get eaten first.'],
+  ['n02','N','🌳','City Tree','Photosynthesizing right up until the end.'],
+  ['n03','N','🚗','Commuter Car','It had somewhere to be.'],
+  ['n04','N','🍒','Lucky Cherry','The slot machine\'s favorite child.'],
+  ['n05','N','🧱','Loyal Brick','Held the line. Once.'],
+  ['n06','N','🍉','Half a Watermelon','The cut was clean.'],
+  ['n07','N','🪙','Arcade Coin','The blood of the economy.'],
+  ['n08','N','🐀','Dungeon Rat','Floor 1\'s finest.'],
+  ['n09','N','🦇','Cave Bat','Comes in flocks. Leaves in pieces.'],
+  ['n10','N','⛽','Boost Pad','Zoom zoom.'],
+  ['n11','N','🏠','Suburban House','Three bedrooms, no basement anymore.'],
+  ['n12','N','🌵','Desert Cactus','Pointy to the last.'],
+  ['n13','N','🎈','Glowworm','The only light down there.'],
+  ['n14','N','🐑','Wisp','Small. Brave. Poppable.'],
+  ['n15','N','🏹','Skeleton Archer','Aim like his life depends on it. It doesn\'t.'],
+  ['n16','N','⛺','Picnic Table','The umbrella fooled no one.'],
+  ['n17','N','🚧','Tire Wall','Racing\'s softest teacher.'],
+  ['n18','N','💂','City Villager','Chops wood. Fears night.'],
+  // R — named characters & machines (14)
+  ['r01','R','🦠','BLOBBY','Petri dish apex predator, most days.'],
+  ['r02','R','🐍','VIPER','Cuts corners. And snakes.'],
+  ['r03','R','🧟','Boss Brute','The parking lot trembles.'],
+  ['r04','R','🛰️','Rail Cannon Mk.III','One shot. One very big hole.'],
+  ['r05','R','🚁','Cave Skiff','Held together by coins and hope.'],
+  ['r06','R','🏎️','Drift King GT','Leaves autographs in tire smoke.'],
+  ['r07','R','🥊','Kenji','First rung of the ladder. Never skipped leg day.'],
+  ['r08','R','🧛','The Horde','They just keep coming.'],
+  ['r09','R','🎰','The House','It always wins. Statistically.'],
+  ['r10','R','🛸','Saucer Scout','Beep beep boop. Pew.'],
+  ['r11','R','🐺','Prowling Wolf','Patience, then pounce.'],
+  ['r12','R','🗼','The Perfect Drop','Not a pixel of overhang.'],
+  ['r13','R','⚓','Harbor Warlord','Third night. Every third night.'],
+  ['r14','R','🚀','Interceptor','Faster than the falling sky.'],
+  // SR — legends (8)
+  ['s01','SR','🕳️','The Hungry Hole','It was never full. Not once.'],
+  ['s02','SR','👑','CHOMP','Rival number one. Hunts you on sight.'],
+  ['s03','SR','🐉','Dragon of Floor 10','Enrages at half health. So do you.'],
+  ['s04','SR','🦑','The Matriarch','Her sonar sweeps. You hold your breath.'],
+  ['s05','SR','🤖','Mothership','Rotating shields. One gap. Make it count.'],
+  ['s06','SR','🏰','The Keep','Ten nights it stood. Legends say eleven.'],
+  ['s07','SR','💀','The Reaper','Arrives at 15:00 sharp. Always on time.'],
+  ['s08','SR','🌈','Fever Mode','Ten in a row and the world goes rainbow.'],
+  // SSR — the pantheon (5)
+  ['x01','SSR','👹','GOLIATH','Starts big. Grows anyway. Eats bosses for breakfast — you were the breakfast.'],
+  ['x02','SSR','🥋','Kaiser Dux','The champion reads your inputs like a bedtime story.'],
+  ['x03','SSR','🃏','Jackpot Royale','Triple sevens across the arcade\'s heart.'],
+  ['x04','SSR','⚡','The Satellite','Forty-five seconds to charge. Two seconds to erase the sky.'],
+  ['x05','SSR','🔊','The First Ping','The echo that started everything.'],
+  // UR — the one (1)
+  ['u01','UR','🕳','THE HOLE ITSELF','Before the city, before the coins, before the light — it was already hungry.'],
+].map(([id, rarity, em, name, flavor]) => ({ id, rarity, em, name, flavor }));
+
+const byRarity = {}; for (const c of CARDS) (byRarity[c.rarity] = byRarity[c.rarity] || []).push(c);
+
+/* ================= state ================= */
+function readJSON(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } }
+function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+function wallet() { const w = readJSON('arcade-wallet', {}); return Object.assign({ coins: 0, earned: {}, spent: 0, tickets: 0 }, w); }
+function saveWallet(w) { writeJSON('arcade-wallet', w); }
+let vault = Object.assign({ cards: {}, pulls: 0, pitySR: 0, pitySSR: 0, shards: 0 }, readJSON('arcade-vault', {}));
+function saveVault() {
+  // cache collection power into the wallet so every game can apply it
+  const w = wallet();
+  w.bonusPct = collectionPower();
+  saveWallet(w);
+  writeJSON('arcade-vault', vault);
+}
+function collectionPower() {
+  let p = 0;
+  for (const c of CARDS) if (vault.cards[c.id]) p += RARITY[c.rarity].perk;
+  return p;
+}
+
+/* ================= audio ================= */
+let actx = null;
+function initAudio() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} } if (actx && actx.state === 'suspended') actx.resume(); }
+function tone(f0, f1, dur, type, vol, when) {
+  if (!actx) return;
+  const t = (when || actx.currentTime);
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+const sfx = {
+  riser(sec) { if (!actx) return; for (let i = 0; i < 14; i++) tone(180 + i * 60, 200 + i * 66, 0.1, 'sawtooth', 0.05, actx.currentTime + i * (sec / 14)); },
+  flip() { tone(500, 900, 0.15, 'triangle', 0.25); },
+  n() { tone(330, 300, 0.2, 'sine', 0.2); },
+  r() { tone(440, 660, 0.25, 'sine', 0.3); },
+  sr() { [523, 659, 784].forEach((f, i) => setTimeout(() => tone(f, f * 1.1, 0.3, 'triangle', 0.3), i * 90)); },
+  ssr() { [523, 659, 784, 1046, 1318].forEach((f, i) => setTimeout(() => tone(f, f * 1.15, 0.4, 'square', 0.22), i * 110)); },
+  buy() { tone(700, 500, 0.12, 'square', 0.2); },
+  deny() { tone(180, 120, 0.18, 'square', 0.25); },
+};
+function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch {} }
+
+/* ================= pulls ================= */
+function rollRarity(forceRPlus) {
+  vault.pitySR++; vault.pitySSR++;
+  if (vault.pitySSR >= 40) return 'SSR';
+  if (vault.pitySR >= 10) return Math.random() < 0.18 ? 'SSR' : 'SR';
+  let r = Math.random();
+  if (forceRPlus) r *= (1 - RARITY.N.p); // shift out of the N band
+  let acc = 0;
+  for (const k of ['UR', 'SSR', 'SR', 'R', 'N']) {
+    acc += RARITY[k].p;
+    if (r < acc || k === 'N') { if (forceRPlus && k === 'N') return 'R'; return k; }
+  }
+  return 'N';
+}
+function drawCard(forceRPlus) {
+  const rar = rollRarity(forceRPlus);
+  if (rar === 'SR' || rar === 'SSR' || rar === 'UR') vault.pitySR = 0;
+  if (rar === 'SSR' || rar === 'UR') vault.pitySSR = 0;
+  const pool = byRarity[rar];
+  const card = pool[Math.floor(Math.random() * pool.length)];
+  const isNew = !vault.cards[card.id];
+  vault.cards[card.id] = (vault.cards[card.id] || 0) + 1;
+  if (!isNew) vault.shards += RARITY[rar].shards;
+  vault.pulls++;
+  return { card, isNew };
+}
+function pay(cost, canTicket) {
+  const w = wallet();
+  if (canTicket && (w.tickets || 0) > 0) { w.tickets--; saveWallet(w); return true; }
+  if (w.coins >= cost) { w.coins -= cost; w.spent = (w.spent || 0) + cost; saveWallet(w); return true; }
+  return false;
+}
+
+/* ================= ceremony ================= */
+const $ = id => document.getElementById(id);
+let queue = [], qi = 0;
+function startCeremony(results) {
+  queue = results; qi = 0;
+  $('ceremony').classList.remove('hidden');
+  $('multi-strip').innerHTML = results.length > 1
+    ? results.map(() => '<div class="mini"></div>').join('') : '';
+  showNext();
+}
+function beamColor(r) { return { N: 'rgba(200,200,216,0.14)', R: 'rgba(96,165,250,0.3)', SR: 'rgba(192,132,252,0.4)', SSR: 'rgba(251,191,36,0.5)', UR: 'rgba(240,171,252,0.6)' }[r]; }
+function showNext() {
+  if (qi >= queue.length) { endCeremony(); return; }
+  const { card, isNew } = queue[qi];
+  const R = RARITY[card.rarity];
+  const big = $('bigcard');
+  big.classList.remove('flipped');
+  $('rar').classList.remove('show');
+  $('beam').classList.remove('show');
+  $('newtag').textContent = '';
+  $('cer-next').textContent = 'TAP';
+  const isBig = card.rarity === 'SR' || card.rarity === 'SSR' || card.rarity === 'UR';
+  const suspense = card.rarity === 'SSR' || card.rarity === 'UR' ? 1500 : isBig ? 900 : 350;
+  sfx.riser(suspense / 1000);
+  $('beam').style.background = `linear-gradient(180deg, transparent, ${beamColor(card.rarity)}, transparent)`;
+  setTimeout(() => $('beam').classList.add('show'), 80);
+  if (card.rarity === 'SSR' || card.rarity === 'UR') { document.body.classList.add('shaking'); setTimeout(() => document.body.classList.remove('shaking'), 450); buzz(60); }
+  setTimeout(() => {
+    $('front').innerHTML = `<div class="em">${card.em}</div><div class="nm2">${card.name}</div>` +
+      `<div class="fl">${card.flavor}</div><div class="pk">⚡ +${R.perk}% coins forever</div>`;
+    $('front').style.background = `radial-gradient(ellipse at top, ${beamColor(card.rarity)}, #14141f 70%)`;
+    big.classList.add('flipped');
+    sfx.flip();
+    setTimeout(() => {
+      $('rar').textContent = card.rarity + (card.rarity === 'UR' ? ' !!!' : card.rarity === 'SSR' ? ' !!' : '');
+      $('rar').style.color = R.col;
+      $('rar').style.textShadow = `0 0 24px ${R.col}`;
+      $('rar').classList.add('show');
+      (sfx[card.rarity.toLowerCase()] || sfx.n)();
+      $('newtag').textContent = isNew ? '✦ NEW CARD ✦' : `dupe → +${R.shards} ✨ shards`;
+      $('newtag').style.color = isNew ? '#86efac' : '#c9c9dd';
+      if (card.rarity === 'SSR' || card.rarity === 'UR') confettiBurst(R.col);
+      const strip = $('multi-strip').children;
+      if (strip[qi]) { strip[qi].style.borderColor = R.col; strip[qi].style.boxShadow = `0 0 8px ${R.col}`; }
+      $('cer-next').textContent = qi + 1 < queue.length ? `NEXT (${qi + 1}/${queue.length})` : 'DONE';
+    }, 420);
+  }, suspense);
+  qi++;
+}
+function endCeremony() {
+  $('ceremony').classList.add('hidden');
+  saveVault();
+  render();
+}
+$('cer-next').addEventListener('click', showNext);
+
+/* confetti */
+const conf = $('confetti'); const cctx = conf.getContext('2d');
+let confParts = [];
+function confettiBurst(col) {
+  conf.width = innerWidth; conf.height = innerHeight;
+  for (let i = 0; i < 120; i++) {
+    confParts.push({ x: innerWidth / 2, y: innerHeight * 0.4, vx: (Math.random() - 0.5) * 700, vy: -Math.random() * 600 - 100,
+      col: Math.random() < 0.5 ? col : ['#fde68a', '#a5f3fc', '#f0abfc', '#86efac'][Math.floor(Math.random() * 4)], t: 0, life: 1.4 + Math.random() * 0.8, s: 4 + Math.random() * 5, rot: Math.random() * 6 });
+  }
+}
+let lastT = 0;
+function confTick(ts) {
+  requestAnimationFrame(confTick);
+  const dt = Math.min(0.05, (ts - lastT) / 1000) || 0.016; lastT = ts;
+  if (!confParts.length) { cctx.clearRect(0, 0, conf.width, conf.height); return; }
+  cctx.clearRect(0, 0, conf.width, conf.height);
+  for (const p of confParts) {
+    p.t += dt; p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += dt * 5;
+    cctx.save(); cctx.translate(p.x, p.y); cctx.rotate(p.rot);
+    cctx.globalAlpha = Math.max(0, 1 - p.t / p.life);
+    cctx.fillStyle = p.col; cctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+    cctx.restore();
+  }
+  confParts = confParts.filter(p => p.t < p.life);
+}
+requestAnimationFrame(confTick);
+
+/* ================= actions ================= */
+$('pull1').addEventListener('click', () => {
+  initAudio();
+  if (!pay(100, true)) { sfx.deny(); buzz(30); return flashDeny($('pull1')); }
+  sfx.buy();
+  startCeremony([drawCard(false)]);
+});
+$('pull10').addEventListener('click', () => {
+  initAudio();
+  if (!pay(900, false)) { sfx.deny(); buzz(30); return flashDeny($('pull10')); }
+  sfx.buy();
+  const res = [];
+  for (let i = 0; i < 10; i++) res.push(drawCard(i === 9 && !res.some(r => r.card.rarity !== 'N')));
+  // show best cards last for suspense
+  const ord = { N: 0, R: 1, SR: 2, SSR: 3, UR: 4 };
+  res.sort((a, b) => ord[a.card.rarity] - ord[b.card.rarity]);
+  startCeremony(res);
+});
+function flashDeny(btn) { btn.style.filter = 'grayscale(1)'; setTimeout(() => btn.style.filter = '', 300); }
+
+/* detail + craft */
+function showDetail(card) {
+  const R = RARITY[card.rarity];
+  const owned = vault.cards[card.id] || 0;
+  const box = $('detail-box');
+  box.innerHTML = `<div class="em">${card.em}</div><h3 style="color:${R.col}">${card.name}</h3>
+    <p>[${card.rarity}] ${owned ? 'Owned ×' + owned : 'Not yet found'}</p>
+    <p>${card.flavor}</p>
+    <p class="perk">⚡ +${R.perk}% coins arcade-wide while owned</p>
+    ${!owned ? `<button class="pull-btn craft-btn" id="craft" ${vault.shards < R.craft ? 'disabled' : ''}>CRAFT — ${R.craft} ✨</button>` : ''}
+    <p style="margin-top:10px"><button class="pill" id="close-d">close</button></p>`;
+  $('detail').classList.remove('hidden');
+  const cb = $('craft');
+  if (cb) cb.addEventListener('click', () => {
+    if (vault.shards < R.craft) return;
+    vault.shards -= R.craft;
+    vault.cards[card.id] = 1;
+    saveVault(); sfx.sr(); buzz(30);
+    $('detail').classList.add('hidden');
+    render();
+  });
+  $('close-d').addEventListener('click', () => $('detail').classList.add('hidden'));
+}
+$('detail').addEventListener('click', e => { if (e.target === $('detail')) $('detail').classList.add('hidden'); });
+
+/* ================= render ================= */
+function render() {
+  const w = wallet();
+  $('coins').textContent = (w.coins || 0).toLocaleString();
+  $('tickets').textContent = w.tickets || 0;
+  $('shards').textContent = vault.shards;
+  $('power').textContent = `⚡ +${collectionPower()}% coins`;
+  $('pity-sr').textContent = Math.max(1, 10 - vault.pitySR);
+  $('pity-ssr').textContent = Math.max(1, 40 - vault.pitySSR);
+  const owned = CARDS.filter(c => vault.cards[c.id]).length;
+  $('coll-count').textContent = `${owned} / ${CARDS.length} · ${vault.pulls} pulls`;
+  const binder = $('binder');
+  binder.innerHTML = '';
+  const ord = { UR: 0, SSR: 1, SR: 2, R: 3, N: 4 };
+  for (const c of [...CARDS].sort((a, b) => ord[a.rarity] - ord[b.rarity])) {
+    const n = vault.cards[c.id] || 0;
+    const d = document.createElement('div');
+    d.className = `cardlet r-${c.rarity}${n ? '' : ' unowned'}${n && (c.rarity === 'SSR' || c.rarity === 'UR') ? ' foil' : ''}`;
+    d.innerHTML = `<div class="art">${c.em}</div><div class="rt">${c.rarity}</div>` +
+      (n > 1 ? `<div class="cnt">×${n}</div>` : '') + `<div class="nm">${n ? c.name : '???'}</div>`;
+    d.addEventListener('click', () => { initAudio(); showDetail(c); });
+    binder.appendChild(d);
+  }
+}
+saveVault(); // sync bonusPct on load
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Tower Stack</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #12121a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #eceaf4;
+    touch-action: none;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #wrap { position: fixed; inset: 0; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  .hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: calc(10px + env(safe-area-inset-top)) 12px 0;
+    pointer-events: none; z-index: 5;
+  }
+  .pill {
+    pointer-events: auto;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #eceaf4; text-decoration: none;
+    font-size: 13px; font-weight: 600;
+    padding: 7px 14px; border-radius: 999px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    cursor: pointer; transition: background .15s;
+  }
+  .pill:active { background: rgba(255,255,255,0.18); }
+  button.pill { font-family: inherit; }
+
+  #scoreBox {
+    position: absolute; top: calc(12px + env(safe-area-inset-top)); left: 50%;
+    transform: translateX(-50%); text-align: center;
+    pointer-events: none; z-index: 4;
+    opacity: 0; transition: opacity .3s;
+  }
+  #scoreBox.on { opacity: 1; }
+  #score { font-size: 44px; font-weight: 800; letter-spacing: -1px; text-shadow: 0 2px 12px rgba(0,0,0,.5); line-height: 1; }
+  #bestLbl { font-size: 12px; font-weight: 600; color: rgba(236,234,244,.55); margin-top: 4px; letter-spacing: .08em; text-transform: uppercase; }
+
+  .overlay {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(10,10,18,0.62);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    text-align: center; padding: 24px;
+    transition: opacity .25s;
+  }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .overlay h1 { font-size: 42px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px;
+    background: linear-gradient(120deg, #6ee7ff, #a78bfa, #fb7185);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .overlay p { font-size: 15px; color: rgba(236,234,244,.7); margin-bottom: 26px; max-width: 300px; line-height: 1.5; }
+  .bigbtn {
+    font-family: inherit; font-size: 18px; font-weight: 700; color: #101018;
+    background: linear-gradient(120deg, #6ee7ff, #a78bfa);
+    border: none; border-radius: 999px; padding: 15px 52px; cursor: pointer;
+    box-shadow: 0 6px 24px rgba(120,140,255,.35);
+    transition: transform .12s;
+  }
+  .bigbtn:active { transform: scale(.95); }
+  #finalStats { display: flex; gap: 34px; margin-bottom: 26px; }
+  #finalStats .stat { text-align: center; }
+  #finalStats .num { font-size: 38px; font-weight: 800; }
+  #finalStats .lbl { font-size: 11px; font-weight: 600; letter-spacing: .1em; color: rgba(236,234,244,.55); text-transform: uppercase; margin-top: 2px; }
+  #newBestTag { display: none; font-size: 13px; font-weight: 700; color: #ffd166; margin-bottom: 14px; letter-spacing: .06em; }
+  .hint { position: absolute; bottom: calc(22px + env(safe-area-inset-bottom)); left: 0; right: 0;
+    text-align: center; font-size: 12px; color: rgba(236,234,244,.35); pointer-events: none; }
+  @keyframes rwPop{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.18);opacity:1}100%{transform:scale(1);opacity:1}}
+  @keyframes rwPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+  .luckyLine{color:#7dff9a;font-weight:800;text-shadow:0 0 10px rgba(125,255,154,.7),0 0 22px rgba(255,214,74,.5);animation:rwPop .45s ease-out,rwPulse 1.1s ease-in-out .5s infinite}
+  .ticketLine{color:#5ce6ff;font-weight:800;text-shadow:0 0 10px rgba(92,230,255,.8);animation:rwPop .45s ease-out,rwPulse 1.4s ease-in-out .5s infinite}
+  .vaultLink{color:#9fb0ff;font-size:13px;text-decoration:none;margin-top:12px;display:inline-block}
+  .vaultLink:hover{color:#cdd6ff}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="scoreBox"><div id="score">0</div><div id="bestLbl">Best 0</div></div>
+
+  <div class="hud">
+    <a class="pill" href="../../arcade.html">&#8592; Arcade</a>
+    <button class="pill" id="muteBtn" aria-label="Toggle sound">&#128266; Sound</button>
+  </div>
+
+  <div class="overlay" id="titleOv">
+    <h1>Tower Stack</h1>
+    <p>Tap to drop the sliding block. Land it dead-center to keep your width &mdash; 3 perfect drops in a row and it grows back!</p>
+    <button class="bigbtn" id="playBtn">Play</button>
+    <button class="pill" id="zenBtn" style="margin-top:14px">&#129496; Zen Mode: Off</button>
+    <div id="coinBal" style="margin-top:12px;font-size:13px;font-weight:700;color:#ffd166"></div>
+    <div class="hint">tap / click / space</div>
+  </div>
+
+  <div class="overlay hidden" id="overOv">
+    <h1 style="font-size:34px">Tower Toppled</h1>
+    <div id="newBestTag">&#10024; NEW BEST &#10024;</div>
+    <div id="finalStats">
+      <div class="stat"><div class="num" id="finalScore">0</div><div class="lbl">Score</div></div>
+      <div class="stat"><div class="num" id="finalHeight">0</div><div class="lbl">Height</div></div>
+      <div class="stat"><div class="num" id="finalBest">0</div><div class="lbl">Best</div></div>
+    </div>
+    <div id="coinAward" style="font-size:16px;font-weight:800;color:#ffd166;margin-bottom:16px"></div>
+    <div id="luckyLine" class="luckyLine" style="display:none;font-size:18px;margin-bottom:10px"></div>
+    <div id="ticketLine" class="ticketLine" style="display:none;font-size:15px;margin-bottom:10px">🎟 PULL TICKET!</div>
+    <button class="bigbtn" id="againBtn">Stack Again</button>
+    <a class="vaultLink" href="../../vault.html">🎴 Card Vault</a>
+  </div>
+
+  <div class="overlay hidden" id="pauseOv">
+    <h1 style="font-size:30px">Paused</h1>
+    <p>Tap anywhere to resume</p>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+ * CORE — pure game logic, no DOM. Exported for headless testing.
+ * ======================================================================= */
+var TowerCore = (function () {
+  'use strict';
+
+  var CFG = {
+    blockH: 34,          // world units per block
+    perfectTol: 6,       // px tolerance for a perfect drop
+    baseSpeed: 145,      // starting mover speed (units/s)
+    speedPerBlock: 3.6,  // speed gained per block placed
+    maxSpeed: 470,
+    growAmount: 9,       // width regained per perfect (streak >= 3)
+    growStreak: 3,
+    gravity: 1500,
+    pieceLife: 1.6,
+    windStartH: 40,      // blocks placed before wind gusts begin
+    windMaxAmp: 14       // max wind sway strength
+  };
+
+  function createGame(opts) {
+    opts = opts || {};
+    var fieldW = opts.fieldW || 420;
+    var baseW = opts.baseW || Math.round(fieldW * 0.56);
+    var g = {
+      fieldW: fieldW,
+      baseW: baseW,
+      rng: opts.rng || Math.random,
+      blocks: [{ x: (fieldW - baseW) / 2, w: baseW, flash: 0 }],
+      mover: null,
+      score: 0,
+      perfectStreak: 0,
+      perfectTotal: 0,
+      over: false,
+      pieces: [],
+      time: 0,
+      zen: !!opts.zen
+    };
+    g.wind = { phase: 'idle', timer: 2.5 + g.rng() * 3, dir: 1, amp: 0, t: 0 };
+    spawnMover(g);
+    return g;
+  }
+
+  function height(g) { return g.blocks.length - 1; }           // blocks placed
+  function towerTopY(g) { return g.blocks.length * CFG.blockH; }
+
+  function speedFor(g) {
+    if (g.zen) return CFG.baseSpeed;   // zen mode: never speeds up
+    return Math.min(CFG.maxSpeed, CFG.baseSpeed + height(g) * CFG.speedPerBlock);
+  }
+
+  function spawnMover(g) {
+    var top = g.blocks[g.blocks.length - 1];
+    var w = top.w;
+    var fromLeft = g.rng() < 0.5;               // starting side randomizes
+    // spawn at the swing bounds so even an instant tap clips the tower
+    g.mover = {
+      x: fromLeft ? -w * 0.45 : g.fieldW - w * 0.55,
+      w: w,
+      dir: fromLeft ? 1 : -1
+    };
+  }
+
+  function makePiece(g, x, w, sideSign) {
+    return {
+      x: x, w: w,
+      y: towerTopY(g),                           // world height of piece bottom
+      vx: sideSign * (50 + g.rng() * 90),
+      vy: 90 + g.rng() * 70,                     // small upward pop
+      rot: 0,
+      vr: sideSign * (2 + g.rng() * 3.5),
+      alpha: 1
+    };
+  }
+
+  function step(g, dt) {
+    if (!isFinite(dt) || dt <= 0) return;
+    g.time += dt;
+
+    if (!g.over && g.mover) {
+      var m = g.mover;
+      m.x += m.dir * speedFor(g) * dt;
+      var minX = -m.w * 0.45;
+      var maxX = g.fieldW - m.w * 0.55;
+      if (m.dir > 0 && m.x > maxX) { m.x = maxX; m.dir = -1; }
+      else if (m.dir < 0 && m.x < minX) { m.x = minX; m.dir = 1; }
+    }
+
+    // wind gusts high up (telegraphed, bounded sway; disabled in zen mode)
+    if (!g.over && !g.zen && height(g) >= CFG.windStartH) {
+      var wd = g.wind;
+      wd.timer -= dt;
+      if (wd.phase === 'idle') {
+        if (wd.timer <= 0) {
+          wd.phase = 'telegraph'; wd.timer = 1.1;
+          wd.dir = g.rng() < 0.5 ? -1 : 1;
+          wd.amp = 6 + g.rng() * (CFG.windMaxAmp - 6);
+        }
+      } else if (wd.phase === 'telegraph') {
+        if (wd.timer <= 0) { wd.phase = 'gust'; wd.timer = 1.7; wd.t = 0; }
+      } else { // gust
+        wd.t += dt;
+        if (g.mover) {
+          var mw = g.mover;
+          mw.x += wd.dir * wd.amp * (0.6 + 0.4 * Math.sin(wd.t * 6)) * dt * 7;
+          var wMin = -mw.w * 0.45, wMax = g.fieldW - mw.w * 0.55;
+          if (mw.x < wMin) mw.x = wMin;
+          if (mw.x > wMax) mw.x = wMax;
+        }
+        if (wd.timer <= 0) { wd.phase = 'idle'; wd.timer = 3 + g.rng() * 3.5; }
+      }
+    }
+
+    // slice-piece physics: tumble, gravity, fade
+    for (var i = g.pieces.length - 1; i >= 0; i--) {
+      var p = g.pieces[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy -= CFG.gravity * dt;
+      p.rot += p.vr * dt;
+      p.alpha -= dt / CFG.pieceLife;
+      if (p.alpha <= 0 || p.y < -600) g.pieces.splice(i, 1);
+    }
+
+    // perfect flash decay
+    for (var j = 0; j < g.blocks.length; j++) {
+      if (g.blocks[j].flash > 0) g.blocks[j].flash = Math.max(0, g.blocks[j].flash - dt * 2.4);
+    }
+  }
+
+  function drop(g) {
+    if (g.over || !g.mover) return { type: 'noop' };
+    var top = g.blocks[g.blocks.length - 1];
+    var m = g.mover;
+
+    var left = Math.max(m.x, top.x);
+    var right = Math.min(m.x + m.w, top.x + top.w);
+    var overlap = right - left;
+
+    if (overlap <= 0) {
+      // complete miss — whole block tumbles away, game over
+      g.pieces.push(makePiece(g, m.x, m.w, m.x > top.x ? 1 : -1));
+      g.mover = null;
+      g.over = true;
+      return { type: 'miss' };
+    }
+
+    var offset = m.x - top.x;
+    var res;
+
+    if (Math.abs(offset) <= CFG.perfectTol) {
+      // PERFECT — snap, keep full width; streak >= 3 grows the block back
+      g.perfectStreak++;
+      g.perfectTotal++;
+      var nw = top.w, nx = top.x, grew = false;
+      if (g.perfectStreak >= CFG.growStreak && nw < g.baseW) {
+        var add = Math.min(CFG.growAmount, g.baseW - nw);
+        nw += add;
+        nx -= add / 2;
+        nx = Math.max(-nw * 0.1, Math.min(g.fieldW - nw * 0.9, nx));
+        grew = true;
+      }
+      g.blocks.push({ x: nx, w: nw, flash: 1 });
+      g.score += 2; // +1 place, +1 perfect bonus
+      res = { type: 'perfect', streak: g.perfectStreak, grew: grew, x: nx, w: nw };
+    } else {
+      // SLICE — keep overlap, overhang tumbles off
+      g.perfectStreak = 0;
+      var px, pw, side;
+      if (offset > 0) { px = right; pw = (m.x + m.w) - right; side = 1; }
+      else { px = m.x; pw = left - m.x; side = -1; }
+      if (pw > 0.25) g.pieces.push(makePiece(g, px, pw, side));
+      g.blocks.push({ x: left, w: overlap, flash: 0 });
+      g.score += 1;
+      res = { type: 'cut', cut: pw, x: left, w: overlap };
+    }
+
+    spawnMover(g);
+    return res;
+  }
+
+  return { CFG: CFG, createGame: createGame, step: step, drop: drop, speedFor: speedFor, height: height, towerTopY: towerTopY };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = TowerCore;
+
+/* =========================================================================
+ * SHELL — rendering, input, audio, UI (browser only)
+ * ======================================================================= */
+if (typeof window !== 'undefined' && typeof document !== 'undefined') (function () {
+  'use strict';
+
+  var Core = TowerCore, CFG = Core.CFG;
+  var LW = 420;                       // logical field width
+  var GROUND = 90;                    // ground offset from bottom (logical)
+  var STORE_KEY = 'arcade-tower-stack';
+
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var scoreBox = document.getElementById('scoreBox');
+  var scoreEl = document.getElementById('score');
+  var bestLbl = document.getElementById('bestLbl');
+  var titleOv = document.getElementById('titleOv');
+  var overOv = document.getElementById('overOv');
+  var pauseOv = document.getElementById('pauseOv');
+  var muteBtn = document.getElementById('muteBtn');
+
+  /* ---------- persistence ---------- */
+  function loadBest() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return { score: 0, height: 0 };
+      var v = JSON.parse(raw);
+      if (typeof v === 'number') return { score: v, height: v };
+      return { score: v.score || 0, height: v.height || 0 };
+    } catch (e) { return { score: 0, height: 0 }; }
+  }
+  function saveBest(b) { try { localStorage.setItem(STORE_KEY, JSON.stringify(b)); } catch (e) {} }
+  var best = loadBest();
+
+  function loadZenBest() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY + '-zen');
+      if (!raw) return { score: 0, height: 0 };
+      var v = JSON.parse(raw);
+      return { score: v.score || 0, height: v.height || 0 };
+    } catch (e) { return { score: 0, height: 0 }; }
+  }
+  function saveZenBest(b) { try { localStorage.setItem(STORE_KEY + '-zen', JSON.stringify(b)); } catch (e) {} }
+  var bestZen = loadZenBest();
+  var zenMode = false;
+  try { zenMode = localStorage.getItem(STORE_KEY + '-zenmode') === '1'; } catch (e) {}
+  function activeBest() { return zenMode ? bestZen : best; }
+
+  /* ---------- arcade wallet + haptics ---------- */
+  function awardCoinsPlus(slug, base){
+    try{
+      const w=JSON.parse(localStorage.getItem('arcade-wallet'))||{coins:0,earned:{},spent:0,tickets:0};
+      let n=Math.max(1,Math.min(200,Math.round(base)));
+      n=Math.round(n*(1+(w.bonusPct||0)/100));
+      let lucky=1; const r=Math.random();
+      if(r<0.01)lucky=5; else if(r<0.04)lucky=3; else if(r<0.14)lucky=2;
+      n*=lucky;
+      const ticket=Math.random()<0.03;
+      w.coins+=n; w.earned[slug]=(w.earned[slug]||0)+n;
+      if(ticket)w.tickets=(w.tickets||0)+1;
+      localStorage.setItem('arcade-wallet',JSON.stringify(w));
+      return {n,lucky,ticket,total:w.coins};
+    }catch(e){return {n:0,lucky:1,ticket:false,total:0}}
+  }
+  function awardCoins(slug, n){return awardCoinsPlus(slug, n).total}
+  function walletCoins(){try{var w=JSON.parse(localStorage.getItem('arcade-wallet'));return (w&&w.coins)||0}catch{return 0}}
+  function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
+
+  /* ---------- audio ---------- */
+  var AC = null, muted = false;
+  try { muted = localStorage.getItem(STORE_KEY + '-muted') === '1'; } catch (e) {}
+  function audioInit() {
+    if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+    try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+  }
+  function tone(freq, dur, type, vol, delay, slideTo) {
+    if (!AC || muted) return;
+    var t0 = AC.currentTime + (delay || 0);
+    var o = AC.createOscillator(), gn = AC.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t0);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t0 + dur);
+    gn.gain.setValueAtTime(0, t0);
+    gn.gain.linearRampToValueAtTime(vol || 0.2, t0 + 0.008);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(gn); gn.connect(AC.destination);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  function noiseBurst(dur, vol, freq) {
+    if (!AC || muted) return;
+    var n = Math.floor(AC.sampleRate * dur);
+    var buf = AC.createBuffer(1, n, AC.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    var src = AC.createBufferSource(); src.buffer = buf;
+    var bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq || 2200; bp.Q.value = 1.2;
+    var gn = AC.createGain(); gn.gain.value = vol || 0.25;
+    src.connect(bp); bp.connect(gn); gn.connect(AC.destination);
+    src.start();
+  }
+  function sfxThunk(widthRatio) {
+    var f = 85 + widthRatio * 130;
+    tone(f, 0.13, 'triangle', 0.5, 0, f * 0.55);
+    noiseBurst(0.045, 0.1, 700);
+  }
+  function sfxSlice() { noiseBurst(0.09, 0.22, 2600); }
+  function sfxPerfect(streak) {
+    var base = 620 * Math.pow(2, Math.min(streak - 1, 10) / 12);
+    tone(base, 0.16, 'sine', 0.28);
+    tone(base * 1.5, 0.22, 'sine', 0.24, 0.07);
+    if (streak >= 3) tone(base * 2, 0.28, 'sine', 0.2, 0.14);
+  }
+  function sfxOver() {
+    tone(300, 0.5, 'sawtooth', 0.18, 0, 70);
+    tone(150, 0.7, 'triangle', 0.22, 0.1, 45);
+  }
+  function sfxLucky() { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.14, 'triangle', 0.2, 0.55 + i * 0.09); }); }
+  function sfxWindCue() { tone(680, 0.35, 'sine', 0.1, 0, 900); }
+  function sfxWindGust() {
+    noiseBurst(0.7, 0.12, 1400);
+    tone(1100, 0.8, 'sine', 0.08, 0, 400);
+  }
+  function updateMuteBtn() { muteBtn.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound'; }
+  muteBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    muted = !muted;
+    try { localStorage.setItem(STORE_KEY + '-muted', muted ? '1' : '0'); } catch (err) {}
+    updateMuteBtn();
+  });
+  updateMuteBtn();
+
+  /* ---------- canvas / resize ---------- */
+  var W = 0, H = 0, dpr = 1, scale = 1, LH = 700, ox = 0;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 3);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    scale = Math.min(W / LW, H / 640);           // letterbox: cap block size on wide screens
+    LH = H / scale;
+    ox = (W - LW * scale) / 2;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* ---------- game state ---------- */
+  var mode = 'title';   // title | play | over
+  var paused = false;
+  var g = null;
+  var cam = 0, camTarget = 0;
+  var shakeT = 0, shakeMag = 0;
+  var hueBase = 195;
+  var particles = [], rings = [], banners = [];
+  var lastMilestone = 0;
+  var passedBest = false;
+  var bobT = 0;
+  var decor = [];       // clouds & stars
+  var decorMaxY = 0;
+  var windPhasePrev = 'idle';
+
+  function blockHue(i) { return (hueBase + i * 4.5) % 360; }
+
+  function newGame() {
+    g = Core.createGame({ fieldW: LW, zen: zenMode });
+    cam = 0; camTarget = 0; shakeT = 0;
+    particles.length = 0; rings.length = 0; banners.length = 0;
+    lastMilestone = 0; passedBest = false;
+    windPhasePrev = 'idle';
+    hueBase = 160 + Math.random() * 80;
+    decor.length = 0; decorMaxY = 0;
+    ensureDecor();
+    scoreEl.textContent = '0';
+    bestLbl.textContent = (zenMode ? 'Zen Best ' : 'Best ') + activeBest().score;
+    scoreBox.classList.add('on');
+  }
+
+  /* ---------- decorations (parallax clouds -> stars) ---------- */
+  var PARALLAX = 0.45;
+  var SKY_H = 40 * CFG.blockH;      // above this (world units) clouds fade to stars
+  function ensureDecor() {
+    var need = (cam + LH * 3) * PARALLAX + LH;
+    while (decorMaxY < need) {
+      var y = decorMaxY + 90 + Math.random() * 160;
+      decorMaxY = y;
+      var worldEquiv = y / PARALLAX;
+      if (worldEquiv < SKY_H * 1.15) {
+        decor.push({ kind: 'cloud', x: Math.random() * LW, y: y, s: 0.6 + Math.random() * 1.1, drift: 4 + Math.random() * 8 });
+      }
+      if (worldEquiv > SKY_H * 0.7) {
+        for (var k = 0; k < 3; k++) {
+          decor.push({ kind: 'star', x: Math.random() * LW, y: y + Math.random() * 120 - 60, s: 0.6 + Math.random() * 1.4, tw: Math.random() * 6.28 });
+        }
+      }
+    }
+  }
+
+  /* ---------- coordinate helpers ---------- */
+  function sy(worldY) { return LH - GROUND - worldY + cam; }   // world height -> logical screen y
+
+  /* ---------- input ---------- */
+  function primaryAction() {
+    audioInit();
+    if (mode === 'title') { startPlay(); return; }
+    if (paused) { paused = false; pauseOv.classList.add('hidden'); return; }
+    if (mode === 'play') { doDrop(); return; }
+    // mode 'over': restart handled by button, but allow tap after short delay
+    if (mode === 'over' && overShownAt && performance.now() - overShownAt > 600) startPlay();
+  }
+  var overShownAt = 0;
+
+  cv.addEventListener('pointerdown', function (e) { e.preventDefault(); primaryAction(); });
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); primaryAction(); }
+  });
+  document.getElementById('playBtn').addEventListener('click', function (e) { e.stopPropagation(); audioInit(); startPlay(); });
+  document.getElementById('againBtn').addEventListener('click', function (e) { e.stopPropagation(); audioInit(); startPlay(); });
+  titleOv.addEventListener('pointerdown', function (e) { if (e.target === titleOv) { audioInit(); startPlay(); } });
+  pauseOv.addEventListener('pointerdown', function () { paused = false; pauseOv.classList.add('hidden'); });
+
+  window.addEventListener('blur', function () {
+    if (mode === 'play' && !paused) { paused = true; pauseOv.classList.remove('hidden'); }
+  });
+
+  function startPlay() {
+    newGame();
+    mode = 'play';
+    paused = false;
+    titleOv.classList.add('hidden');
+    overOv.classList.add('hidden');
+    pauseOv.classList.add('hidden');
+  }
+
+  /* ---------- drop handling + juice ---------- */
+  function doDrop() {
+    var res = Core.drop(g);
+
+    if (res.type === 'miss') {
+      sfxOver();
+      shake(7);
+      endGame();
+      return;
+    }
+
+    var nb = g.blocks[g.blocks.length - 1];
+    var topY = sy(Core.towerTopY(g)); // top surface of the freshly placed block
+
+    if (res.type === 'perfect') {
+      sfxPerfect(res.streak);
+      buzz(15);
+      shake(2.5);
+      rings.push({ x: nb.x + nb.w / 2, y: topY, r: nb.w * 0.3, vr: 260, a: 0.9 });
+      var n = 10 + Math.min(res.streak, 6) * 4;
+      for (var i = 0; i < n; i++) {
+        var an = Math.random() * 6.28, sp = 60 + Math.random() * 160;
+        particles.push({
+          x: nb.x + nb.w / 2, y: topY, vx: Math.cos(an) * sp, vy: -Math.abs(Math.sin(an)) * sp - 40,
+          life: 0.6 + Math.random() * 0.5, t: 0, hue: blockHue(g.blocks.length - 1), size: 1.5 + Math.random() * 2.5
+        });
+      }
+      if (res.grew) banners.push({ text: '+WIDTH', t: 0, dur: 1.1, small: true });
+    } else {
+      sfxThunk(nb.w / g.baseW);
+      if (res.cut > 0.5) sfxSlice();
+      shake(1.2 + Math.min(res.cut / 40, 2));
+    }
+
+    scoreEl.textContent = String(g.score);
+
+    // milestone banners every 25 blocks
+    var h = Core.height(g);
+    if (h > 0 && h % 25 === 0 && h !== lastMilestone) {
+      lastMilestone = h;
+      banners.push({ text: h + '! 🔥', t: 0, dur: 1.6 });
+      sfxPerfect(5);
+    }
+    // passing previous best
+    if (!passedBest && activeBest().height > 0 && h > activeBest().height) {
+      passedBest = true;
+      banners.push({ text: 'PAST YOUR BEST!', t: 0, dur: 1.8 });
+    }
+  }
+
+  function shake(m) { shakeT = 0.22; shakeMag = m; }
+
+  function endGame() {
+    mode = 'over';
+    overShownAt = performance.now();
+    buzz(40);
+    var h = Core.height(g);
+    var b = activeBest();
+    var isNew = g.score > b.score;
+    if (isNew) b.score = g.score;
+    if (h > b.height) b.height = h;
+    if (isNew || h >= b.height) (zenMode ? saveZenBest : saveBest)(b);
+    var coins = Math.max(1, Math.min(200, Math.round(h * 1.5)));
+    var rw = awardCoinsPlus('tower-stack', coins);
+    document.getElementById('coinAward').textContent = '+' + rw.n + ' 🪙  (wallet ' + rw.total + ')';
+    document.getElementById('coinBal').textContent = '🪙 ' + rw.total;
+    var luckyEl = document.getElementById('luckyLine');
+    luckyEl.style.display = rw.lucky > 1 ? '' : 'none';
+    if (rw.lucky > 1) { luckyEl.textContent = '🍀 LUCKY ×' + rw.lucky + '!'; sfxLucky(); buzz(30); }
+    document.getElementById('ticketLine').style.display = rw.ticket ? '' : 'none';
+    document.getElementById('finalScore').textContent = g.score;
+    document.getElementById('finalHeight').textContent = h;
+    document.getElementById('finalBest').textContent = b.score;
+    document.getElementById('newBestTag').style.display = isNew ? 'block' : 'none';
+    bestLbl.textContent = (zenMode ? 'Zen Best ' : 'Best ') + b.score;
+    setTimeout(function () { overOv.classList.remove('hidden'); }, 550);
+  }
+
+  /* ---------- background theme (ground -> sky -> space) ---------- */
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+  var THEMES = [
+    { top: [23, 21, 42], bot: [46, 36, 66] },     // ground: dusky purple
+    { top: [14, 24, 54], bot: [32, 46, 88] },     // sky: deep blue
+    { top: [4, 5, 14],   bot: [12, 13, 32] }      // space: near black
+  ];
+  function bgColors(h) {
+    var t1 = clamp01(h / 28), t2 = clamp01((h - 32) / 38);
+    function mix(ch) {
+      var a = THEMES[0][ch], b = THEMES[1][ch], c = THEMES[2][ch], out = [];
+      for (var i = 0; i < 3; i++) out[i] = Math.round(lerp(lerp(a[i], b[i], t1), c[i], t2));
+      return out;
+    }
+    return { top: mix('top'), bot: mix('bot'), space: t2 };
+  }
+
+  /* ---------- render ---------- */
+  var lastT = 0;
+  function frame(t) {
+    requestAnimationFrame(frame);
+    var dt = Math.min((t - lastT) / 1000, 0.05);
+    lastT = t;
+    if (!isFinite(dt) || dt <= 0) return;
+
+    if (g && mode !== 'title' && !paused) {
+      Core.step(g, dt);
+      bobT += dt;
+      // wind phase transitions -> sock cue + whistle
+      if (!g.zen && g.wind.phase !== windPhasePrev) {
+        if (g.wind.phase === 'telegraph') sfxWindCue();
+        else if (g.wind.phase === 'gust') sfxWindGust();
+        windPhasePrev = g.wind.phase;
+      }
+      // smooth camera
+      camTarget = Math.max(0, Core.towerTopY(g) - LH * 0.42);
+      cam += (camTarget - cam) * Math.min(1, dt * 4.5);
+      ensureDecor();
+      if (shakeT > 0) shakeT -= dt;
+      // particles
+      for (var i = particles.length - 1; i >= 0; i--) {
+        var p = particles[i];
+        p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 500 * dt;
+        if (p.t > p.life) particles.splice(i, 1);
+      }
+      for (var r = rings.length - 1; r >= 0; r--) {
+        var rg = rings[r];
+        rg.r += rg.vr * dt; rg.a -= dt * 2.2;
+        if (rg.a <= 0) rings.splice(r, 1);
+      }
+      for (var b = banners.length - 1; b >= 0; b--) {
+        banners[b].t += dt;
+        if (banners[b].t > banners[b].dur) banners.splice(b, 1);
+      }
+    }
+
+    draw();
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function draw() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var h = g ? Core.height(g) : 0;
+    var bc = bgColors(h);
+    var hue = g ? blockHue(g.blocks.length) : hueBase;
+
+    // background gradient over full canvas
+    var grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgb(' + bc.top.join(',') + ')');
+    grad.addColorStop(1, 'rgb(' + bc.bot.join(',') + ')');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    // subtle hue tint that follows the tower colors
+    ctx.fillStyle = 'hsla(' + hue + ',60%,50%,0.045)';
+    ctx.fillRect(0, 0, W, H);
+
+    // game-space transform (letterboxed field) + micro-shake
+    var shx = 0, shy = 0;
+    if (shakeT > 0) {
+      var m = shakeMag * (shakeT / 0.22);
+      shx = (Math.random() * 2 - 1) * m;
+      shy = (Math.random() * 2 - 1) * m;
+    }
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * (ox + shx * scale), dpr * shy * scale);
+
+    // decorations (parallax)
+    for (var d = 0; d < decor.length; d++) {
+      var dec = decor[d];
+      var dy = LH - GROUND - dec.y + cam * PARALLAX;
+      if (dy < -80 || dy > LH + 80) continue;
+      var worldEq = dec.y / PARALLAX;
+      if (dec.kind === 'cloud') {
+        var cloudA = 0.07 * clamp01(1.4 - worldEq / SKY_H) * (1 - bc.space * 0.85);
+        if (cloudA <= 0.004) continue;
+        ctx.fillStyle = 'rgba(255,255,255,' + cloudA.toFixed(3) + ')';
+        var cx2 = (dec.x + bobT * dec.drift) % (LW + 160) - 80;
+        ctx.beginPath();
+        ctx.ellipse(cx2, dy, 46 * dec.s, 15 * dec.s, 0, 0, 6.29);
+        ctx.ellipse(cx2 + 30 * dec.s, dy - 8 * dec.s, 30 * dec.s, 12 * dec.s, 0, 0, 6.29);
+        ctx.ellipse(cx2 - 32 * dec.s, dy - 5 * dec.s, 26 * dec.s, 10 * dec.s, 0, 0, 6.29);
+        ctx.fill();
+      } else {
+        var starA = (0.25 + 0.3 * Math.sin(bobT * 2 + dec.tw)) * clamp01((worldEq - SKY_H * 0.6) / (SKY_H * 0.5));
+        if (starA <= 0.01) continue;
+        ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.7, starA).toFixed(3) + ')';
+        ctx.fillRect(dec.x, dy, 1.6 * dec.s, 1.6 * dec.s);
+      }
+    }
+
+    if (!g) { drawGroundLine(); return; }
+
+    // ghost line for previous best height
+    if (activeBest().height > 0) {
+      var gy = sy(activeBest().height * CFG.blockH);
+      if (gy > -20 && gy < LH + 20) {
+        ctx.save();
+        ctx.strokeStyle = passedBest ? 'rgba(255,209,102,0.75)' : 'rgba(255,255,255,0.3)';
+        ctx.setLineDash([7, 7]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(8, gy); ctx.lineTo(LW - 8, gy); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '700 11px -apple-system, sans-serif';
+        ctx.fillStyle = passedBest ? 'rgba(255,209,102,0.95)' : 'rgba(255,255,255,0.5)';
+        ctx.textAlign = 'left';
+        ctx.fillText(passedBest ? 'BEST ✦' : 'BEST', 10, gy - 5);
+        ctx.restore();
+      }
+    }
+
+    drawGroundLine();
+
+    // tower blocks
+    var bh = CFG.blockH;
+    for (var i = 0; i < g.blocks.length; i++) {
+      var yTop = sy((i + 1) * bh);
+      if (yTop > LH + bh) continue;
+      if (yTop < -bh) break;
+      var blk = g.blocks[i];
+      var bhue = blockHue(i);
+      ctx.fillStyle = 'hsl(' + bhue + ',62%,' + (50 + (i % 2) * 3) + '%)';
+      ctx.fillRect(blk.x, yTop, blk.w, bh);
+      // top face highlight
+      ctx.fillStyle = 'hsla(' + bhue + ',70%,78%,0.55)';
+      ctx.fillRect(blk.x, yTop, blk.w, 4);
+      // side shading
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(blk.x + blk.w - 5, yTop, 5, bh);
+      // perfect flash
+      if (blk.flash > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (blk.flash * 0.75).toFixed(3) + ')';
+        ctx.fillRect(blk.x, yTop, blk.w, bh);
+      }
+    }
+
+    // slice pieces (tumbling)
+    for (var pi = 0; pi < g.pieces.length; pi++) {
+      var pc = g.pieces[pi];
+      var pyTop = sy(pc.y + bh);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, pc.alpha));
+      ctx.translate(pc.x + pc.w / 2, pyTop + bh / 2);
+      ctx.rotate(pc.rot);
+      ctx.fillStyle = 'hsl(' + blockHue(g.blocks.length - 1) + ',60%,48%)';
+      ctx.fillRect(-pc.w / 2, -bh / 2, pc.w, bh);
+      ctx.restore();
+    }
+
+    // mover
+    if (!g.over && g.mover) {
+      var mv = g.mover;
+      var mWorldY = Core.towerTopY(g) + bh * 1.35;
+      var mYTop = sy(mWorldY + bh) + Math.sin(bobT * 3) * 2;
+      var mhue = blockHue(g.blocks.length);
+      // drop guide
+      var topBlk = g.blocks[g.blocks.length - 1];
+      ctx.fillStyle = 'hsla(' + mhue + ',70%,70%,0.07)';
+      ctx.fillRect(mv.x, mYTop + bh, mv.w, sy(Core.towerTopY(g)) - (mYTop + bh));
+      // the block
+      ctx.fillStyle = 'hsl(' + mhue + ',65%,56%)';
+      roundRect(ctx, mv.x, mYTop, mv.w, bh, 4);
+      ctx.fill();
+      ctx.fillStyle = 'hsla(' + mhue + ',75%,80%,0.6)';
+      ctx.fillRect(mv.x + 2, mYTop + 1.5, mv.w - 4, 3.5);
+      // perfect-zone tick marks on the top block
+      var tY = sy(Core.towerTopY(g));
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(topBlk.x - 1, tY - 3, 2, 6);
+      ctx.fillRect(topBlk.x + topBlk.w - 1, tY - 3, 2, 6);
+    }
+
+    // shockwave rings
+    for (var ri = 0; ri < rings.length; ri++) {
+      var rr = rings[ri];
+      ctx.strokeStyle = 'rgba(255,255,255,' + Math.max(0, rr.a).toFixed(3) + ')';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(rr.x, rr.y, rr.r, 0, 6.29); ctx.stroke();
+    }
+
+    // sparkles
+    for (var si = 0; si < particles.length; si++) {
+      var sp = particles[si];
+      var a = 1 - sp.t / sp.life;
+      ctx.fillStyle = 'hsla(' + sp.hue + ',90%,75%,' + a.toFixed(3) + ')';
+      ctx.fillRect(sp.x - sp.size / 2, sp.y - sp.size / 2, sp.size, sp.size);
+    }
+
+    // wind sock indicator (telegraph pulses, gust points with direction)
+    if (mode === 'play' && !g.zen && g.wind.phase !== 'idle') {
+      var wd = g.wind;
+      var gusting = wd.phase === 'gust';
+      var wAlpha = gusting ? 0.95 : 0.45 + 0.35 * Math.sin(bobT * 12);
+      var wcx = LW / 2, wcy = LH * 0.13;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, wAlpha));
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(wcx - 44, wcy + 12); ctx.lineTo(wcx - 44, wcy - 10); ctx.stroke();
+      var slen = (10 + wd.amp * 2.2) * (gusting ? 1 : 0.55);
+      ctx.strokeStyle = '#ff9d5c';
+      ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(wcx - 44, wcy - 8);
+      for (var wi = 1; wi <= 5; wi++) {
+        ctx.lineTo(wcx - 44 + wd.dir * slen * wi / 5, wcy - 8 + Math.sin(bobT * 9 + wi) * 1.6);
+      }
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+      ctx.font = '800 12px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = gusting ? '#ffd166' : 'rgba(255,255,255,0.8)';
+      ctx.fillText(gusting ? (wd.dir > 0 ? 'WIND →' : '← WIND') : 'WIND RISING…', wcx + 26, wcy);
+      ctx.restore();
+    }
+
+    // streak indicator
+    if (g.perfectStreak >= 2 && !g.over) {
+      ctx.font = '800 15px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,209,102,0.9)';
+      ctx.fillText('✦ ' + g.perfectStreak + 'x PERFECT', LW / 2, LH * 0.19);
+    }
+
+    // milestone banners
+    for (var bi = 0; bi < banners.length; bi++) {
+      var bn = banners[bi];
+      var bt = bn.t / bn.dur;
+      var pop = bt < 0.18 ? bt / 0.18 : 1;
+      var fade = bt > 0.7 ? 1 - (bt - 0.7) / 0.3 : 1;
+      ctx.save();
+      ctx.translate(LW / 2, LH * (bn.small ? 0.32 : 0.28) - bt * 24);
+      ctx.scale(0.6 + pop * 0.4, 0.6 + pop * 0.4);
+      ctx.globalAlpha = Math.max(0, fade);
+      ctx.font = '800 ' + (bn.small ? 20 : 34) + 'px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd166';
+      ctx.shadowColor = 'rgba(255,160,60,0.6)';
+      ctx.shadowBlur = 18;
+      ctx.fillText(bn.text, 0, 0);
+      ctx.restore();
+    }
+  }
+
+  function drawGroundLine() {
+    var gy = sy(0);
+    if (gy < LH + 4 && gy > -4) {
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(-ox / scale, gy, LW + 2 * ox / scale, 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(-ox / scale, gy + 2, LW + 2 * ox / scale, LH);
+    }
+  }
+
+  /* ---------- zen toggle + wallet display ---------- */
+  var zenBtn = document.getElementById('zenBtn');
+  function updateZenBtn() {
+    zenBtn.innerHTML = zenMode ? '&#129496; Zen Mode: On' : '&#129496; Zen Mode: Off';
+    bestLbl.textContent = (zenMode ? 'Zen Best ' : 'Best ') + activeBest().score;
+  }
+  zenBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    zenMode = !zenMode;
+    try { localStorage.setItem(STORE_KEY + '-zenmode', zenMode ? '1' : '0'); } catch (err) {}
+    updateZenBtn();
+  });
+  zenBtn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+  updateZenBtn();
+  document.getElementById('coinBal').textContent = '🪙 ' + walletCoins();
+
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

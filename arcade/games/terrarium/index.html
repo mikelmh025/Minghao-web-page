@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#12121a">
+<title>Terrarium — a living evolving ecosystem</title>
+<style>
+  :root{
+    --bg:#12121a; --panel:rgba(18,20,26,.82); --panel2:rgba(30,34,44,.92);
+    --ink:#e9ece6; --dim:#98a09a; --line:rgba(255,255,255,.09);
+    --plant:#7ad06a; --bib:#ffcf6b; --snap:#ff6f6f; --gold:#ffd15c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;overflow:hidden;touch-action:none}
+  #wrap{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%}
+  .hud{position:absolute;pointer-events:none;z-index:5}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .pill{pointer-events:auto;background:var(--panel);border:1px solid var(--line);
+    color:var(--ink);border-radius:999px;padding:7px 12px;font-size:12px;cursor:pointer;
+    text-decoration:none;backdrop-filter:blur(8px);user-select:none;transition:.12s;white-space:nowrap}
+  .pill:hover{background:var(--panel2)}
+  .pill.on{background:#2f7d4f;border-color:#4fae72;color:#fff}
+  .pill.small{padding:5px 9px;font-size:11px}
+  #top{top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  #title{font-weight:700;font-size:15px;letter-spacing:.5px;margin-left:4px}
+  #title small{display:block;font-weight:400;font-size:10px;color:var(--dim);letter-spacing:0}
+  #panels{position:absolute;top:52px;right:10px;display:flex;flex-direction:column;gap:8px;align-items:flex-end;z-index:5;max-width:240px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:9px 11px;font-size:11px;backdrop-filter:blur(8px);line-height:1.5;pointer-events:auto;width:224px}
+  .card .hd{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:3px;letter-spacing:.4px}
+  .card b{font-weight:700}
+  .cP{color:var(--plant)} .cB{color:var(--bib)} .cS{color:var(--snap)} .cG{color:var(--gold)}
+  .trait{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:10px;margin:1px 0}
+  .trait .nm{color:var(--dim);width:52px}
+  .trait .bar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+  .trait .bar>i{display:block;height:100%;border-radius:3px}
+  .trend{font-size:9px;color:var(--dim)}
+  .up{color:#78e08f} .down{color:#ff8a7a}
+  .spark{width:100%;height:22px;display:block;margin-top:3px}
+  #graphCard{width:224px}
+  #graph{width:100%;height:66px;display:block;border-radius:6px}
+  #tools{bottom:44px;left:50%;transform:translateX(-50%);display:flex;gap:5px;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;backdrop-filter:blur(8px);flex-wrap:wrap;justify-content:center;max-width:96vw}
+  #tools .pill{font-size:16px;padding:7px 9px;line-height:1;text-align:center}
+  #tools .lbl{font-size:8px;line-height:1;display:block;margin-top:2px;color:var(--dim)}
+  #tools .pill.on .lbl{color:#dbeee0}
+  #tools .sp{font-size:12px}
+  #chron{bottom:10px;left:10px;right:10px;text-align:center}
+  #chronText{display:inline-block;background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:5px 14px;font-size:11px;color:var(--dim);max-width:92vw;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(8px)}
+  #inspect{position:absolute;left:10px;top:150px;z-index:8;display:none;width:230px}
+  #inspect .cmp{display:flex;justify-content:space-between;font-size:10px}
+  #inspect .cmp .v{width:60px;text-align:right}
+  #wallet{font-size:11px}
+  #intro{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    background:rgba(6,8,10,.6);backdrop-filter:blur(4px);pointer-events:auto}
+  #card{max-width:440px;width:88%;background:linear-gradient(180deg,#17211a,#121a17);
+    border:1px solid var(--line);border-radius:18px;padding:24px 24px 18px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+  #card h1{margin:0 0 2px;font-size:24px;letter-spacing:1px}
+  #card p{color:var(--dim);font-size:12px;line-height:1.65;margin:9px 0}
+  #card .go{display:block;width:100%;text-align:center;margin-top:16px;background:#2f7d4f;color:#fff;
+    border:none;border-radius:12px;padding:13px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:700}
+  #card .go:hover{background:#3a9a61}
+  #away{background:rgba(255,209,92,.1);border:1px solid rgba(255,209,92,.3);color:var(--gold);
+    border-radius:10px;padding:8px 10px;font-size:11px;margin-top:10px;display:none;line-height:1.5}
+  @media(max-width:640px){ #panels{max-width:190px} .card{width:184px} #graphCard{width:184px} #title small{display:none} }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div class="hud" id="top">
+    <div class="row" style="align-items:flex-start">
+      <a class="pill" href="../../arcade.html">&larr; Arcade</a>
+      <a class="pill" href="../../vault.html">🎴 Card Vault</a>
+      <div id="title">TERRARIUM<small>a living, evolving ecosystem</small></div>
+    </div>
+    <div class="row" style="align-items:flex-start">
+      <div class="card" id="clockCard" style="width:auto;min-width:150px">
+        <div class="hd"><span id="seasonName">spring</span><span id="clockPhase">day</span></div>
+        <div>gen <b id="genMax">0</b> · pop <b id="totPop">0</b></div>
+        <div id="wallet" class="hd" style="margin-top:4px;border-top:1px solid var(--line);padding-top:4px">
+          <span class="cG">🪙 wallet</span><span class="cG"><b id="coins">0</b></span></div>
+      </div>
+      <button class="pill small" id="mute">🔊</button>
+    </div>
+  </div>
+
+  <div id="panels">
+    <div class="card" id="pPlant">
+      <div class="hd"><span class="cP">🌿 PLANTS</span><span><b id="cntPlant">0</b></span></div>
+      <div class="trait"><span class="nm">density</span><div class="bar"><i id="tPlantD" style="background:var(--plant)"></i></div></div>
+      <canvas class="spark" id="spkPlant"></canvas>
+    </div>
+    <div class="card" id="pBib">
+      <div class="hd"><span class="cB">🐇 BIBBITS</span><span><b id="cntBib">0</b></span></div>
+      <div id="bibTraits"></div>
+      <div class="trend" id="bibTrend">gathering data…</div>
+      <canvas class="spark" id="spkBib"></canvas>
+    </div>
+    <div class="card" id="pSnap">
+      <div class="hd"><span class="cS">🦎 SNAPPERS</span><span><b id="cntSnap">0</b></span></div>
+      <div id="snapTraits"></div>
+      <div class="trend" id="snapTrend">gathering data…</div>
+      <canvas class="spark" id="spkSnap"></canvas>
+    </div>
+    <div class="card" id="graphCard">
+      <div class="hd"><span>POPULATION</span><span class="dim">Lotka–Volterra</span></div>
+      <canvas id="graph"></canvas>
+    </div>
+  </div>
+
+  <div class="card" id="inspect"></div>
+
+  <div class="hud" id="tools">
+    <div class="pill" data-tool="seed">🌱<span class="lbl">seed</span></div>
+    <div class="pill" data-tool="food">🍖<span class="lbl">food</span></div>
+    <div class="pill" data-act="warm">☀<span class="lbl">warmer</span></div>
+    <div class="pill" data-act="cool">❄<span class="lbl">cooler</span></div>
+    <div class="pill" data-tool="inspect">🔍<span class="lbl">inspect</span></div>
+    <div class="pill sp on" data-spd="1">1×<span class="lbl">speed</span></div>
+    <div class="pill sp" data-spd="4">4×<span class="lbl">speed</span></div>
+    <div class="pill sp" data-spd="16">16×<span class="lbl">speed</span></div>
+  </div>
+
+  <div class="hud" id="chron"><span id="chronText">Welcome to the terrarium.</span></div>
+
+  <div id="intro">
+    <div id="card">
+      <h1>🌿 TERRARIUM</h1>
+      <p>A self-running world. Plants sprout and seed, <b class="cB">bibbits</b> graze, <b class="cS">snappers</b> hunt — and every creature carries heritable traits that <b>drift and adapt across generations</b>. Watch scarce winters breed smaller, thriftier bibbits; watch fast predators breed fast prey.</p>
+      <p>Nudge it with seeds, food and seasons — or just leave it running and let evolution do its thing. It keeps living while you're away.</p>
+      <div id="away"></div>
+      <button class="go" id="enterBtn">ENTER THE TERRARIUM</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DOM-FREE SIMULATION CORE ================= -->
+<script id="sim-core">
+(function(root){
+'use strict';
+
+var C = {
+  W:1100, H:700, SEASON_LEN:90, DAY_LEN:34,
+  MAX_PLANTS:360, MAX_BIB:230, MAX_SNAP:64,
+  POND:{x:775,y:475,rx:158,ry:92},
+  MIGRATE_DELAY:30
+};
+var SEASONS = ['spring','summer','autumn','winter'];
+var SEASON_GROW = { spring:1.55, summer:1.05, autumn:0.6, winter:0.22 };
+
+function mulberry32(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    var t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+function clamp(v,lo,hi){ return v<lo?lo:(v>hi?hi:v); }
+
+// heritable trait bounds
+var TB = {
+  speed:[0.45,2.05], size:[0.55,1.9], sense:[34,175], metab:[0.6,1.55], boldness:[0.02,0.98]
+};
+var TKEYS = ['speed','size','sense','metab','boldness'];
+
+function mutate(v,rng,b){
+  var m = 1 + (rng()*2-1)*0.08;   // +/- up to 8%
+  return clamp(v*m, b[0], b[1]);
+}
+function childTraits(pt, rng){
+  var c = {};
+  for(var i=0;i<TKEYS.length;i++){ var k=TKEYS[i]; c[k]=mutate(pt[k],rng,TB[k]); }
+  return c;
+}
+function seedTraits(rng, spread){
+  spread = spread==null?1:spread;
+  function pick(b,mid){ var lo=b[0],hi=b[1]; var c=mid==null?(lo+hi)/2:mid; var r=(hi-lo)*0.28*spread; return clamp(c+(rng()*2-1)*r, lo,hi); }
+  return {
+    speed: pick(TB.speed), size: pick(TB.size), sense: pick(TB.sense),
+    metab: pick(TB.metab), boldness: pick(TB.boldness)
+  };
+}
+
+// TRADE-OFF: metabolic energy cost grows with speed AND size (faster/bigger => hungrier)
+function metabolicCost(t, base){
+  return base * (0.35 + 0.65*t.speed*t.speed) * (0.55 + 0.55*t.size) * t.metab;
+}
+// TRADE-OFF: bigger => slower locomotion
+function moveSpeed(t, base){
+  return base * t.speed * (1.4 - 0.42*t.size);
+}
+function lifespan(t, base){ return base * (0.7 + 0.55*t.size); }
+
+function dist2(ax,ay,bx,by){ var dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; }
+
+function createWorld(opts){
+  opts = opts||{};
+  var seed = (opts.seed>>>0)||12345;
+  var rng = mulberry32(seed);
+
+  var W = {
+    C:C, seed:seed, rng:rng,
+    time:0, season:0, seasonName:'spring', dayPhase:0, night:false,
+    plants:[], bibbits:[], snappers:[],
+    nextId:1,
+    migration: opts.migration!==false,
+    migTimer:{bibbit:-1, snapper:-1},
+    stats:{
+      births:{bibbit:0, snapper:0}, plantsBorn:0,
+      deaths:{
+        bibbit:{starve:0, age:0, predation:0},
+        snapper:{starve:0, age:0}
+      },
+      energyEaten:{bibbit:0, snapper:0},
+      migrations:0
+    },
+    genMax:{bibbit:0, snapper:0},
+    genSpeedSum:{bibbit:{}, snapper:{}},  // gen -> {sum,n} at birth
+    popHistory:[],       // {t,plants,bibbits,snappers}
+    traitHistory:{bibbit:[], snapper:[]},  // {t, speed,size,sense,metab,boldness, n, gen}
+    chronicle:[],
+    _popAcc:0, _traitAcc:0,
+    rocks:[]
+  };
+
+  // scenery rocks (deterministic)
+  for(var r=0;r<6;r++){
+    W.rocks.push({ x:60+rng()*(C.W-120), y:C.H-40-rng()*120, rw:22+rng()*40, rh:14+rng()*24, tone:rng() });
+  }
+
+  // ---- constructors ----
+  function makePlantForm(){
+    var depth = 2 + (rng()<0.55?1:0);
+    function branch(d, len){
+      var node = { len:len, ang:(rng()*2-1)*0.55, kids:[], leaf:false, fruitSpot:false };
+      if(d>0){
+        var n = 2 + (rng()<0.4?1:0);
+        for(var i=0;i<n;i++) node.kids.push(branch(d-1, len*(0.58+rng()*0.22)));
+      } else {
+        node.leaf = true;
+        node.fruitSpot = rng()<0.55;
+      }
+      return node;
+    }
+    return branch(depth, 24+rng()*16);
+  }
+  function spawnPlant(x,y,growth){
+    if(W.plants.length>=C.MAX_PLANTS) return null;
+    var p = { id:W.nextId++, x:x, y:y, growth:growth==null?0.02:growth,
+      age:0, fruit:0, fruitT:0, form:makePlantForm(), phase:rng()*6.28,
+      hue:96+rng()*40, dead:false };
+    W.plants.push(p); return p;
+  }
+  function spawnBibbit(x,y,traits,gen,energy){
+    if(W.bibbits.length>=C.MAX_BIB) return null;
+    var t = traits||seedTraits(rng);
+    gen = gen||0;
+    var b = { id:W.nextId++, x:x, y:y, vx:0, vy:0, t:t, gen:gen,
+      energy: energy==null?46:energy, age:0, maxAge:lifespan(t,175)+rng()*30,
+      reproCd:3+rng()*3, hop:rng()*6.28, blink:0, ear:rng()*6.28,
+      target:null, flee:0, species:'bibbit', dead:false };
+    W.bibbits.push(b);
+    W.genMax.bibbit=Math.max(W.genMax.bibbit,gen);
+    var gs=W.genSpeedSum.bibbit; if(!gs[gen]) gs[gen]={sum:0,n:0}; gs[gen].sum+=t.speed; gs[gen].n++;
+    return b;
+  }
+  function spawnSnapper(x,y,traits,gen,energy){
+    if(W.snappers.length>=C.MAX_SNAP) return null;
+    var t = traits||seedTraits(rng);
+    gen = gen||0;
+    var s = { id:W.nextId++, x:x, y:y, vx:0, vy:0, t:t, gen:gen,
+      energy: energy==null?66:energy, age:0, maxAge:lifespan(t,205)+rng()*40,
+      reproCd:6+rng()*4, stamina:1, resting:false, catchCd:0, tailPhase:rng()*6.28,
+      target:null, species:'snapper', dead:false };
+    W.snappers.push(s);
+    W.genMax.snapper=Math.max(W.genMax.snapper,gen);
+    var gs=W.genSpeedSum.snapper; if(!gs[gen]) gs[gen]={sum:0,n:0}; gs[gen].sum+=t.speed; gs[gen].n++;
+    return s;
+  }
+  W.spawnPlant=spawnPlant; W.spawnBibbit=spawnBibbit; W.spawnSnapper=spawnSnapper;
+
+  function inPond(x,y){
+    var dx=(x-C.POND.x)/C.POND.rx, dy=(y-C.POND.y)/C.POND.ry;
+    return dx*dx+dy*dy < 1;
+  }
+  W.inPond=inPond;
+
+  function chron(msg){ W.chronicle.push({t:W.time, msg:msg}); if(W.chronicle.length>60) W.chronicle.shift(); }
+  W.chron=chron;
+
+  // ---- initial population ----
+  (function seedWorld(){
+    var n = opts.plants!=null?opts.plants:90;
+    for(var i=0;i<n;i++){
+      var x=20+rng()*(C.W-40), y=C.H-10-rng()*(C.H*0.62);
+      if(inPond(x,y)) continue;
+      spawnPlant(x,y,0.3+rng()*0.7);
+    }
+    var nb = opts.bibbits!=null?opts.bibbits:22;
+    for(i=0;i<nb;i++) spawnBibbit(40+rng()*(C.W-80), C.H*0.35+rng()*(C.H*0.5), null, 0);
+    var ns = opts.snappers!=null?opts.snappers:6;
+    for(i=0;i<ns;i++) spawnSnapper(40+rng()*(C.W-80), C.H*0.35+rng()*(C.H*0.5), null, 0);
+    chron('The terrarium awakens — '+n+' plants, '+nb+' bibbits, '+ns+' snappers.');
+  })();
+
+  // ---------- STEP ----------
+  W.step = function(dt){
+    W.time += dt;
+    var prevSeason = W.season;
+    W.season = Math.floor(W.time / C.SEASON_LEN) % 4;
+    W.seasonName = SEASONS[W.season];
+    W.dayPhase = (W.time % C.DAY_LEN) / C.DAY_LEN;
+    W.night = (W.dayPhase>0.5);
+    var grow = SEASON_GROW[W.seasonName];
+
+    if(W.season!==prevSeason){
+      if(W.seasonName==='winter') chron('Winter closes in — the pond freezes and food grows scarce.');
+      else if(W.seasonName==='spring') chron('Spring returns — green shoots everywhere.');
+      else if(W.seasonName==='autumn') chron('Autumn — leaves drift and the plants slow.');
+      else chron('Summer settles warm over the terrarium.');
+    }
+
+    stepPlants(dt, grow);
+    stepBibbits(dt, grow);
+    stepSnappers(dt);
+    handleMigration(dt);
+    recordHistory(dt);
+  };
+
+  function localPlantCount(x,y,rr){
+    var c=0, r2=rr*rr;
+    for(var i=0;i<W.plants.length;i++){ if(dist2(x,y,W.plants[i].x,W.plants[i].y)<r2) c++; }
+    return c;
+  }
+
+  function stepPlants(dt, grow){
+    var winter = W.seasonName==='winter';
+    for(var i=W.plants.length-1;i>=0;i--){
+      var p=W.plants[i];
+      p.age += dt;
+      // crowding slows growth
+      var crowd = localPlantCount(p.x,p.y,46);
+      var crowdF = clamp(1 - (crowd-2)*0.14, 0.15, 1);
+      if(p.growth<1){
+        p.growth = clamp(p.growth + dt*0.09*grow*crowdF, 0, 1);
+      } else {
+        // mature: accumulate fruit
+        p.fruitT += dt*grow;
+        if(p.fruitT>2.4 && p.fruit<3){ p.fruit++; p.fruitT=0; }
+      }
+      // reproduction: mature plants seed nearby
+      if(p.growth>=0.98 && W.plants.length<C.MAX_PLANTS){
+        var seedChance = 0.11*grow*dt;
+        if(rng()<seedChance){
+          var ang=rng()*6.28, d=26+rng()*46;
+          var nx=clamp(p.x+Math.cos(ang)*d, 14, C.W-14);
+          var ny=clamp(p.y+Math.sin(ang)*d, C.H*0.34, C.H-8);
+          if(!inPond(nx,ny) && localPlantCount(nx,ny,34)<4){
+            spawnPlant(nx,ny,0.02); W.stats.plantsBorn++;
+          }
+        }
+      }
+      // natural death
+      var deathRate = 0.003 + (winter?0.02:0) + (p.age>140?0.01:0);
+      if(rng()<deathRate*dt || p.growth<=0.001){ p.dead=true; W.plants.splice(i,1); }
+    }
+  }
+
+  function nearestPlant(x,y,rad){
+    var best=null, bd=rad*rad;
+    for(var i=0;i<W.plants.length;i++){
+      var p=W.plants[i]; if(p.growth<0.14 && p.fruit<=0) continue;
+      var d=dist2(x,y,p.x,p.y);
+      if(d<bd){ bd=d; best=p; }
+    }
+    return best;
+  }
+  function nearestSnapper(x,y,rad){
+    var best=null, bd=rad*rad;
+    for(var i=0;i<W.snappers.length;i++){
+      var d=dist2(x,y,W.snappers[i].x,W.snappers[i].y);
+      if(d<bd){ bd=d; best=W.snappers[i]; }
+    }
+    return best;
+  }
+
+  function stepBibbits(dt, grow){
+    var winter = W.seasonName==='winter';
+    for(var i=W.bibbits.length-1;i>=0;i--){
+      var b=W.bibbits[i];
+      b.age+=dt; b.reproCd-=dt; b.hop+=dt*6; b.ear+=dt*3;
+      b.blink-=dt; if(b.blink<-3) b.blink=0.12;
+      var senseR=b.t.sense;
+      // flee predators
+      var pred = nearestSnapper(b.x,b.y,senseR);
+      var mv = moveSpeed(b.t, 42);
+      var ax=0, ay=0, fleeing=false;
+      if(pred && rng()<(1.05-b.t.boldness)){
+        var dx=b.x-pred.x, dy=b.y-pred.y, dl=Math.sqrt(dx*dx+dy*dy)||1;
+        ax=dx/dl; ay=dy/dl; fleeing=true; b.flee=0.5;
+        mv*=1.45;
+      } else {
+        // seek food
+        if(!b.target || b.target.dead || dist2(b.x,b.y,b.target.x,b.target.y)>senseR*senseR){
+          b.target = nearestPlant(b.x,b.y,senseR);
+        }
+        if(b.target){
+          var tx=b.target.x-b.x, ty=b.target.y-b.y, tl=Math.sqrt(tx*tx+ty*ty)||1;
+          ax=tx/tl; ay=ty/tl;
+          if(tl<10){
+            // eat
+            var gain = 9 + 20*b.target.growth + b.target.fruit*7;
+            gain = Math.min(gain, 100-b.energy);
+            b.energy += gain; W.stats.energyEaten.bibbit+=gain;
+            b.target.fruit=0;
+            b.target.growth -= 0.55;
+            if(b.target.growth<0.03){ b.target.dead=true; var idx=W.plants.indexOf(b.target); if(idx>=0) W.plants.splice(idx,1); }
+            b.target=null;
+            b._ate=0.3;
+          }
+        } else {
+          // wander
+          b.vx += (rng()*2-1)*mv*dt*3;
+          b.vy += (rng()*2-1)*mv*dt*3;
+        }
+      }
+      b.flee-=dt;
+      // apply steering
+      b.vx += ax*mv*dt*4; b.vy += ay*mv*dt*4;
+      // damp + clamp
+      var sp=Math.sqrt(b.vx*b.vx+b.vy*b.vy);
+      if(sp>mv){ b.vx=b.vx/sp*mv; b.vy=b.vy/sp*mv; }
+      b.vx*=0.9; b.vy*=0.9;
+      b.x+=b.vx*dt; b.y+=b.vy*dt;
+      // bounds + pond avoidance
+      b.x=clamp(b.x,10,C.W-10); b.y=clamp(b.y,C.H*0.3,C.H-8);
+      if(inPond(b.x,b.y)){ var pdx=b.x-C.POND.x, pdy=b.y-C.POND.y, pl=Math.sqrt(pdx*pdx+pdy*pdy)||1; b.x+=pdx/pl*3; b.y+=pdy/pl*3; }
+      if(b._ate>0) b._ate-=dt;
+
+      // energy
+      b.energy -= metabolicCost(b.t, 2.6)*dt;
+
+      // reproduce
+      if(b.energy>70 && b.reproCd<=0 && W.bibbits.length<C.MAX_BIB){
+        b.energy -= 38;
+        var ct=childTraits(b.t,rng);
+        var child=spawnBibbit(b.x+(rng()*2-1)*12, b.y+(rng()*2-1)*12, ct, b.gen+1, 30);
+        if(child){ W.stats.births.bibbit++; b.reproCd=6+rng()*3; }
+      }
+
+      // death
+      if(b.energy<=0){ W.stats.deaths.bibbit.starve++; b.dead=true; W.bibbits.splice(i,1); continue; }
+      if(b.age>b.maxAge){
+        W.stats.deaths.bibbit.age++; b.dead=true; W.bibbits.splice(i,1);
+        if(b.gen<=2 && b.age>170) chron('Elder bibbit died at age '+fmtAge(b.age)+' — generation '+b.gen+'.');
+        continue;
+      }
+    }
+  }
+
+  function nearestBibbit(x,y,rad){
+    var best=null, bd=rad*rad;
+    for(var i=0;i<W.bibbits.length;i++){
+      var d=dist2(x,y,W.bibbits[i].x,W.bibbits[i].y);
+      if(d<bd){ bd=d; best=W.bibbits[i]; }
+    }
+    return best;
+  }
+  function nearestPack(s,rad){
+    var best=null, bd=rad*rad;
+    for(var i=0;i<W.snappers.length;i++){
+      var o=W.snappers[i]; if(o===s) continue;
+      var d=dist2(s.x,s.y,o.x,o.y);
+      if(d<bd){ bd=d; best=o; }
+    }
+    return best;
+  }
+
+  function stepSnappers(dt){
+    for(var i=W.snappers.length-1;i>=0;i--){
+      var s=W.snappers[i];
+      s.age+=dt; s.reproCd-=dt; s.catchCd-=dt; s.tailPhase+=dt*8;
+      var senseR=s.t.sense*1.15;
+      // find prey
+      if(!s.target || s.target.dead || dist2(s.x,s.y,s.target.x,s.target.y)>senseR*senseR){
+        s.target = nearestBibbit(s.x,s.y,senseR);
+      }
+      var baseMv = moveSpeed(s.t, 55);
+      var mv=baseMv, ax=0, ay=0;
+      // stamina/sprint model
+      if(s.target && s.stamina>0.15 && !s.resting){
+        mv = baseMv*1.6; s.stamina -= dt*0.5;
+        if(s.stamina<=0.15) s.resting=true;
+      } else if(s.resting){
+        mv = baseMv*0.5; s.stamina += dt*0.28;
+        if(s.stamina>=0.9) s.resting=false;
+      } else {
+        s.stamina = Math.min(1, s.stamina+dt*0.2);
+      }
+      if(s.target){
+        var tx=s.target.x-s.x, ty=s.target.y-s.y, tl=Math.sqrt(tx*tx+ty*ty)||1;
+        ax=tx/tl; ay=ty/tl;
+        if(tl<15 && s.catchCd<=0){
+          // catch attempt — faster/bigger prey harder to catch
+          var pCatch = clamp(0.5 + 0.6*(s.t.speed - s.target.t.speed) - 0.24*(s.target.t.size-1), 0.05, 0.96);
+          if(rng()<pCatch){
+            var gain = 30 + 22*s.target.t.size;
+            gain=Math.min(gain, 130-s.energy);
+            s.energy += gain; W.stats.energyEaten.snapper+=gain;
+            W.stats.deaths.bibbit.predation++;
+            var bi=W.bibbits.indexOf(s.target); if(bi>=0){ s.target.dead=true; W.bibbits.splice(bi,1); }
+            s.target=null; s._caught=0.35;
+            s.catchCd=1.2;
+          } else {
+            s.catchCd=0.7;
+            // prey dodges
+            s.target._ate=0;
+          }
+        }
+      } else {
+        // wander + pack cohesion
+        var mate=nearestPack(s,180);
+        if(mate){ var mdx=mate.x-s.x, mdy=mate.y-s.y, ml=Math.sqrt(mdx*mdx+mdy*mdy)||1; ax=mdx/ml*0.4; ay=mdy/ml*0.4; }
+        s.vx += (rng()*2-1)*mv*dt*2; s.vy += (rng()*2-1)*mv*dt*2;
+      }
+      s.vx += ax*mv*dt*4.5; s.vy += ay*mv*dt*4.5;
+      var sp=Math.sqrt(s.vx*s.vx+s.vy*s.vy);
+      if(sp>mv){ s.vx=s.vx/sp*mv; s.vy=s.vy/sp*mv; }
+      s.vx*=0.9; s.vy*=0.9;
+      s.x+=s.vx*dt; s.y+=s.vy*dt;
+      s.x=clamp(s.x,10,C.W-10); s.y=clamp(s.y,C.H*0.3,C.H-8);
+      if(inPond(s.x,s.y)){ var pdx=s.x-C.POND.x, pdy=s.y-C.POND.y, pl=Math.sqrt(pdx*pdx+pdy*pdy)||1; s.x+=pdx/pl*3; s.y+=pdy/pl*3; }
+      if(s._caught>0) s._caught-=dt;
+
+      s.energy -= metabolicCost(s.t, 3.1)*dt;
+
+      if(s.energy>92 && s.reproCd<=0 && W.snappers.length<C.MAX_SNAP){
+        s.energy -= 54;
+        var ct=childTraits(s.t,rng);
+        var child=spawnSnapper(s.x+(rng()*2-1)*12, s.y+(rng()*2-1)*12, ct, s.gen+1, 45);
+        if(child){ W.stats.births.snapper++; s.reproCd=8+rng()*4; }
+      }
+
+      if(s.energy<=0){ W.stats.deaths.snapper.starve++; s.dead=true; W.snappers.splice(i,1); continue; }
+      if(s.age>s.maxAge){ W.stats.deaths.snapper.age++; s.dead=true; W.snappers.splice(i,1); continue; }
+    }
+  }
+
+  function handleMigration(dt){
+    if(!W.migration) return;
+    // bibbits
+    if(W.bibbits.length===0){
+      if(W.migTimer.bibbit<0){ W.migTimer.bibbit=0; chron('The bibbits have died out — awaiting migration…'); }
+      else { W.migTimer.bibbit+=dt;
+        if(W.migTimer.bibbit>=C.MIGRATE_DELAY){
+          for(var i=0;i<4;i++) spawnBibbit(40+rng()*(C.W-80), C.H*0.5, seedTraits(rng,1.2), 0);
+          W.migTimer.bibbit=-1; W.stats.migrations++;
+          chron('A wave of new bibbits migrates in with fresh traits.');
+        }
+      }
+    } else W.migTimer.bibbit=-1;
+    // snappers
+    if(W.snappers.length===0){
+      if(W.migTimer.snapper<0){ W.migTimer.snapper=0; chron('The snappers have vanished — awaiting migration…'); }
+      else { W.migTimer.snapper+=dt;
+        if(W.migTimer.snapper>=C.MIGRATE_DELAY){
+          for(var j=0;j<3;j++) spawnSnapper(40+rng()*(C.W-80), C.H*0.5, seedTraits(rng,1.2), 0);
+          W.migTimer.snapper=-1; W.stats.migrations++;
+          chron('Snappers migrate back into the terrarium.');
+        }
+      }
+    } else W.migTimer.snapper=-1;
+  }
+
+  function avgTraits(list){
+    if(!list.length) return null;
+    var a={speed:0,size:0,sense:0,metab:0,boldness:0,gen:0};
+    for(var i=0;i<list.length;i++){ var c=list[i];
+      a.speed+=c.t.speed; a.size+=c.t.size; a.sense+=c.t.sense; a.metab+=c.t.metab; a.boldness+=c.t.boldness; a.gen+=c.gen; }
+    for(var k in a) a[k]/=list.length;
+    a.n=list.length;
+    return a;
+  }
+  W.avgTraits=function(sp){ return avgTraits(sp==='bibbit'?W.bibbits:W.snappers); };
+
+  function recordHistory(dt){
+    W._popAcc+=dt;
+    if(W._popAcc>=1){
+      W._popAcc-=1;
+      W.popHistory.push({ t:W.time, plants:W.plants.length, bibbits:W.bibbits.length, snappers:W.snappers.length });
+      if(W.popHistory.length>4200) W.popHistory.shift();
+    }
+    W._traitAcc+=dt;
+    if(W._traitAcc>=2){
+      W._traitAcc-=2;
+      var ab=avgTraits(W.bibbits), as=avgTraits(W.snappers);
+      if(ab){ ab.t=W.time; W.traitHistory.bibbit.push(ab); if(W.traitHistory.bibbit.length>2200) W.traitHistory.bibbit.shift(); }
+      if(as){ as.t=W.time; W.traitHistory.snapper.push(as); if(W.traitHistory.snapper.length>2200) W.traitHistory.snapper.shift(); }
+    }
+  }
+
+  W.counts=function(){ return { plants:W.plants.length, bibbits:W.bibbits.length, snappers:W.snappers.length }; };
+
+  // gen-0 vs latest-gen avg speed (selection signal)
+  W.genSpeedShift=function(sp){
+    var gs=W.genSpeedSum[sp];
+    var gens=Object.keys(gs).map(Number).sort(function(a,b){return a-b;});
+    if(gens.length<2) return null;
+    var g0=gs[gens[0]], gN=gs[gens[gens.length-1]];
+    var a0=g0.sum/g0.n, aN=gN.sum/gN.n;
+    return { gen0:gens[0], genN:gens[gens.length-1], speed0:a0, speedN:aN, pct:(aN-a0)/a0*100 };
+  };
+
+  return W;
+}
+
+// ---------- away progress (pure, deterministic) ----------
+function awayProgress(elapsedMs, state){
+  state=state||{};
+  var minutes = elapsedMs/60000;
+  var coins = Math.max(0, Math.min(120, Math.floor(minutes)));
+  // deterministic evolution estimate seeded from elapsed + world seed
+  var seed = ((state.seed>>>0)||1) ^ Math.floor(elapsedMs);
+  var r = mulberry32(seed>>>0);
+  var generations = Math.floor(minutes * 0.42);
+  var bibSpeedPct = Math.round(Math.min(40, generations*0.55 + r()*4));
+  var snapSpeedPct = Math.round(Math.min(45, generations*0.6 + r()*4));
+  var seasonsPassed = Math.floor((elapsedMs/1000)/90);
+  var summary;
+  if(minutes<1) summary='';
+  else summary='While you were away ('+Math.floor(minutes)+' min): '+generations+' generations, '+
+    seasonsPassed+' seasons. Bibbits evolved +'+bibSpeedPct+'% speed, snappers +'+snapSpeedPct+'%.';
+  return {
+    minutes:minutes, coins:coins, generations:generations,
+    bibSpeedPct:bibSpeedPct, snapSpeedPct:snapSpeedPct, seasonsPassed:seasonsPassed,
+    bonusPct: Math.round((bibSpeedPct+snapSpeedPct)/2), summary:summary
+  };
+}
+
+function fmtAge(sec){
+  var m=Math.floor(sec/60), s=Math.floor(sec%60);
+  return m+'m'+(s<10?'0':'')+s+'s';
+}
+
+var api = {
+  C:C, SEASONS:SEASONS, TB:TB, createWorld:createWorld, awayProgress:awayProgress,
+  mutate:mutate, childTraits:childTraits, seedTraits:seedTraits,
+  metabolicCost:metabolicCost, moveSpeed:moveSpeed, mulberry32:mulberry32, fmtAge:fmtAge
+};
+root.Terrarium = api;
+if(typeof module!=='undefined' && module.exports) module.exports = api;
+})(typeof globalThis!=='undefined'?globalThis:this);
+</script>
+
+<!-- ================= RENDER / UI / AUDIO / IDLE ================= -->
+<script>
+(function(){
+'use strict';
+var T = globalThis.Terrarium, C = T.C;
+var SLUG='terrarium', LS_STATE='arcade-terrarium';
+
+// ---------- wallet ----------
+function loadWallet(){ try{return JSON.parse(localStorage.getItem('arcade-wallet'))||{coins:0,earned:{},spent:0,tickets:0};}catch(e){return {coins:0,earned:{},spent:0,tickets:0};} }
+function awardCoins(n){
+  if(n<=0) return 0;
+  var w=loadWallet();
+  n=Math.round(n*(1+(w.bonusPct||0)/100));
+  w.coins=(w.coins||0)+n; w.earned=w.earned||{}; w.earned[SLUG]=(w.earned[SLUG]||0)+n;
+  localStorage.setItem('arcade-wallet',JSON.stringify(w));
+  return n;
+}
+function walletCoins(){ return loadWallet().coins||0; }
+
+// ---------- world ----------
+var world = T.createWorld({ seed:(Date.now()>>>0)||42 });
+
+// ---------- idle ----------
+function loadState(){ try{return JSON.parse(localStorage.getItem(LS_STATE));}catch(e){return null;} }
+function saveState(){
+  try{ localStorage.setItem(LS_STATE, JSON.stringify({
+    t:Date.now(), seed:world.seed,
+    plants:world.plants.length, bibbits:world.bibbits.length, snappers:world.snappers.length,
+    genB:world.genMax.bibbit, genS:world.genMax.snapper
+  })); }catch(e){}
+}
+(function applyAway(){
+  var st=loadState(); var awayEl=document.getElementById('away');
+  if(st && st.t){
+    var elapsed=Date.now()-st.t;
+    if(elapsed>60000){
+      var ap=T.awayProgress(elapsed,{seed:st.seed||world.seed});
+      var got=awardCoins(ap.coins);
+      awayEl.style.display='block';
+      awayEl.innerHTML=ap.summary+'<br>+'+got+' 🪙 Arcade Coins awarded.';
+    }
+  }
+  saveState();
+  setInterval(saveState,15000);
+  window.addEventListener('beforeunload',saveState);
+})();
+setInterval(function(){ var g=awardCoins(1); if(g) flashCoins(); }, 120000);
+
+// ---------- canvas ----------
+var cv=document.getElementById('cv'), g=cv.getContext('2d');
+var DPR=1, VW=0, VH=0, scale=1, offX=0, offY=0;
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1, 2);
+  VW=window.innerWidth; VH=window.innerHeight;
+  cv.width=Math.floor(VW*DPR); cv.height=Math.floor(VH*DPR);
+  cv.style.width=VW+'px'; cv.style.height=VH+'px';
+  scale=Math.min(VW/C.W, VH/C.H);
+  offX=(VW-C.W*scale)/2; offY=(VH-C.H*scale)/2;
+}
+window.addEventListener('resize',resize); resize();
+
+function toWorld(px,py){ return { x:(px-offX)/scale, y:(py-offY)/scale }; }
+
+// ---------- audio ----------
+var AC=null, master=null, muted=false, bedGain=null, bedTimer=0;
+function initAudio(){
+  if(AC) return;
+  try{
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    master=AC.createGain(); master.gain.value=0.5; master.connect(AC.destination);
+    bedGain=AC.createGain(); bedGain.gain.value=0.0; bedGain.connect(master);
+  }catch(e){ AC=null; }
+}
+function blip(freq, dur, type, vol, when){
+  if(!AC||muted) return;
+  var t=(when||AC.currentTime);
+  var o=AC.createOscillator(), gg=AC.createGain();
+  o.type=type||'sine'; o.frequency.value=freq;
+  gg.gain.setValueAtTime(0.0001,t);
+  gg.gain.exponentialRampToValueAtTime(vol||0.12,t+0.01);
+  gg.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.1));
+  o.connect(gg); gg.connect(master); o.start(t); o.stop(t+(dur||0.1)+0.02);
+}
+function sndEat(){ blip(520+Math.random()*80,0.08,'triangle',0.06); }
+function sndHop(){ blip(300+Math.random()*40,0.05,'sine',0.03); }
+function sndCatch(){ blip(150,0.12,'sawtooth',0.09); blip(90,0.18,'square',0.05); }
+// seasonal ambience bed
+function ambience(dt){
+  if(!AC||muted) return;
+  bedTimer-=dt;
+  if(bedTimer>0) return;
+  var s=world.seasonName;
+  if(s==='spring'||s==='summer'){
+    // birdsong FM chirps
+    bedTimer=0.5+Math.random()*1.2;
+    var base=900+Math.random()*700;
+    for(var i=0;i<3;i++){ blip(base*(1+i*0.12), 0.06, 'sine', 0.04, AC.currentTime+i*0.07); }
+  } else if(s==='autumn'){
+    bedTimer=2+Math.random()*2;
+    // wind gust — filtered noiseish via low osc
+    var o=AC.createOscillator(), gg=AC.createGain(), f=AC.createBiquadFilter();
+    o.type='sawtooth'; o.frequency.value=70+Math.random()*40; f.type='lowpass'; f.frequency.value=260;
+    gg.gain.setValueAtTime(0.0001,AC.currentTime);
+    gg.gain.linearRampToValueAtTime(0.03,AC.currentTime+0.6);
+    gg.gain.linearRampToValueAtTime(0.0001,AC.currentTime+1.8);
+    o.connect(f); f.connect(gg); gg.connect(master); o.start(); o.stop(AC.currentTime+2);
+  } else {
+    bedTimer=3+Math.random()*2;
+    // muffled winter low tone
+    blip(120,1.2,'sine',0.02);
+  }
+}
+
+// ---------- tools/input ----------
+var tool='inspect', speedMul=1, selected=null;
+document.querySelectorAll('#tools .pill[data-tool]').forEach(function(el){
+  el.addEventListener('click',function(){
+    initAudio();
+    if(tool===el.dataset.tool){ tool=''; el.classList.remove('on'); return; }
+    tool=el.dataset.tool;
+    document.querySelectorAll('#tools .pill[data-tool]').forEach(function(e){e.classList.toggle('on',e===el);});
+  });
+});
+document.querySelectorAll('#tools .pill[data-act]').forEach(function(el){
+  el.addEventListener('click',function(){
+    initAudio();
+    if(el.dataset.act==='warm') world.time = Math.max(0, world.time - C.SEASON_LEN*0.5);
+    else world.time += C.SEASON_LEN*0.5;
+  });
+});
+document.querySelectorAll('#tools .pill[data-spd]').forEach(function(el){
+  el.addEventListener('click',function(){
+    speedMul=+el.dataset.spd;
+    document.querySelectorAll('#tools .pill[data-spd]').forEach(function(e){e.classList.toggle('on',e===el);});
+  });
+});
+document.getElementById('mute').addEventListener('click',function(){
+  initAudio(); muted=!muted; if(master) master.gain.value=muted?0:0.5;
+  this.textContent=muted?'🔇':'🔊';
+});
+
+var pointer={down:false,x:0,y:0};
+function onDown(e){
+  initAudio();
+  var pt=(e.touches?e.touches[0]:e);
+  var w=toWorld(pt.clientX, pt.clientY);
+  if(tool==='seed'){ world.spawnPlant(w.x, Math.max(C.H*0.34,w.y), 0.1); world.stats.plantsBorn++; sndEat(); }
+  else if(tool==='food'){
+    // drop nutritious fruit-plant clusters
+    for(var i=0;i<3;i++){ var p=world.spawnPlant(w.x+(Math.random()*2-1)*24, Math.max(C.H*0.34,w.y+(Math.random()*2-1)*24), 1); if(p) p.fruit=3; }
+    sndEat();
+  }
+  else { // inspect
+    var best=null, bd=1e9, cand=world.bibbits.concat(world.snappers);
+    for(var j=0;j<cand.length;j++){ var c=cand[j]; var dx=c.x-w.x, dy=c.y-w.y, d=dx*dx+dy*dy; if(d<bd&&d<900){ bd=d; best=c; } }
+    selected=best;
+  }
+}
+cv.addEventListener('mousedown',onDown);
+cv.addEventListener('touchstart',function(e){ e.preventDefault(); onDown(e); },{passive:false});
+
+// intro
+document.getElementById('enterBtn').addEventListener('click',function(){
+  initAudio(); if(AC && AC.state==='suspended') AC.resume();
+  document.getElementById('intro').style.display='none';
+});
+
+// ---------- render helpers ----------
+function drawPlant(p){
+  var gx=p.x, gy=p.y, gr=p.growth;
+  var season=world.seasonName;
+  var leafHue=p.hue, sat=55+gr*25, li=32+gr*14;
+  if(season==='autumn'){ leafHue=30+p.hue*0.15; sat=60; }
+  if(season==='winter'){ sat=20; li=30; }
+  g.save(); g.translate(gx,gy);
+  var sway=Math.sin(world.time*1.2+p.phase)*0.12*gr;
+  function branch(node, depth, len, thick){
+    var a=node.ang+sway*(depth+1);
+    g.save(); g.rotate(a);
+    var L=len*gr;
+    g.strokeStyle='hsl('+(30+depth*8)+',30%,'+(24+depth*4)+'%)';
+    g.lineWidth=Math.max(1,thick);
+    g.beginPath(); g.moveTo(0,0); g.lineTo(0,-L); g.stroke();
+    g.translate(0,-L);
+    if(node.leaf && gr>0.2){
+      g.fillStyle='hsl('+leafHue+','+sat+'%,'+li+'%)';
+      g.beginPath(); g.ellipse(0,-2,3.2*gr+1.5,5*gr+2,0,0,6.283); g.fill();
+      if(node.fruitSpot && p.fruit>0 && gr>0.9){
+        g.fillStyle='hsl('+(4+p.fruit*4)+',75%,58%)';
+        g.beginPath(); g.arc(0,0,2.4,0,6.283); g.fill();
+      }
+    }
+    for(var i=0;i<node.kids.length;i++) branch(node.kids[i], depth+1, node.kids[i].len, thick*0.7);
+    g.restore();
+  }
+  branch(p.form, 0, p.form.len, 2.6*Math.max(0.4,gr));
+  g.restore();
+}
+
+function bibColor(b){
+  // color reflects traits: faster => warmer hue, higher metab => more saturated
+  var hue = 48 - (b.t.speed-1)*22;
+  var sat = 55 + (b.t.metab-1)*40;
+  var li = 58 + (b.t.boldness-0.5)*14;
+  return 'hsl('+clampf(hue,10,60)+','+clampf(sat,30,90)+'%,'+clampf(li,40,72)+'%)';
+}
+function snapColor(s){
+  var hue = 8 - (s.t.speed-1)*12;
+  var sat = 60 + (s.t.metab-1)*35;
+  return 'hsl('+clampf(hue,-10,30)+','+clampf(sat,40,90)+'%,58%)';
+}
+function clampf(v,lo,hi){ return v<lo?lo:(v>hi?hi:v); }
+
+function drawBibbit(b){
+  var r=4.5+b.t.size*4.5;
+  var hopY = Math.abs(Math.sin(b.hop))* (2.5+b.t.speed*2) * (Math.abs(b.vx)+Math.abs(b.vy)>6?1:0.25);
+  g.save(); g.translate(b.x, b.y-hopY);
+  // shadow
+  g.fillStyle='rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(0,hopY+r*0.7,r*0.9,r*0.35,0,0,6.283); g.fill();
+  // ears
+  var ew=Math.sin(b.ear)*0.3;
+  g.fillStyle=bibColor(b);
+  g.save(); g.rotate(-0.5+ew); g.beginPath(); g.ellipse(-r*0.5,-r*1.1,r*0.28,r*0.7,0,0,6.283); g.fill(); g.restore();
+  g.save(); g.rotate(0.5-ew); g.beginPath(); g.ellipse(r*0.5,-r*1.1,r*0.28,r*0.7,0,0,6.283); g.fill(); g.restore();
+  // body
+  g.beginPath(); g.arc(0,0,r,0,6.283); g.fill();
+  // belly
+  g.fillStyle='rgba(255,255,255,.25)'; g.beginPath(); g.arc(0,r*0.3,r*0.55,0,6.283); g.fill();
+  // eye (blink)
+  g.fillStyle='#20140a';
+  if(b.blink<=0){ g.beginPath(); g.arc(r*0.35,-r*0.15,1.1,0,6.283); g.fill(); g.beginPath(); g.arc(-r*0.35,-r*0.15,1.1,0,6.283); g.fill(); }
+  else { g.strokeStyle='#20140a'; g.lineWidth=0.8; g.beginPath(); g.moveTo(r*0.2,-r*0.15); g.lineTo(r*0.5,-r*0.15); g.moveTo(-r*0.5,-r*0.15); g.lineTo(-r*0.2,-r*0.15); g.stroke(); }
+  if(b._ate>0){ g.fillStyle='rgba(120,220,120,.9)'; g.beginPath(); g.arc(0,-r-4,1.6,0,6.283); g.fill(); }
+  if(selected===b){ g.strokeStyle='#fff'; g.lineWidth=1.4; g.beginPath(); g.arc(0,0,r+4,0,6.283); g.stroke(); }
+  g.restore();
+}
+
+function drawSnapper(s){
+  var r=4+s.t.size*4;
+  var ang=Math.atan2(s.vy,s.vx);
+  g.save(); g.translate(s.x,s.y); g.rotate(ang);
+  g.fillStyle='rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(0,r*0.8,r*1.4,r*0.4,0,0,6.283); g.fill();
+  // tail
+  var tw=Math.sin(s.tailPhase)*0.6;
+  g.strokeStyle=snapColor(s); g.lineWidth=r*0.7; g.lineCap='round';
+  g.beginPath(); g.moveTo(-r*0.6,0); g.quadraticCurveTo(-r*1.6,tw*r, -r*2.4, tw*r*1.8); g.stroke();
+  // body sleek
+  g.fillStyle=snapColor(s);
+  g.beginPath(); g.ellipse(0,0,r*1.5,r*0.8,0,0,6.283); g.fill();
+  // head
+  g.beginPath(); g.ellipse(r*1.1,0,r*0.7,r*0.55,0,0,6.283); g.fill();
+  // eye
+  g.fillStyle= s.resting?'#442':'#ffd050'; g.beginPath(); g.arc(r*1.3,-r*0.25,1.1,0,6.283); g.fill();
+  if(s._caught>0){ g.fillStyle='rgba(255,80,80,.9)'; g.beginPath(); g.arc(r*1.6,0,2,0,6.283); g.fill(); }
+  if(selected===s){ g.strokeStyle='#fff'; g.lineWidth=1.4; g.beginPath(); g.ellipse(0,0,r*2,r*1.2,0,0,6.283); g.stroke(); }
+  g.restore();
+}
+
+// ambient particles
+var particles=[];
+for(var i=0;i<50;i++) particles.push({x:Math.random()*C.W,y:Math.random()*C.H,s:Math.random(),ph:Math.random()*6.28});
+
+function seasonTint(){
+  switch(world.seasonName){
+    case 'spring': return 'rgba(120,200,120,0.05)';
+    case 'summer': return 'rgba(255,220,120,0.06)';
+    case 'autumn': return 'rgba(210,140,60,0.09)';
+    case 'winter': return 'rgba(150,180,220,0.12)';
+  }
+}
+
+function render(){
+  g.setTransform(DPR,0,0,DPR,0,0);
+  g.clearRect(0,0,VW,VH);
+  g.save();
+  g.translate(offX,offY); g.scale(scale,scale);
+  // clip to world
+  g.beginPath(); g.rect(0,0,C.W,C.H); g.clip();
+
+  // sky / background gradient
+  var night = world.night, dp=world.dayPhase;
+  var dayLight = 0.5+0.5*Math.cos(dp*6.283); // 1 at noon-ish
+  var sky=g.createLinearGradient(0,0,0,C.H);
+  var topA = mixDay('#243a2a','#0c1420', dayLight);
+  var midA = mixDay('#37543a','#16241c', dayLight);
+  sky.addColorStop(0, topA); sky.addColorStop(0.55, midA);
+  // soil
+  sky.addColorStop(0.62,'#4a3524'); sky.addColorStop(1,'#2c1f14');
+  g.fillStyle=sky; g.fillRect(0,0,C.W,C.H);
+
+  // soil gradient bottom detail
+  var soil=g.createLinearGradient(0,C.H*0.6,0,C.H);
+  soil.addColorStop(0,'rgba(74,53,36,0)'); soil.addColorStop(1,'rgba(20,14,8,0.6)');
+  g.fillStyle=soil; g.fillRect(0,C.H*0.6,C.W,C.H*0.4);
+
+  // rocks
+  for(var i=0;i<world.rocks.length;i++){ var rk=world.rocks[i];
+    g.fillStyle='hsl('+(30+rk.tone*20)+',12%,'+(24+rk.tone*10)+'%)';
+    g.beginPath(); g.ellipse(rk.x,rk.y,rk.rw,rk.rh,0,0,6.283); g.fill();
+    g.fillStyle='rgba(255,255,255,.05)'; g.beginPath(); g.ellipse(rk.x-rk.rw*0.2,rk.y-rk.rh*0.3,rk.rw*0.5,rk.rh*0.4,0,0,6.283); g.fill();
+  }
+
+  // pond
+  var po=C.POND;
+  var frozen=world.seasonName==='winter';
+  g.save(); g.beginPath(); g.ellipse(po.x,po.y,po.rx,po.ry,0,0,6.283);
+  if(frozen){ g.fillStyle='rgba(180,205,225,0.75)'; g.fill();
+    g.strokeStyle='rgba(255,255,255,0.4)'; g.lineWidth=1;
+    for(var c=0;c<5;c++){ g.beginPath(); g.moveTo(po.x-po.rx+c*30, po.y-po.ry); g.lineTo(po.x-po.rx+c*30+20, po.y+po.ry); g.stroke(); }
+  } else {
+    var pg=g.createRadialGradient(po.x,po.y,10,po.x,po.y,po.rx);
+    pg.addColorStop(0,'rgba(60,130,160,0.75)'); pg.addColorStop(1,'rgba(30,70,100,0.7)');
+    g.fillStyle=pg; g.fill();
+    // ripple
+    g.strokeStyle='rgba(255,255,255,0.12)'; g.lineWidth=1;
+    var rr=(world.time*10)%po.rx;
+    g.beginPath(); g.ellipse(po.x,po.y,rr,rr*po.ry/po.rx,0,0,6.283); g.stroke();
+  }
+  g.restore();
+
+  // plants
+  for(i=0;i<world.plants.length;i++) drawPlant(world.plants[i]);
+  // creatures
+  for(i=0;i<world.bibbits.length;i++) drawBibbit(world.bibbits[i]);
+  for(i=0;i<world.snappers.length;i++) drawSnapper(world.snappers[i]);
+
+  // ambient particles (fireflies at night, spores + drifting leaves in autumn)
+  for(i=0;i<particles.length;i++){ var pt=particles[i];
+    pt.y -= (0.15+pt.s*0.3); pt.x += Math.sin(world.time*0.5+pt.ph)*0.3;
+    if(pt.y<0){ pt.y=C.H; pt.x=Math.random()*C.W; }
+    if(world.seasonName==='autumn'){
+      g.fillStyle='hsla('+(28+pt.s*20)+',70%,50%,0.5)';
+      g.save(); g.translate(pt.x,pt.y); g.rotate(world.time+pt.ph); g.fillRect(-2,-1,4,2); g.restore();
+    } else if(night){
+      var glow=(0.4+0.6*Math.abs(Math.sin(world.time*2+pt.ph)));
+      g.fillStyle='rgba(200,255,150,'+(glow*0.6)+')';
+      g.beginPath(); g.arc(pt.x,pt.y,1.3,0,6.283); g.fill();
+    } else {
+      g.fillStyle='rgba(255,255,255,0.12)';
+      g.beginPath(); g.arc(pt.x,pt.y,0.8,0,6.283); g.fill();
+    }
+  }
+
+  // season tint
+  g.fillStyle=seasonTint(); g.fillRect(0,0,C.W,C.H);
+  // night darkness
+  if(dayLight<0.85){ g.fillStyle='rgba(10,15,35,'+((0.85-dayLight)*0.55)+')'; g.fillRect(0,0,C.W,C.H); }
+
+  g.restore();
+}
+function mixDay(dayHex,nightHex,t){
+  var a=hx(dayHex), b=hx(nightHex);
+  var r=Math.round(b[0]+(a[0]-b[0])*t), gg=Math.round(b[1]+(a[1]-b[1])*t), bl=Math.round(b[2]+(a[2]-b[2])*t);
+  return 'rgb('+r+','+gg+','+bl+')';
+}
+function hx(h){ h=h.replace('#',''); return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+
+// ---------- HUD updates ----------
+var traitCfg=[['speed','spd',TB('speed')],['size','siz',TB('size')],['sense','sns',TB('sense')],['metab','met',TB('metab')],['boldness','bld',TB('boldness')]];
+function TB(k){ return T.TB[k]; }
+var prevTraitRef={bibbit:null, snapper:null};
+
+function traitRows(sp){
+  var av=world.avgTraits(sp);
+  var host=document.getElementById(sp==='bibbit'?'bibTraits':'snapTraits');
+  if(!av){ host.innerHTML='<div class="trend">no population</div>'; return; }
+  var hist=world.traitHistory[sp];
+  var html='';
+  var names={speed:'speed',size:'size',sense:'sense',metab:'metab',boldness:'bold'};
+  for(var k in names){
+    var b=TB(k), frac=(av[k]-b[0])/(b[1]-b[0]);
+    var col = sp==='bibbit'?'var(--bib)':'var(--snap)';
+    html+='<div class="trait"><span class="nm">'+names[k]+'</span><div class="bar"><i style="width:'+(clampf(frac,0,1)*100).toFixed(0)+'%;background:'+col+'"></i></div></div>';
+  }
+  host.innerHTML=html;
+  // trend text vs history ~20 samples ago
+  var trendEl=document.getElementById(sp==='bibbit'?'bibTrend':'snapTrend');
+  if(hist.length>6){
+    var old=hist[Math.max(0,hist.length-21)];
+    var pct=((av.speed-old.speed)/old.speed*100);
+    var gens=Math.round(av.gen);
+    var arrow = pct>1.5?'<span class="up">▲</span>':(pct<-1.5?'<span class="down">▼</span>':'→');
+    trendEl.innerHTML='avg speed '+arrow+' '+Math.abs(pct).toFixed(0)+'% · gen '+world.genMax[sp]+' · avg age gen '+gens;
+  }
+}
+
+function drawSpark(canvas, sp, key){
+  var cx=canvas.getContext('2d'); var w=canvas.width, h=canvas.height;
+  cx.clearRect(0,0,w,h);
+  var hist = key==='plants'? world.popHistory : world.traitHistory[sp];
+  if(hist.length<2) return;
+  var vals=[];
+  for(var i=0;i<hist.length;i++){ vals.push(key==='plants'?hist[i].plants:hist[i][key]); }
+  var n=Math.min(vals.length,80); vals=vals.slice(-n);
+  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals); if(mx===mn) mx=mn+1;
+  cx.strokeStyle= sp==='bibbit'?'#ffcf6b':(sp==='snapper'?'#ff6f6f':'#7ad06a'); cx.lineWidth=1.4;
+  cx.beginPath();
+  for(i=0;i<vals.length;i++){ var x=i/(vals.length-1)*w, y=h-4-((vals[i]-mn)/(mx-mn))*(h-8); if(i===0)cx.moveTo(x,y); else cx.lineTo(x,y); }
+  cx.stroke();
+}
+
+function sizeCanvas(id,hCss){ var el=document.getElementById(id); var w=el.clientWidth||200; el.width=w*DPR; el.height=(hCss||22)*DPR; var cx=el.getContext('2d'); cx.setTransform(DPR,0,0,DPR,0,0); el.width=w; el.height=(hCss||22); }
+
+function drawGraph(){
+  var el=document.getElementById('graph'); var cx=el.getContext('2d');
+  var w=el.clientWidth||200, h=66; if(el.width!==w){el.width=w;} if(el.height!==h){el.height=h;}
+  cx.clearRect(0,0,w,h);
+  var hist=world.popHistory; if(hist.length<2) return;
+  var n=Math.min(hist.length,140); var slice=hist.slice(-n);
+  function line(key,col,scaleMax){
+    cx.strokeStyle=col; cx.lineWidth=1.3; cx.beginPath();
+    for(var i=0;i<slice.length;i++){ var x=i/(slice.length-1)*w; var v=slice[i][key]; var y=h-2-(v/scaleMax)*(h-4); if(i===0)cx.moveTo(x,y); else cx.lineTo(x,y); }
+    cx.stroke();
+  }
+  line('plants','#7ad06a',C.MAX_PLANTS);
+  line('bibbits','#ffcf6b',C.MAX_BIB);
+  line('snappers','#ff6f6f',C.MAX_SNAP);
+}
+
+var lastChron='', chronIdx=0;
+function updateChron(){
+  var ch=world.chronicle;
+  if(ch.length){ var m=ch[ch.length-1].msg; if(m!==lastChron){ lastChron=m; document.getElementById('chronText').textContent=m; } }
+}
+
+function fmtSel(){
+  var el=document.getElementById('inspect');
+  if(!selected || selected.dead){ el.style.display='none'; return; }
+  el.style.display='block';
+  var sp=selected.species;
+  var av=world.avgTraits(sp)||{};
+  var col = sp==='bibbit'?'cB':'cS';
+  var name = sp==='bibbit'?'🐇 BIBBIT':'🦎 SNAPPER';
+  var t=selected.t;
+  function row(label,val,avg,fix){
+    var v=val.toFixed(fix), a=avg?avg.toFixed(fix):'—';
+    var cls = avg? (val>avg*1.03?'up':(val<avg*0.97?'down':'')):'';
+    return '<div class="cmp"><span class="dim">'+label+'</span><span class="v '+cls+'">'+v+'</span><span class="v dim">'+a+'</span></div>';
+  }
+  var html='<div class="hd"><span class="'+col+'">'+name+' #'+selected.id+'</span><span>gen '+selected.gen+'</span></div>';
+  html+='<div class="cmp"><span class="dim">trait</span><span class="v">this</span><span class="v dim">avg</span></div>';
+  html+=row('speed',t.speed,av.speed,2);
+  html+=row('size',t.size,av.size,2);
+  html+=row('sense',t.sense,av.sense,0);
+  html+=row('metab',t.metab,av.metab,2);
+  html+=row('bold',t.boldness,av.boldness,2);
+  html+='<div class="cmp" style="margin-top:4px;border-top:1px solid var(--line);padding-top:3px"><span class="dim">age</span><span class="v">'+T.fmtAge(selected.age)+'</span><span class="v"></span></div>';
+  html+='<div class="cmp"><span class="dim">energy</span><span class="v">'+selected.energy.toFixed(0)+'</span><span class="v"></span></div>';
+  el.innerHTML=html;
+}
+
+var coinFlash=0;
+function flashCoins(){ coinFlash=1; }
+
+function updateHUD(){
+  document.getElementById('seasonName').textContent=world.seasonName+' '+seasonEmoji();
+  document.getElementById('clockPhase').textContent=world.night?'🌙 night':'☀ day';
+  document.getElementById('genMax').textContent=Math.max(world.genMax.bibbit,world.genMax.snapper);
+  document.getElementById('totPop').textContent=world.bibbits.length+world.snappers.length;
+  document.getElementById('cntPlant').textContent=world.plants.length;
+  document.getElementById('cntBib').textContent=world.bibbits.length;
+  document.getElementById('cntSnap').textContent=world.snappers.length;
+  document.getElementById('tPlantD').style.width=(world.plants.length/C.MAX_PLANTS*100).toFixed(0)+'%';
+  document.getElementById('coins').textContent=walletCoins();
+  traitRows('bibbit'); traitRows('snapper');
+  drawSpark(document.getElementById('spkPlant'),'plants','plants');
+  drawSpark(document.getElementById('spkBib'),'bibbit','speed');
+  drawSpark(document.getElementById('spkSnap'),'snapper','speed');
+  drawGraph();
+  updateChron();
+  fmtSel();
+}
+function seasonEmoji(){ return {spring:'🌱',summer:'☀',autumn:'🍂',winter:'❄'}[world.seasonName]; }
+
+// spark canvas sizing
+function initSparks(){
+  ['spkPlant','spkBib','spkSnap'].forEach(function(id){ var el=document.getElementById(id); el.width=el.clientWidth||200; el.height=22; });
+}
+initSparks(); window.addEventListener('resize',initSparks);
+
+// ---------- main loop ----------
+var last=performance.now(), hudAcc=0;
+// sound hooks: sample events by diffing counters
+var prevEat=0, prevCatch=0;
+function loop(now){
+  var wall=Math.min(0.05,(now-last)/1000); last=now;
+  var steps = speedMul; // each step is 1/60 s
+  for(var i=0;i<steps;i++){ world.step(1/60); }
+  ambience(wall*speedMul);
+  // audio events
+  var eat=world.stats.energyEaten.bibbit;
+  if(eat>prevEat+8){ sndEat(); prevEat=eat; }
+  var cat=world.stats.deaths.bibbit.predation;
+  if(cat>prevCatch){ sndCatch(); prevCatch=cat; }
+  render();
+  hudAcc+=wall;
+  if(hudAcc>0.12){ hudAcc=0; updateHUD(); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// initial HUD paint
+updateHUD();
+
+})();
+</script>
+</body>
+</html>
