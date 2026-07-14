@@ -194,6 +194,24 @@ footer { text-align: center; color: #55556a; font-size: 12px; margin-top: 36px; 
 <div id="toasts"></div>
 <footer>All games run offline from this folder. Serve with <code>python3 -m http.server</code> for iPhone play.<br>
 The shared coin wallet &amp; cross-game bests work fully when served (browsers isolate <code>file://</code> storage per page).</footer>
+<script src="lib/anime.min.js"></script>
+<script>
+/* ---- anime.js FX (graceful no-ops if lib missing) ---- */
+const A = window.anime || null;
+const springy = A ? A.createSpring({ stiffness: 260, damping: 15 }) : null;
+function pop(el, s0) { if (A && el) A.animate(el, { scale: [s0 || 1.3, 1], ease: springy }); }
+const shownNum = {};
+function rollTo(id, val) {
+  const el = document.getElementById(id); if (!el) return;
+  const from = shownNum[id];
+  shownNum[id] = val;
+  if (!A || from === undefined || from === val) { el.textContent = val.toLocaleString(); return; }
+  const o = { v: from };
+  A.animate(o, { v: val, duration: 800, ease: 'outCubic',
+    onUpdate: () => { el.textContent = Math.round(o.v).toLocaleString(); } });
+  pop(el.parentElement, 1.22);
+}
+</script>
 <script>
 /* ============ game registry ============ */
 const GAMES = [
@@ -353,6 +371,11 @@ for (const g of GAMES) {
   a.addEventListener('click', () => { try { localStorage.setItem('arcade-last-played', g.slug); } catch {} });
   grid.appendChild(a);
   thumbs.push(a.querySelector('canvas'));
+}
+// staggered entrance: meta deck slides in, then the game cards cascade
+if (A) {
+  A.animate('.meta-deck > *', { opacity: [0, 1], translateY: [-14, 0], delay: A.stagger(80), duration: 450, ease: 'outQuad' });
+  A.animate('.card', { opacity: [0, 1], translateY: [18, 0], scale: [0.96, 1], delay: A.stagger(22, { start: 150 }), duration: 420, ease: 'outQuad' });
 }
 // snapshot current bests for next visit's IMPROVED! badges
 try {
@@ -865,11 +888,12 @@ function renderMeta() {
   const xp = totalEarned();
   const lvl = levelFor(xp);
   const cur = xpForLevel(lvl), next = xpForLevel(lvl + 1);
-  document.getElementById('lvl').textContent = lvl;
+  const lvlEl = document.getElementById('lvl');
+  if (lvlEl.textContent !== '' + lvl) { lvlEl.textContent = lvl; pop(lvlEl, 1.5); }
   document.getElementById('xp-label').textContent = `LEVEL ${lvl} · ${xp - cur}/${next - cur} XP`;
   document.getElementById('xp-fill').style.width = Math.min(100, ((xp - cur) / (next - cur)) * 100) + '%';
-  document.getElementById('coin-count').textContent = (w.coins || 0).toLocaleString();
-  document.getElementById('ticket-count').textContent = w.tickets || 0;
+  rollTo('coin-count', w.coins || 0);
+  rollTo('ticket-count', w.tickets || 0);
   document.getElementById('streak-count').textContent = meta.streak || 1;
   const v = readJ('arcade-vault', { cards: {} });
   const owned = Object.keys(v.cards || {}).length;

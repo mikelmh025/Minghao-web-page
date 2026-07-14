@@ -133,6 +133,7 @@ footer { text-align: center; color: #55556a; font-size: 11px; margin-top: 28px; 
 
 <footer>All pulls use Arcade Coins earned by playing — nothing here costs real money, ever.</footer>
 
+<script src="lib/anime.min.js"></script>
 <script>
 /* ================= card database ================= */
 const RARITY = { N: { p: 0.70, shards: 1, craft: 10, perk: 1, col: '#c8c8d8' },
@@ -275,17 +276,38 @@ function pay(cost, canTicket) {
 
 /* ================= ceremony ================= */
 const $ = id => document.getElementById(id);
+
+/* ---- anime.js FX (graceful no-ops if lib missing) ---- */
+const A = window.anime || null;
+const springy = A ? A.createSpring({ stiffness: 260, damping: 15 }) : null;
+function pop(el, s0) { if (A && el) A.animate(el, { scale: [s0 || 1.35, 1], ease: springy }); }
+const shownNum = {};
+function rollTo(id, val) {
+  const el = $(id); if (!el) return;
+  const from = shownNum[id];
+  shownNum[id] = val;
+  if (!A || from === undefined || from === val) { el.textContent = val.toLocaleString(); return; }
+  const o = { v: from };
+  A.animate(o, { v: val, duration: 800, ease: 'outCubic',
+    onUpdate: () => { el.textContent = Math.round(o.v).toLocaleString(); } });
+  pop(el.parentElement, val > from ? 1.25 : 1.12);
+}
+
 let queue = [], qi = 0;
 function startCeremony(results) {
   queue = results; qi = 0;
   $('ceremony').classList.remove('hidden');
   $('multi-strip').innerHTML = results.length > 1
     ? results.map(() => '<div class="mini"></div>').join('') : '';
+  if (A && results.length > 1)
+    A.animate('#multi-strip .mini', { opacity: [0, 1], translateY: [12, 0], scale: [0.6, 1],
+      delay: A.stagger(45), duration: 380, ease: 'outBack' });
   showNext();
 }
 function beamColor(r) { return { N: 'rgba(200,200,216,0.14)', R: 'rgba(96,165,250,0.3)', SR: 'rgba(192,132,252,0.4)', SSR: 'rgba(251,191,36,0.5)', UR: 'rgba(240,171,252,0.6)' }[r]; }
 function showNext() {
   if (qi >= queue.length) { endCeremony(); return; }
+  const idx = qi;
   const { card, isNew } = queue[qi];
   const R = RARITY[card.rarity];
   const big = $('bigcard');
@@ -306,6 +328,7 @@ function showNext() {
     $('front').style.background = `radial-gradient(ellipse at top, ${beamColor(card.rarity)}, #14141f 70%)`;
     big.classList.add('flipped');
     sfx.flip();
+    if (A) A.animate(big, { scale: [0.82, 1], ease: springy });
     setTimeout(() => {
       $('rar').textContent = card.rarity + (card.rarity === 'UR' ? ' !!!' : card.rarity === 'SSR' ? ' !!' : '');
       $('rar').style.color = R.col;
@@ -314,10 +337,11 @@ function showNext() {
       (sfx[card.rarity.toLowerCase()] || sfx.n)();
       $('newtag').textContent = isNew ? '✦ NEW CARD ✦' : `dupe → +${R.shards} ✨ shards`;
       $('newtag').style.color = isNew ? '#86efac' : '#c9c9dd';
+      if (isNew) pop($('newtag'), 1.6);
       if (card.rarity === 'SSR' || card.rarity === 'UR') confettiBurst(R.col);
       const strip = $('multi-strip').children;
-      if (strip[qi]) { strip[qi].style.borderColor = R.col; strip[qi].style.boxShadow = `0 0 8px ${R.col}`; }
-      $('cer-next').textContent = qi + 1 < queue.length ? `NEXT (${qi + 1}/${queue.length})` : 'DONE';
+      if (strip[idx]) { strip[idx].style.borderColor = R.col; strip[idx].style.boxShadow = `0 0 8px ${R.col}`; pop(strip[idx], 1.7); }
+      $('cer-next').textContent = idx + 1 < queue.length ? `NEXT (${idx + 1}/${queue.length})` : 'DONE';
     }, 420);
   }, suspense);
   qi++;
@@ -374,7 +398,10 @@ $('pull10').addEventListener('click', () => {
   res.sort((a, b) => ord[a.card.rarity] - ord[b.card.rarity]);
   startCeremony(res);
 });
-function flashDeny(btn) { btn.style.filter = 'grayscale(1)'; setTimeout(() => btn.style.filter = '', 300); }
+function flashDeny(btn) {
+  btn.style.filter = 'grayscale(1)'; setTimeout(() => btn.style.filter = '', 300);
+  if (A) A.animate(btn, { translateX: [{ to: -8 }, { to: 7 }, { to: -5 }, { to: 4 }, { to: 0 }], duration: 380, ease: 'linear' });
+}
 
 /* detail + craft */
 function showDetail(card) {
@@ -404,10 +431,12 @@ $('detail').addEventListener('click', e => { if (e.target === $('detail')) $('de
 /* ================= render ================= */
 function render() {
   const w = wallet();
-  $('coins').textContent = (w.coins || 0).toLocaleString();
-  $('tickets').textContent = w.tickets || 0;
-  $('shards').textContent = vault.shards;
-  $('power').textContent = `⚡ +${collectionPower()}% coins`;
+  rollTo('coins', w.coins || 0);
+  rollTo('tickets', w.tickets || 0);
+  rollTo('shards', vault.shards);
+  const pw = collectionPower();
+  const pwEl = $('power');
+  if (pwEl.dataset.v !== '' + pw) { pwEl.dataset.v = pw; pwEl.textContent = `⚡ +${pw}% coins`; pop(pwEl, 1.3); }
   $('pity-sr').textContent = Math.max(1, 10 - vault.pitySR);
   $('pity-ssr').textContent = Math.max(1, 40 - vault.pitySSR);
   const owned = CARDS.filter(c => vault.cards[c.id]).length;
@@ -423,6 +452,10 @@ function render() {
       (n > 1 ? `<div class="cnt">×${n}</div>` : '') + `<div class="nm">${n ? c.name : '???'}</div>`;
     d.addEventListener('click', () => { initAudio(); showDetail(c); });
     binder.appendChild(d);
+  }
+  if (A && !render.entered) {
+    render.entered = true;
+    A.animate('.cardlet', { opacity: [0, 1], translateY: [14, 0], delay: A.stagger(10), duration: 400, ease: 'outQuad' });
   }
 }
 saveVault(); // sync bonusPct on load
