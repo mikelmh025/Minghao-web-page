@@ -258,6 +258,21 @@ const LEVELS = [
     features: { river: true, plazas: 2, parkingLots: 2, crowds: 3 },
     spawns: { tower: 10, building: 22, house: 14, car: 32, bus: 6, person: 40, streetlight: 26, kiosk: 14, cone: 18, hydrant: 12, tree: 16, bush: 12, bench: 12, mailbox: 8, trashcan: 14, bike: 10, statue: 4, fountain: 2, bomb: 12, speed: 3, magnet: 2, x2: 2, clock: 3 },
   },
+  {
+    // Epilogue: the city threw a carnival. No roads, no cars — a pedestrian
+    // midway of game booths and fountain squares. Two rivals crash the party
+    // and race you to strip the fairground bare.
+    name: 'The Midway',
+    theme: 'night',
+    width: 2100, height: 1500,
+    time: 135,
+    seed: 2424,
+    rivals: 2,
+    rivalSpeed: 0.94,
+    goal: { type: 'clear' },
+    features: { plazas: 3, crowds: 4, forests: 1, lakes: 1, parkingLots: 1 },
+    spawns: { kiosk: 24, person: 40, streetlight: 20, cone: 16, table: 12, bench: 12, tree: 12, bush: 12, trashcan: 12, bike: 10, mailbox: 6, statue: 5, fountain: 3, house: 6, building: 6, tower: 2, bomb: 10, speed: 2, magnet: 2, x2: 2, clock: 2 },
+  },
 ];
 
 /* Hole Wars: Reversal — the tables turn. You don't control a hole;
