@@ -158,6 +158,13 @@ footer { text-align: center; color: #55556a; font-size: 12px; margin-top: 36px; 
 .featured h3 { font-size: 19px; font-weight: 900; }
 .featured p { font-size: 12.5px; color: #9a9ab0; margin-top: 3px; }
 
+.ach-wrap { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 14px; }
+.ach-wrap small { display: block; font-size: 10px; letter-spacing: 2px; color: #8888a0; text-transform: uppercase; margin-bottom: 8px; }
+.ach-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.ach { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 21px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); filter: grayscale(1) brightness(0.45); cursor: default; }
+.ach.on { filter: none; border-color: rgba(250,204,21,0.55); box-shadow: 0 0 10px rgba(250,204,21,0.25); }
+
 #toasts { position: fixed; top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 60;
   display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .toast { background: rgba(20,20,32,0.95); border: 1px solid rgba(250,204,21,0.5); color: #fde68a; font-weight: 800; font-size: 14px;
@@ -189,6 +196,7 @@ footer { text-align: center; color: #55556a; font-size: 12px; margin-top: 36px; 
     <span class="f-tag">★ FEATURED TODAY</span>
   </a>
   <div class="mission-row" id="missions"></div>
+  <div class="ach-wrap"><small id="ach-count">🏅 Achievements</small><div class="ach-row" id="achs"></div></div>
 </div>
 <div class="grid" id="grid"></div>
 <div id="toasts"></div>
@@ -901,6 +909,80 @@ function renderMeta() {
     ? `${owned} cards collected · ⚡ +${w.bonusPct || 0}% coin power · ${w.tickets || 0} 🎟 ready`
     : "Pull the arcade's legends · Collection Power boosts every game";
   renderMissions();
+  checkAchievements();
+}
+
+/* ============ cross-game achievements ============ */
+const ACH = [
+  { id: 'first',    em: '🕹', name: 'Insert Coin',    desc: 'Play your first game',            reward: 25,  check: c => c.earnedGames >= 1 || !!lastPlayed },
+  { id: 'variety5', em: '🎪', name: 'Taste Tester',   desc: 'Earn coins in 5 different games', reward: 50,  check: c => c.earnedGames >= 5 },
+  { id: 'variety15',em: '🌐', name: 'Arcade Rat',     desc: 'Earn coins in 15 different games',reward: 100, check: c => c.earnedGames >= 15 },
+  { id: 'rich1k',   em: '💰', name: 'Deep Pockets',   desc: 'Hold 1,000 coins at once',        reward: 50,  check: c => (c.w.coins || 0) >= 1000 },
+  { id: 'spent1k',  em: '🛍', name: 'Big Spender',    desc: 'Spend 1,000 coins lifetime',      reward: 50,  check: c => (c.w.spent || 0) >= 1000 },
+  { id: 'lvl5',     em: '⬆️', name: 'Level 5',        desc: 'Reach player level 5',            reward: 50,  check: c => c.lvl >= 5 },
+  { id: 'lvl10',    em: '🚀', name: 'Level 10',       desc: 'Reach player level 10',           reward: 100, check: c => c.lvl >= 10 },
+  { id: 'streak3',  em: '🔥', name: 'Warming Up',     desc: '3-day login streak',              reward: 40,  check: c => (meta.streak || 0) >= 3 },
+  { id: 'streak7',  em: '🌋', name: 'On Fire',        desc: '7-day login streak',              reward: 100, check: c => (meta.streak || 0) >= 7 },
+  { id: 'cards5',   em: '🎴', name: 'Collector',      desc: 'Own 5 different cards',           reward: 40,  check: c => c.cards >= 5 },
+  { id: 'cards20',  em: '🃏', name: 'Curator',        desc: 'Own 20 different cards',          reward: 80,  check: c => c.cards >= 20 },
+  { id: 'cards46',  em: '👑', name: 'The Full Vault', desc: 'Own all 46 cards',                reward: 300, check: c => c.cards >= 46 },
+  { id: 'ssr',      em: '✨', name: 'Golden Pull',    desc: 'Own any SSR or UR card',          reward: 80,  check: c => c.hasSSR },
+  { id: 'stars15',  em: '⭐', name: 'Star Chaser',    desc: '15 stars in Hungry Hole',         reward: 60,  check: c => c.hhStars >= 15 },
+  { id: 'stars45',  em: '🌟', name: 'Constellation',  desc: '45 stars in Hungry Hole',         reward: 150, check: c => c.hhStars >= 45 },
+  { id: 'endless5k',em: '🕳', name: 'Bottomless',     desc: 'Score 5,000 in Endless Hole',     reward: 80,  check: c => c.hhEndless >= 5000 },
+  { id: 'pulls10',  em: '🎰', name: 'Ten Pulls Deep', desc: 'Make 10 vault pulls',             reward: 40,  check: c => c.pulls >= 10 },
+  { id: 'pulls100', em: '🎲', name: 'Whale Watch',    desc: 'Make 100 vault pulls',            reward: 150, check: c => c.pulls >= 100 },
+];
+const achState = Object.assign({ unlocked: {} }, readJ('arcade-ach', {}));
+const achEls = {};
+(function buildAchRow() {
+  const row = document.getElementById('achs');
+  for (const a of ACH) {
+    const d = document.createElement('div');
+    d.className = 'ach';
+    d.textContent = a.em;
+    d.title = `${a.name} — ${a.desc} (+${a.reward} 🪙)`;
+    row.appendChild(d);
+    achEls[a.id] = d;
+  }
+})();
+function achContext() {
+  const w = walletW();
+  const v = readJ('arcade-vault', { cards: {}, pulls: 0 });
+  const hh = readJ('hungry-hole-save', null) || {};
+  return {
+    w,
+    earnedGames: Object.keys(w.earned || {}).filter(k => w.earned[k] > 0).length,
+    lvl: levelFor(totalEarned()),
+    cards: Object.keys(v.cards || {}).length,
+    hasSSR: Object.keys(v.cards || {}).some(id => id[0] === 'x' || id[0] === 'u'),
+    pulls: v.pulls || 0,
+    hhStars: Object.values(hh.stars || {}).reduce((a, b) => a + b, 0),
+    hhEndless: (hh.endlessBest && hh.endlessBest.score) || 0,
+  };
+}
+function checkAchievements() {
+  const c = achContext();
+  let newly = [], payout = 0;
+  for (const a of ACH) {
+    const on = !!achState.unlocked[a.id];
+    if (!on && a.check(c)) {
+      achState.unlocked[a.id] = Date.now();
+      newly.push(a);
+      payout += a.reward;
+    }
+    achEls[a.id].classList.toggle('on', !!achState.unlocked[a.id]);
+  }
+  const n = Object.keys(achState.unlocked).length;
+  document.getElementById('ach-count').textContent = `🏅 Achievements · ${n}/${ACH.length}`;
+  if (!newly.length) return;
+  writeJ('arcade-ach', achState);
+  const w = walletW();
+  w.coins += payout;
+  saveW(w);
+  newly.forEach((a, i) => {
+    setTimeout(() => { toast(`🏅 ${a.name}! +${a.reward} 🪙`); pop(achEls[a.id], 1.8); }, 900 + i * 900);
+  });
 }
 
 // Featured game of the day
