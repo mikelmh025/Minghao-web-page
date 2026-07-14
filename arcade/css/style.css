@@ -195,7 +195,7 @@ html, body {
 #hud-center { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 #hud-score { font-size: 20px; min-width: 110px; text-align: center; }
 #hud-stars { font-size: 16px; letter-spacing: 4px; }
-.hud-star { color: #3a3a4c; transition: color 0.3s, text-shadow 0.3s; }
+.hud-star { display: inline-block; color: #3a3a4c; transition: color 0.3s, text-shadow 0.3s; }
 .hud-star.lit { color: #ffd43b; text-shadow: 0 0 10px rgba(255, 212, 59, 0.8); }
 
 #btn-pause {

@@ -371,22 +371,35 @@
   const hudCombo = el('hud-combo');
   const hudStars = [...document.querySelectorAll('.hud-star')];
 
+  // event-driven HUD pops (change-detected so the per-frame loop stays cheap)
+  let hudLastScore = 0, hudLastCombo = 0, hudLastStars = 0, hudLastPopT = 0;
   function updateHUD() {
     const t = Math.max(0, Math.ceil(world.time));
     hudTimer.textContent = `${world.endless ? '∞ ' : ''}${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
     hudTimer.classList.toggle('low', !world.endless && t <= 10 && !world.over);
     const next = !world.endless && !world.reversal && world.starsHit < 3 ? ` / ${world.starScores[world.starsHit]}` : '';
     hudScore.textContent = world.reversal ? `City ${(world.remainFrac * 100).toFixed(0)}%` : world.score + next;
+    if (world.score < hudLastScore) hudLastScore = world.score;
+    if (world.score > hudLastScore) {
+      const now = performance.now();
+      if (now - hudLastPopT > 130) { fxPop(hudScore, 1.16); hudLastPopT = now; }
+      hudLastScore = world.score;
+    }
     el('hud-stars').style.display = world.endless || world.reversal ? 'none' : '';
     hudSize.style.display = world.reversal ? 'none' : '';
     hudStars.forEach((s, i) => s.classList.toggle('lit', i < world.starsHit));
+    if (world.starsHit < hudLastStars) hudLastStars = world.starsHit;
+    if (world.starsHit > hudLastStars) { fxPop(hudStars[world.starsHit - 1], 2.1); hudLastStars = world.starsHit; }
     hudSize.textContent = `Size ×${(world.hole.r / CONFIG.hole.startRadius).toFixed(1)}`;
     const c = world.combo.count;
     if (c >= 3 && world.combo.timer > 0) {
       hudCombo.textContent = `COMBO ×${(1 + Math.min(CONFIG.game.comboMaxBonus, (c - 1) * CONFIG.game.comboStep)).toFixed(2)}`;
       hudCombo.classList.remove('hidden');
+      if (c < hudLastCombo) hudLastCombo = c;
+      if (c > hudLastCombo) { fxPop(hudCombo, 1.35); hudLastCombo = c; }
     } else {
       hudCombo.classList.add('hidden');
+      hudLastCombo = 0;
     }
     // goal progress
     el('hud-goal').textContent = goalText(world);
