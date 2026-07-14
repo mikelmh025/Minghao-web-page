@@ -39,6 +39,10 @@ h1 { text-align: center; font-size: clamp(30px, 7vw, 46px); font-weight: 900; le
 .cardlet:hover { transform: translateY(-3px) scale(1.03); }
 .cardlet.unowned { filter: grayscale(1) brightness(0.45); }
 .cardlet .art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 42px; }
+.cardart { position: absolute; inset: 0; width: 100%; height: 100%; }
+.face.front > :not(.cardart) { position: relative; }
+.detail-box { position: relative; overflow: hidden; }
+.detail-box > :not(.cardart) { position: relative; }
 .cardlet .nm { position: absolute; bottom: 0; left: 0; right: 0; font-size: 9px; font-weight: 800; text-align: center; padding: 4px 2px; background: rgba(0,0,0,0.55); letter-spacing: 0.3px; }
 .cardlet .cnt { position: absolute; top: 4px; right: 5px; font-size: 10px; font-weight: 900; background: rgba(0,0,0,0.6); border-radius: 999px; padding: 2px 7px; }
 .cardlet .rt { position: absolute; top: 4px; left: 5px; font-size: 9px; font-weight: 900; letter-spacing: 1px; padding: 2px 6px; border-radius: 6px; }
@@ -217,6 +221,94 @@ function collectionPower() {
   return p;
 }
 
+/* ================= Seeded Legends — generative card art =================
+   One master algorithm; the card id seeds a PRNG, rarity sets the energy
+   budget (ribbons, particles, glow, rings). Deterministic per card. */
+function hashSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const ART_TIER = {
+  N:  { ribbons: 4,  parts: 8,  glow: 0,  rings: 0, sat: 24, spark: 0 },
+  R:  { ribbons: 8,  parts: 14, glow: 4,  rings: 0, sat: 45, spark: 0 },
+  SR: { ribbons: 14, parts: 22, glow: 8,  rings: 1, sat: 60, spark: 2 },
+  SSR:{ ribbons: 20, parts: 30, glow: 12, rings: 2, sat: 70, spark: 5 },
+  UR: { ribbons: 30, parts: 44, glow: 16, rings: 3, sat: 85, spark: 9 },
+};
+const ART_HUE = { N: [215, 235], R: [200, 225], SR: [265, 295], SSR: [38, 52], UR: [0, 360] };
+function drawCardArt(cv, card) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = cv.clientWidth || 96, h = cv.clientHeight || 134;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const c = cv.getContext('2d');
+  c.scale(dpr, dpr);
+  const rnd = mulberry32(hashSeed(card.id));
+  const T = ART_TIER[card.rarity], HU = ART_HUE[card.rarity];
+  const baseHue = HU[0] + rnd() * (HU[1] - HU[0]);
+  // deep space base
+  const g = c.createRadialGradient(w / 2, h * 0.42, 4, w / 2, h / 2, h * 0.75);
+  g.addColorStop(0, `hsl(${baseHue},${T.sat * 0.5}%,${9 + T.glow * 0.4}%)`);
+  g.addColorStop(1, 'hsl(240,25%,5%)');
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  // flow field: three incommensurate sinusoids, phases from the seed
+  const p1 = rnd() * 6.28, p2 = rnd() * 6.28, p3 = rnd() * 6.28;
+  const f1 = 0.035 + rnd() * 0.03, f2 = 0.05 + rnd() * 0.04, f3 = 0.02 + rnd() * 0.02;
+  const ang = (x, y) => Math.sin(x * f1 + p1) + Math.cos(y * f2 + p2) + Math.sin((x + y) * f3 + p3);
+  c.lineCap = 'round';
+  for (let i = 0; i < T.ribbons; i++) {
+    let x = rnd() * w, y = rnd() * h;
+    const hue = card.rarity === 'UR' ? rnd() * 360 : baseHue + (rnd() - 0.5) * 24;
+    c.strokeStyle = `hsla(${hue},${T.sat}%,${55 + rnd() * 20}%,${0.10 + rnd() * 0.12})`;
+    c.lineWidth = 0.7 + rnd() * 1.6;
+    if (T.glow) { c.shadowColor = `hsl(${hue},${T.sat}%,60%)`; c.shadowBlur = T.glow; }
+    c.beginPath(); c.moveTo(x, y);
+    const steps = 26 + Math.floor(rnd() * 22);
+    for (let s = 0; s < steps; s++) {
+      const a = ang(x, y) * 1.7;
+      x += Math.cos(a) * 2.6; y += Math.sin(a) * 2.6;
+      c.lineTo(x, y);
+    }
+    c.stroke();
+  }
+  c.shadowBlur = 0;
+  // particle dust, power-law sizes
+  for (let i = 0; i < T.parts; i++) {
+    const r = 0.4 + Math.pow(rnd(), 2.6) * 2.6;
+    const hue = card.rarity === 'UR' ? rnd() * 360 : baseHue + (rnd() - 0.5) * 30;
+    c.fillStyle = `hsla(${hue},${T.sat}%,${65 + rnd() * 25}%,${0.35 + rnd() * 0.45})`;
+    c.beginPath(); c.arc(rnd() * w, rnd() * h, r, 0, 7); c.fill();
+  }
+  // orbital rings (SR+)
+  for (let i = 0; i < T.rings; i++) {
+    c.strokeStyle = `hsla(${baseHue},${T.sat}%,70%,${0.14 + rnd() * 0.1})`;
+    c.lineWidth = 0.8;
+    c.beginPath();
+    c.ellipse(w / 2, h * 0.44, w * (0.3 + i * 0.13 + rnd() * 0.05), h * (0.1 + i * 0.05), (rnd() - 0.5) * 0.9, 0, 7);
+    c.stroke();
+  }
+  // cross sparkles (SSR/UR)
+  for (let i = 0; i < T.spark; i++) {
+    const sx = rnd() * w, sy = rnd() * h, sr = 1.5 + rnd() * 3;
+    c.strokeStyle = `hsla(${card.rarity === 'UR' ? rnd() * 360 : baseHue},90%,85%,0.8)`;
+    c.lineWidth = 0.8;
+    c.beginPath(); c.moveTo(sx - sr, sy); c.lineTo(sx + sr, sy); c.moveTo(sx, sy - sr); c.lineTo(sx, sy + sr); c.stroke();
+  }
+  // vignette so the glyph stays the figure
+  const v = c.createRadialGradient(w / 2, h * 0.45, h * 0.16, w / 2, h * 0.5, h * 0.78);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.5)');
+  c.fillStyle = v; c.fillRect(0, 0, w, h);
+}
+function artCanvasHTML() { return '<canvas class="cardart"></canvas>'; }
+
 /* ================= audio ================= */
 let actx = null;
 function initAudio() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} } if (actx && actx.state === 'suspended') actx.resume(); }
@@ -323,9 +415,10 @@ function showNext() {
   setTimeout(() => $('beam').classList.add('show'), 80);
   if (card.rarity === 'SSR' || card.rarity === 'UR') { document.body.classList.add('shaking'); setTimeout(() => document.body.classList.remove('shaking'), 450); buzz(60); }
   setTimeout(() => {
-    $('front').innerHTML = `<div class="em">${card.em}</div><div class="nm2">${card.name}</div>` +
+    $('front').innerHTML = artCanvasHTML() + `<div class="em">${card.em}</div><div class="nm2">${card.name}</div>` +
       `<div class="fl">${card.flavor}</div><div class="pk">⚡ +${R.perk}% coins forever</div>`;
     $('front').style.background = `radial-gradient(ellipse at top, ${beamColor(card.rarity)}, #14141f 70%)`;
+    drawCardArt($('front').querySelector('.cardart'), card);
     big.classList.add('flipped');
     sfx.flip();
     if (A) A.animate(big, { scale: [0.82, 1], ease: springy });
@@ -408,13 +501,14 @@ function showDetail(card) {
   const R = RARITY[card.rarity];
   const owned = vault.cards[card.id] || 0;
   const box = $('detail-box');
-  box.innerHTML = `<div class="em">${card.em}</div><h3 style="color:${R.col}">${card.name}</h3>
+  box.innerHTML = (owned ? artCanvasHTML() : '') + `<div class="em">${card.em}</div><h3 style="color:${R.col}">${card.name}</h3>
     <p>[${card.rarity}] ${owned ? 'Owned ×' + owned : 'Not yet found'}</p>
     <p>${card.flavor}</p>
     <p class="perk">⚡ +${R.perk}% coins arcade-wide while owned</p>
     ${!owned ? `<button class="pull-btn craft-btn" id="craft" ${vault.shards < R.craft ? 'disabled' : ''}>CRAFT — ${R.craft} ✨</button>` : ''}
     <p style="margin-top:10px"><button class="pill" id="close-d">close</button></p>`;
   $('detail').classList.remove('hidden');
+  if (owned) drawCardArt(box.querySelector('.cardart'), card);
   const cb = $('craft');
   if (cb) cb.addEventListener('click', () => {
     if (vault.shards < R.craft) return;
@@ -448,10 +542,11 @@ function render() {
     const n = vault.cards[c.id] || 0;
     const d = document.createElement('div');
     d.className = `cardlet r-${c.rarity}${n ? '' : ' unowned'}${n && (c.rarity === 'SSR' || c.rarity === 'UR') ? ' foil' : ''}`;
-    d.innerHTML = `<div class="art">${c.em}</div><div class="rt">${c.rarity}</div>` +
+    d.innerHTML = (n ? artCanvasHTML() : '') + `<div class="art">${c.em}</div><div class="rt">${c.rarity}</div>` +
       (n > 1 ? `<div class="cnt">×${n}</div>` : '') + `<div class="nm">${n ? c.name : '???'}</div>`;
     d.addEventListener('click', () => { initAudio(); showDetail(c); });
     binder.appendChild(d);
+    if (n) drawCardArt(d.querySelector('.cardart'), c);
   }
   if (A && !render.entered) {
     render.entered = true;
