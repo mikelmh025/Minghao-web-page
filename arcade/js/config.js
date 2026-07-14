@@ -95,6 +95,8 @@ const SKINS = [
   { id: 'toxic',   name: 'Toxic',   rim: '#84cc16', glow: '#d9f99d', pit: '#051403', unlockStars: 9 },
   { id: 'gold',    name: 'Gold',    rim: '#facc15', glow: '#fef08a', pit: '#141003', unlockStars: 14 },
   { id: 'rose',    name: 'Rose',    rim: '#fb7185', glow: '#fecdd3', pit: '#170208', unlockStars: 20 },
+  // Unlocked by hub achievements (🏅), not stars — the arcade-wide badge hunt pays out here.
+  { id: 'marquee', name: 'Marquee', rim: '#ffd23f', glow: '#ff5d73', pit: '#0b0b13', unlockAch: 8 },
 ];
 
 /* Rival hole identities, used in level order. */

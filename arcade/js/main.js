@@ -79,9 +79,18 @@
   function starsFor(i) { return save.stars[LEVELS[i].name] || 0; }
   function totalStars() { return LEVELS.reduce((s, lv, i) => s + starsFor(i), 0); }
 
+  function achCount() {
+    try { return Object.keys((JSON.parse(localStorage.getItem('arcade-ach')) || {}).unlocked || {}).length; }
+    catch { return 0; }
+  }
+  function skinLocked(s) {
+    if (save.dev) return false;
+    if (s.unlockAch) return achCount() < s.unlockAch;
+    return (s.unlockStars || 0) > totalStars();
+  }
   function currentSkin() {
     const s = SKINS.find(k => k.id === save.skin) || SKINS[0];
-    return save.dev || (s.unlockStars || 0) <= totalStars() ? s : SKINS[0];
+    return skinLocked(s) ? SKINS[0] : s;
   }
   function isUnlocked(i) {
     return save.dev || i === 0 || starsFor(i - 1) >= 1;
@@ -425,19 +434,20 @@
     row.innerHTML = '';
     const stars = totalStars();
     for (const s of SKINS) {
-      const need = s.unlockStars || 0;
-      const locked = !save.dev && need > stars;
+      const locked = skinLocked(s);
       const wrap = document.createElement('div');
       wrap.className = 'skin-wrap';
       const b = document.createElement('button');
       b.className = 'skin-btn' + (s.id === save.skin && !locked ? ' selected' : '') + (locked ? ' locked' : '');
-      b.title = locked ? `${s.name} — earn ${need} total stars` : s.name;
+      b.title = locked
+        ? (s.unlockAch ? `${s.name} — unlock ${s.unlockAch} arcade achievements 🏅` : `${s.name} — earn ${s.unlockStars} total stars`)
+        : s.name;
       b.style.background = `radial-gradient(circle, ${s.pit} 55%, ${s.rim} 72%, ${s.glow} 82%, transparent 84%)`;
       if (!locked) b.addEventListener('click', () => { save.skin = s.id; persist(); buildSkinRow(); });
       wrap.appendChild(b);
       const tag = document.createElement('div');
       tag.className = 'skin-tag';
-      tag.textContent = locked ? `🔒 ${need}★` : s.name;
+      tag.textContent = locked ? (s.unlockAch ? `🔒 ${s.unlockAch}🏅` : `🔒 ${s.unlockStars}★`) : s.name;
       wrap.appendChild(tag);
       row.appendChild(wrap);
     }
