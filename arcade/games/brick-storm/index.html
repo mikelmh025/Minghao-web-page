@@ -150,6 +150,7 @@
   </div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -742,6 +743,17 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') (function 
   }
   function buzz(ms){ try{ if (navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 
+  /* ---- Reward-moment motion (anime.js, optional) ---- */
+  var FX = (typeof window !== 'undefined' && window.anime) || null;
+  var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    var o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: function () { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
+
   /* ---- Audio ---- */
   var AC = null;
   var muted = false;
@@ -881,15 +893,19 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') (function 
     else if (g.level > best.bestLevel) { best.bestLevel = g.level; saveBest(); }
     var coins = clamp(Math.round(g.score / 120), 1, 200);
     var rw = awardCoinsPlus('brick-storm', coins);
-    document.getElementById('goCoins').innerHTML = '+' + rw.n + ' &#129689; (wallet ' + rw.total + ')';
+    var goCoins = document.getElementById('goCoins');
+    goCoins.innerHTML = '+' + rw.n + ' &#129689; (wallet ' + rw.total + ')';
+    fxPop(goCoins, 1.2);
     rewardCeremony(rw);
     refreshTitleCoins();
-    document.getElementById('goScore').textContent = g.score;
+    fxCountUp(document.getElementById('goScore'), '', g.score, '');
     document.getElementById('goLevel').textContent = g.level;
     document.getElementById('goBest').textContent = best.best;
     document.getElementById('goNew').classList.toggle('hidden', !isNew);
+    if (isNew) fxPop(document.getElementById('goNew'), 1.35);
     updateTitleBest();
     showOverlay('over');
+    fxPop(ovs.over.querySelector('h2'), 1.5);
     sfx.over();
   }
   function onLevelClear() {

@@ -280,6 +280,7 @@
   <div class="srow"><span>Slot pulls</span><b id="lPulls">0</b></div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -668,6 +669,17 @@ if (typeof document !== 'undefined') (function(){
   function $(id){ return document.getElementById(id); }
   var TAU = LW.TAU, SEC = LW.SEC;
 
+  /* ---------- win-moment motion layer (anime.js, optional) ---------- */
+  var FX = (typeof window !== 'undefined' && window.anime) || null;
+  var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0){ if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix){
+    if (!FX || !(target > 0)){ el.textContent = prefix + target + (suffix || ''); return; }
+    var o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: function(){ el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
+
   /* ---------- persistent game state ---------- */
   var STATE_KEY = 'arcade-lucky-wheel';
   function loadState(){
@@ -790,6 +802,7 @@ if (typeof document !== 'undefined') (function(){
   function credit(amount, netWin){
     LW.walletCredit(wallet, amount, netWin);
     commitWallet();
+    if (amount > 0) fxPop($('balancePill'), 1.2); // wins only — spends/renders stay quiet
   }
   window.addEventListener('storage', function(e){
     if (e.key === LW.WALLET_KEY){ wallet = LW.loadWallet(localStorage); updateBalance(); }
@@ -1228,6 +1241,7 @@ if (typeof document !== 'undefined') (function(){
     var colName = n === 0 ? 'Green' : (LW.isRed(n) ? 'Red' : 'Black');
     if (payout > 0){
       $('rMsg').textContent = n + ' ' + colName + ' — you win ' + payout + ' 🪙' + (net >= 0 ? ' (net +' + net + ')' : '');
+      fxPop($('rMsg'), payout >= rStaked * 10 ? 1.8 : 1.5);
       sfx.jingle(Math.max(1, Math.round(payout / Math.max(1, rStaked)) * 4));
       floaty($('balancePill'), '+' + payout + ' 🪙', '#7ce88a');
     } else {
@@ -1450,7 +1464,10 @@ if (typeof document !== 'undefined') (function(){
     if (res.insuranceWon) parts.push('Insurance pays 2:1.');
     else if (res.dealerBJ) parts.push('Dealer has blackjack.');
     $('bjMsg').textContent = parts.join(' ') + (net !== 0 ? ' (' + fmtP(net) + ' 🪙)' : '');
-    if (net > 0){ sfx.jingle(Math.max(2, net / Math.max(1, bjStaked) * 4)); floaty($('betCircle'), '+' + res.credit, '#7ce88a'); }
+    if (net > 0){
+      fxPop($('bjMsg'), res.outcomes.indexOf('blackjack') !== -1 ? 1.8 : 1.5);
+      sfx.jingle(Math.max(2, net / Math.max(1, bjStaked) * 4)); floaty($('betCircle'), '+' + res.credit, '#7ce88a');
+    }
     else if (net < 0) sfx.lose();
     bjBusy = false;
     bjSetButtons();
@@ -1554,7 +1571,8 @@ if (typeof document !== 'undefined') (function(){
     recordRound('pulls', net);
     if (payout > 0){
       $('payline').classList.add('flash');
-      $('slotMsg').textContent = 'WIN ' + payout + ' 🪙  (×' + mult + ')';
+      fxCountUp($('slotMsg'), 'WIN ', payout, ' 🪙  (×' + mult + ')');
+      fxPop($('slotMsg'), mult >= 40 ? 1.8 : 1.5);
       sfx.jingle(mult);
       floaty($('pullBtn'), '+' + payout + ' 🪙', '#7ce88a');
     } else {

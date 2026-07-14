@@ -142,6 +142,7 @@
     <div id="hint">Tap empty space (away from the path) to build &middot; tap a turret to upgrade &middot; right-click / long-press to sell (60% refund) &middot; +5% interest on held credits each wave (max +50)</div>
   </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 "use strict";
 /* ================================================================
@@ -714,7 +715,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") (function 
     if (coinsAwarded) return "";
     coinsAwarded = true;
     var rw = awardCoinsPlus('star-defense', state.wave * 4);
-    var html = '<p style="color:#ffd166;font-weight:600">+' + rw.n + ' 🪙 <span style="color:#9aa0c0;font-weight:400">(wallet: ' + rw.total + ')</span></p>';
+    var html = '<p class="coinLine" style="color:#ffd166;font-weight:600">+' + rw.n + ' 🪙 <span style="color:#9aa0c0;font-weight:400">(wallet: ' + rw.total + ')</span></p>';
     if (rw.lucky > 1) {
       html += '<p class="luckyLine">🍀 LUCKY ×' + rw.lucky + '!</p>';
       // rising arpeggio on the game's synth + haptic
@@ -726,6 +727,26 @@ if (typeof window !== "undefined" && typeof document !== "undefined") (function 
     }
     if (rw.ticket) html += '<p class="ticketLine">🎟 PULL TICKET!</p>';
     return html;
+  }
+
+  /* ---- anime.js reward-moment layer (DOM overlay only, no-ops if lib missing) ---- */
+  var FX = (typeof window !== "undefined" && window.anime) || null;
+  var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!el) return;
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ""); return; }
+    var o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: "outExpo",
+      onUpdate: function () { el.textContent = prefix + Math.round(o.v) + (suffix || ""); } });
+  }
+  function fxResults(newBest) {
+    fxPop(overlay.querySelector("h1"), 1.5);
+    fxCountUp(document.getElementById("goWave"), "", state.wave);
+    fxCountUp(document.getElementById("goKills"), "", state.stats.kills);
+    fxCountUp(document.getElementById("goEarned"), "", state.stats.earned);
+    fxPop(overlay.querySelector(".coinLine"), 1.2);
+    if (newBest) fxPop(document.getElementById("bestLine"), 1.35);
   }
 
   var LS_KEY = "arcade-star-defense";
@@ -952,12 +973,13 @@ if (typeof window !== "undefined" && typeof document !== "undefined") (function 
     document.getElementById("restartBtn1").addEventListener("click", restart);
   }
   function showWin() {
+    var newBest = state.wave >= best.bestWave;
     saveBest();
     showOverlay(
       '<div class="card"><h1 style="color:#6dffa8">VICTORY</h1>' +
-      '<p>The station held through all ' + SD.FINAL_WAVE + ' waves.<br>Kills: ' + state.stats.kills + ' &middot; Credits earned: ' + state.stats.earned + ' &middot; Leaks: ' + state.stats.leaks + '</p>' +
+      '<p>The station held through all ' + SD.FINAL_WAVE + ' waves.<br>Kills: <span id="goKills">' + state.stats.kills + '</span> &middot; Credits earned: <span id="goEarned">' + state.stats.earned + '</span> &middot; Leaks: ' + state.stats.leaks + '</p>' +
       awardRunCoins() +
-      '<p style="color:#6dffa8">Best wave reached: ' + best.bestWave + '</p>' +
+      '<p id="bestLine" style="color:#6dffa8">Best wave reached: ' + best.bestWave + '</p>' +
       '<div class="row"><button class="pill big" id="endlessBtn">Continue (Endless)</button>' +
       '<button class="pill" id="restartBtn2" style="margin-top:16px">Restart</button></div>' +
       '<a class="vaultLink" href="../../vault.html">🎴 Card Vault</a></div>'
@@ -968,19 +990,22 @@ if (typeof window !== "undefined" && typeof document !== "undefined") (function 
       hideOverlay(); sfx.chime();
     });
     document.getElementById("restartBtn2").addEventListener("click", restart);
+    fxResults(newBest);
   }
   function showLose() {
+    var newBest = state.wave >= best.bestWave;
     saveBest();
     vib(40);
     showOverlay(
       '<div class="card"><h1 style="color:#ff5d6e">STATION LOST</h1>' +
-      '<p>Overrun on wave ' + state.wave + '.<br>Kills: ' + state.stats.kills + ' &middot; Credits earned: ' + state.stats.earned + '</p>' +
+      '<p>Overrun on wave <span id="goWave">' + state.wave + '</span>.<br>Kills: <span id="goKills">' + state.stats.kills + '</span> &middot; Credits earned: <span id="goEarned">' + state.stats.earned + '</span></p>' +
       awardRunCoins() +
-      '<p style="color:#6dffa8">Best wave reached: ' + best.bestWave + '</p>' +
+      '<p id="bestLine" style="color:#6dffa8">Best wave reached: ' + best.bestWave + '</p>' +
       '<button class="pill big" id="restartBtn3">Try again</button>' +
       '<br><a class="vaultLink" href="../../vault.html">🎴 Card Vault</a></div>'
     );
     document.getElementById("restartBtn3").addEventListener("click", restart);
+    fxResults(newBest);
   }
   function restart() {
     state = SD.createGame();

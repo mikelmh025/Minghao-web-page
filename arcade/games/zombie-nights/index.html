@@ -78,6 +78,7 @@
   <a class="vaultLink" href="../../vault.html">🎴 Card Vault</a>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* ================================================================
@@ -870,6 +871,17 @@ var camX = 0, camY = 0;
 var mouse = { x: W / 2, y: H / 2, down: false };
 var keys = {};
 var BEST_KEY = 'arcade-zombie-nights';
+
+/* ---------- anime.js reward FX (no-ops if lib missing) ---------- */
+var FX = window.anime || null;
+var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+function fxPop(el, s0){ if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+function fxCountUp(el, prefix, target, suffix){
+  if (!FX || !(target > 0)){ el.textContent = prefix + target.toLocaleString() + (suffix || ''); return; }
+  var o = { v: 0 };
+  FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+    onUpdate: function(){ el.textContent = prefix + Math.round(o.v).toLocaleString() + (suffix || ''); } });
+}
 
 /* ---------- arcade wallet + haptics ---------- */
 function awardCoinsPlus(slug, base){
@@ -1737,6 +1749,8 @@ function togglePause(){
   if (AC && !paused && AC.state === 'suspended') AC.resume();
 }
 function onGameOver(){
+  var prevBest = loadBest();
+  var isNewBest = !prevBest || S.score > (prevBest.score || 0);
   saveBest();
   buzz(40);
   var acc = S.shots > 0 ? Math.round(S.hits / S.shots * 100) : 0;
@@ -1748,10 +1762,16 @@ function onGameOver(){
     '<span>Waves survived</span><span>' + wavesSurvived + '</span>' +
     '<span>Kills</span><span>' + S.kills + '</span>' +
     '<span>Accuracy</span><span>' + acc + '%</span>' +
-    '<span>Score</span><span>' + S.score.toLocaleString() + '</span>' +
-    '<span>Coins</span><span style="color:#f5d76e">+' + rw.n + ' 🪙 (wallet ' + rw.total + ')</span>';
+    '<span>Score</span><span id="ovScore">' + S.score.toLocaleString() + '</span>' +
+    '<span>Coins</span><span id="ovCoins" style="color:#f5d76e">+' + rw.n + ' 🪙 (wallet ' + rw.total + ')</span>';
   document.getElementById('overBest').textContent = bestText();
-  setTimeout(function(){ overOv.hidden = false; rewardCeremony(rw); }, 900);
+  setTimeout(function(){
+    overOv.hidden = false; rewardCeremony(rw);
+    fxPop(overOv.querySelector('h2'), 1.5);
+    fxCountUp(document.getElementById('ovScore'), '', S.score, '');
+    fxPop(document.getElementById('ovCoins'), 1.2);
+    if (isNewBest) fxPop(document.getElementById('overBest'), 1.2);
+  }, 900);
 }
 function rewardCeremony(rw){
   try{

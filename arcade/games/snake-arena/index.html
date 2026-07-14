@@ -174,6 +174,7 @@
   </div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -690,6 +691,17 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') { (functio
   let deathAt = 0, overShown = false, deathInfo = null;
   let hudAt = 0;
 
+  /* ---------- reward-moment motion (anime.js, optional) ---------- */
+  const FX = (typeof window !== 'undefined' && window.anime) || null;
+  const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    const o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: function () { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
+
   /* ---------- arcade wallet + haptics ---------- */
   function awardCoinsPlus(slug, base){
     try{
@@ -878,7 +890,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') { (functio
   function showGameOver() {
     overShown = true;
     const d = deathInfo || { score: 0, len: C.START_LEN, kills: 0, time: 0, killerName: null, cause: 'wall' };
-    $('stScore').textContent = d.score;
+    fxCountUp($('stScore'), '', d.score, '');
     $('stLen').textContent = Math.round(d.len);
     $('stKills').textContent = d.kills;
     $('stTime').textContent = fmtTime(d.time);
@@ -886,10 +898,13 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') { (functio
       ? d.killerName + ' cut you off'
       : 'You slammed into the arena wall';
     $('coinLine').textContent = '+' + lastCoins + ' 🪙  (wallet: ' + lastWallet + ')';
+    fxPop($('coinLine'), 1.2);
     $('walletLine').textContent = '🪙 Wallet: ' + lastWallet + ' coins';
     rewardCeremony(lastReward);
     $('bestLine2').textContent = bestText();
+    if (d.score > 0 && d.score >= best.score) fxPop($('bestLine2'), 1.3);
     overOverlay.hidden = false;
+    fxPop(overOverlay.querySelector('h2'), 1.5);
   }
 
   function rewardCeremony(rw) {

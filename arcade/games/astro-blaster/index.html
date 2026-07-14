@@ -71,6 +71,7 @@ kbd{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);borde
 </div>
 <button class="pill" id="hyperBtn">HYPER</button>
 <div id="overlay"></div>
+<script src="../../lib/anime.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -939,6 +940,18 @@ function buildInput(){
   return inp;
 }
 
+/* ---------- reward FX (anime.js; no-ops if lib missing) ---------- */
+var FX = (typeof window !== 'undefined' && window.anime) || null;
+var fxSpring = FX ? FX.createSpring({stiffness:260, damping:15}) : null;
+function fxPop(el, s0){ if (FX && el) FX.animate(el, {scale:[s0 || 1.35, 1], ease: fxSpring}); }
+function fxCountUp(el, prefix, target, suffix){
+  if (!el) return;
+  if (!FX || !(target > 0)){ el.textContent = prefix + target.toLocaleString() + (suffix || ''); return; }
+  var o = {v:0};
+  FX.animate(o, {v:target, duration:Math.min(1500, 600 + target/3), ease:'outExpo',
+    onUpdate:function(){ el.textContent = prefix + Math.round(o.v).toLocaleString() + (suffix || ''); }});
+}
+
 /* ---------- overlays ---------- */
 function showOverlay(html){
   overlay.innerHTML = '<div class="panel">' + html + '</div>';
@@ -983,12 +996,12 @@ function showGameOver(){
     if (rw.lucky > 1){ luckyArp(); vibe(30); }
   }
   showOverlay(
-    '<h2>GAME OVER</h2>' +
-    '<div class="score-line">Score: <b>' + game.score.toLocaleString() + '</b></div>' +
-    (rw && rw.n > 0 ? '<div class="score-line" style="color:#ffd88a">+' + rw.n + ' &#129689; (wallet ' + rw.total.toLocaleString() + ')</div>' : '') +
+    '<h2 id="goTitle">GAME OVER</h2>' +
+    '<div class="score-line">Score: <b id="goScore">' + game.score.toLocaleString() + '</b></div>' +
+    (rw && rw.n > 0 ? '<div class="score-line" id="goCoins" style="color:#ffd88a">+' + rw.n + ' &#129689; (wallet ' + rw.total.toLocaleString() + ')</div>' : '') +
     (rw && rw.lucky > 1 ? '<div class="score-line luckyLine">🍀 LUCKY ×' + rw.lucky + '!</div>' : '') +
     (rw && rw.ticket ? '<div class="score-line ticketLine">🎟 PULL TICKET!</div>' : '') +
-    (newHi ? '<div class="score-line newhi">&#9733; New high score! &#9733;</div>'
+    (newHi ? '<div class="score-line newhi" id="goNewHi">&#9733; New high score! &#9733;</div>'
            : '<div class="score-line">High: ' + hi.toLocaleString() + '</div>') +
     '<p class="sub">You made it to wave ' + game.wave + '.</p>' +
     '<div class="btnRow"><button class="pill btnBig" id="againBtn">&#8635;&nbsp; Play again</button>' +
@@ -996,6 +1009,10 @@ function showGameOver(){
     '<div style="margin-top:10px"><a class="pill" href="../../vault.html" style="font-size:13px">🎴 Card Vault</a></div>'
   );
   document.getElementById('againBtn').addEventListener('click', startGame);
+  fxPop(document.getElementById('goTitle'), 1.5);
+  fxCountUp(document.getElementById('goScore'), '', game.score, '');
+  if (rw && rw.n > 0) fxPop(document.getElementById('goCoins'), 1.2);
+  if (newHi) fxPop(document.getElementById('goNewHi'), 1.35);
 }
 
 function startGame(){

@@ -175,7 +175,7 @@
 
 <div id="overOverlay" class="overlay hidden">
   <div class="card">
-    <h2>Absorbed.</h2>
+    <h2 id="ovTitle">Absorbed.</h2>
     <div class="sub" id="ovKiller"></div>
     <div id="ovNew">NEW BEST SCORE</div>
     <div class="stats">
@@ -193,6 +193,7 @@
   </div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -241,6 +242,18 @@ function awardCoinsPlus(slug, base){
 function awardCoins(slug, n){return awardCoinsPlus(slug, n).total}
 function walletCoins(){try{var w=JSON.parse(localStorage.getItem('arcade-wallet'));return (w&&w.coins)||0}catch(e){return 0}}
 function vib(ms){ if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(ms); }
+
+/* ---- anime.js reward-moment FX (no-ops if lib missing / headless) ---- */
+var FX = (typeof window !== 'undefined' && window.anime) || null;
+var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+function fxCountUp(el, prefix, target, suffix) {
+  if (!el) return;
+  if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+  var o = { v: 0 };
+  FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+    onUpdate: function () { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+}
 
 var NAMES = ['BLOBBY','SQUISH','GLORP','MITO','OOZE','WOBBLE','PLASMO','GOOP',
              'SPLAT','CYTO','BUBBLES','JELLY','NUCLEO','DROPLET'];
@@ -937,7 +950,15 @@ function main() {
     rewardCeremony(rw);
     refreshTitleBest();
     $('ovBest').textContent = 'Best: ' + best.score;
-    setTimeout(function () { if (state === 'over') show('overOverlay', true); }, 750);
+    setTimeout(function () {
+      if (state !== 'over') return;
+      show('overOverlay', true);
+      // anime.js reward moment: pops + score count-up (no-ops without FX)
+      fxPop($('ovTitle'), 1.5);
+      fxCountUp($('ovScore'), '', score, '');
+      fxPop($('ovCoins'), 1.2);
+      if (isNew) fxPop($('ovNew'), 1.35);
+    }, 750);
   }
 
   /* ---------- sim events -> juice ---------- */

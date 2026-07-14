@@ -150,6 +150,7 @@
   </div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -542,6 +543,17 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') (function 
   function awardCoins(slug, n){return awardCoinsPlus(slug, n).total}
   function walletCoins(){try{var w=JSON.parse(localStorage.getItem('arcade-wallet'));return (w&&w.coins)||0}catch{return 0}}
   function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
+
+  /* -------------------- anime.js reward FX (overlay DOM only) -------------------- */
+  var FX = (typeof window !== 'undefined' && window.anime) || null;
+  var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    var o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: function () { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
 
   /* -------------------- blade styles (milestone unlocks) -------------------- */
   var BLADES = [
@@ -1471,8 +1483,15 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined') (function 
     document.getElementById('newBestBadge').classList.toggle('hidden', !isNew);
     document.getElementById('switchBtn').textContent =
       game.mode === 'classic' ? 'Try Arcade' : 'Try Classic';
+    var finalScore = game.score;
     setTimeout(function () {
-      if (state === 'over') overOv.classList.remove('hidden');
+      if (state !== 'over') return;
+      overOv.classList.remove('hidden');
+      // reward-moment juice (overlay DOM only; no-ops without anime.js)
+      fxPop(overOv.querySelector('h2'), 1.5);
+      fxCountUp(document.getElementById('overScore'), '', finalScore, '');
+      fxPop(document.getElementById('coinLine'), 1.2);
+      if (isNew) fxPop(document.getElementById('newBestBadge'), 1.35);
     }, reason === 'bomb' ? 750 : 350);
   }
 

@@ -208,6 +208,7 @@
   </div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -629,6 +630,17 @@ if (typeof window !== 'undefined') (function () {
   function awardCoins(slug, n){return awardCoinsPlus(slug, n).total}
   function walletCoins(){try{var w=JSON.parse(localStorage.getItem('arcade-wallet'));return (w&&w.coins)||0}catch{return 0}}
   function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
+
+  // ---------- anime.js reward-moment FX (overlay DOM only, no-ops without lib) ----------
+  var FX = window.anime || null;
+  var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    var o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: function () { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
 
   // fx state
   var particles = [];
@@ -1370,12 +1382,13 @@ if (typeof window !== 'undefined') (function () {
       best = st.heightM;
       try { localStorage.setItem('arcade-sky-hopper', String(best)); } catch (e) {}
     }
-    $('finalHeight').textContent = st.heightM + ' m';
+    fxCountUp($('finalHeight'), '', st.heightM, ' m');
     $('finalCoins').textContent = 'Coins: ' + st.coinsCollected + (st.kills ? ' · Stomps: ' + st.kills : '');
     $('finalBest').textContent = 'Best: ' + best + ' m';
     var earned = Math.max(1, Math.min(200, Math.round(st.heightM / 40)));
     var rw = awardCoinsPlus('sky-hopper', earned);
     $('coinAward').textContent = '+' + rw.n + ' 🪙 (wallet ' + rw.total + ')';
+    fxPop($('coinAward'), 1.2);
     $('walletLine').textContent = '🪙 ' + rw.total;
     $('luckyLine').style.display = rw.lucky > 1 ? '' : 'none';
     if (rw.lucky > 1) { $('luckyLine').textContent = '🍀 LUCKY ×' + rw.lucky + '!'; sfxLucky(); buzz(30); }
@@ -1383,6 +1396,8 @@ if (typeof window !== 'undefined') (function () {
     buzz(40);
     show($('newBestTag'), isBest);
     show($('overOv'), true);
+    fxPop($('overOv').querySelector('.ovTitle'), 1.5);
+    if (isBest) fxPop($('newBestTag'), 1.35);
   }
   function pauseGame() {
     if (mode !== 'playing') return;

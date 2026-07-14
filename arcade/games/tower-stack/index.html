@@ -128,6 +128,7 @@
   </div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 /* =========================================================================
  * CORE — pure game logic, no DOM. Exported for headless testing.
@@ -383,6 +384,17 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') (function 
   function walletCoins(){try{var w=JSON.parse(localStorage.getItem('arcade-wallet'));return (w&&w.coins)||0}catch{return 0}}
   function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
 
+  /* ---------- reward-moment FX (anime.js, no-op if lib missing) ---------- */
+  var FX = (typeof window !== 'undefined' && window.anime) || null;
+  var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    var o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: function () { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
+
   /* ---------- audio ---------- */
   var AC = null, muted = false;
   try { muted = localStorage.getItem(STORE_KEY + '-muted') === '1'; } catch (e) {}
@@ -621,7 +633,13 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') (function 
     document.getElementById('finalBest').textContent = b.score;
     document.getElementById('newBestTag').style.display = isNew ? 'block' : 'none';
     bestLbl.textContent = (zenMode ? 'Zen Best ' : 'Best ') + b.score;
-    setTimeout(function () { overOv.classList.remove('hidden'); }, 550);
+    setTimeout(function () {
+      overOv.classList.remove('hidden');
+      fxPop(overOv.querySelector('h1'), 1.5);
+      fxCountUp(document.getElementById('finalScore'), '', g.score, '');
+      fxPop(document.getElementById('coinAward'), 1.2);
+      if (isNew) fxPop(document.getElementById('newBestTag'), 1.35);
+    }, 550);
   }
 
   /* ---------- background theme (ground -> sky -> space) ---------- */

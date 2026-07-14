@@ -449,6 +449,7 @@
   <div class="hint">Arrows / WASD or swipe to move</div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 "use strict";
 /* ================================================================
@@ -687,6 +688,17 @@ if (typeof document !== 'undefined') (function () {
   var dailyBtn = document.getElementById('dailyBtn');
   var dailyInfo = document.getElementById('dailyInfo');
   var movesLeftEl = document.getElementById('movesLeft');
+
+  /* ---------- anime.js reward FX (no-ops if lib missing) ---------- */
+  var FX = (typeof window !== 'undefined' && window.anime) || null;
+  var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    var o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: function () { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
 
   /* ---------- arcade coins (shared wallet) ---------- */
   function awardCoinsPlus(slug, base){
@@ -1175,6 +1187,10 @@ if (typeof document !== 'undefined') (function () {
         setTimeout(function () {
           ovWin.classList.add('show');
           sfx.win();
+          fxPop(ovWin.querySelector('h2'), 1.5);
+          if (rw2048) fxPop(document.getElementById('winCoins'), 1.2);
+          if (rw2048 && rw2048.lucky > 1) fxPop(document.getElementById('winLucky'), 1.35);
+          if (rw2048 && rw2048.ticket) fxPop(document.getElementById('winTicket'), 1.35);
         }, SLIDE_MS + 250);
       }
     }
@@ -1196,20 +1212,26 @@ if (typeof document !== 'undefined') (function () {
       updateWalletChip();
       rewardCeremony(rw, 'overLucky', 'overTicket');
     }
-    var msg;
+    var tail;
     if (isDaily) {
       var best = saveDailyBest(state.score);
-      msg = "Score " + state.score + " · Today's best " + best;
+      tail = " · Today's best " + best;
     } else {
-      msg = 'Score ' + state.score + ' · Biggest tile ' + state.biggest;
+      tail = ' · Biggest tile ' + state.biggest;
     }
+    if (rw) tail += ' · +' + rw.n + ' 🪙 (wallet ' + rw.total + ')';
     ovOver.querySelector('h2').textContent = isDaily ? 'Daily Complete' : 'Game Over';
     document.getElementById('overUndoBtn').style.display = isDaily ? 'none' : '';
-    document.getElementById('overStats').textContent = msg + (rw ? ' · +' + rw.n + ' 🪙 (wallet ' + rw.total + ')' : '');
+    document.getElementById('overStats').textContent = 'Score ' + state.score + tail;
     updateDailyHud();
     setTimeout(function () {
       ovOver.classList.add('show');
       sfx.over();
+      fxPop(ovOver.querySelector('h2'), 1.5);
+      fxCountUp(document.getElementById('overStats'), 'Score ', state.score, tail);
+      if (rw) fxPop(document.getElementById('overStats'), 1.2);
+      if (rw && rw.lucky > 1) fxPop(document.getElementById('overLucky'), 1.35);
+      if (rw && rw.ticket) fxPop(document.getElementById('overTicket'), 1.35);
     }, SLIDE_MS + 300);
   }
 

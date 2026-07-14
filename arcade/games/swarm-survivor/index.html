@@ -171,6 +171,7 @@
   <a class="back" href="../../vault.html">🎴 Card Vault</a>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* ==========================================================================
@@ -1128,6 +1129,17 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
     return Math.floor(t/60)+':'+('0'+(t%60)).slice(-2);
   }
 
+  /* ---------- anime.js reward-moment helpers (no-op if lib missing) ---------- */
+  var FX = window.anime || null;
+  var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(elm, s0){ if (FX && elm) FX.animate(elm, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(elm, prefix, target, suffix){
+    if (!FX || !(target > 0)){ elm.textContent = prefix + target + (suffix || ''); return; }
+    var o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target/3), ease: 'outExpo',
+      onUpdate: function(){ elm.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
+
   function renderShop(){
     var w = walletRead();
     el('walletBal').textContent = w.coins;
@@ -1157,6 +1169,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
           persist();
           sfx('coin');
           renderShop();
+          fxPop(el('walletBal').parentElement, 1.2);
         } else {
           b.style.background = '#4a2030';
           setTimeout(function(){ b.style.background=''; },250);
@@ -1361,13 +1374,15 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
     persist();
     el('resTitle').textContent = win ? '🏆 VICTORY!' : 'YOU DIED';
     el('resTitle').className = 'olTitle '+(win?'win':'lose');
+    fxPop(el('resTitle'), 1.5);
     el('resSub').textContent = win ? 'The Reaper falls. Dawn breaks over the meadow.' :
       'The swarm claims another soul at '+fmtTime(game.time)+'.';
     el('rTime').textContent = fmtTime(game.time);
-    el('rKills').textContent = game.kills;
+    fxCountUp(el('rKills'), '', game.kills, '');
     el('rLevel').textContent = game.level;
     el('rPeak').textContent = game.peakEnemies;
-    el('rCoins').textContent = rw.n;
+    fxCountUp(el('rCoins'), '', rw.n, '');
+    fxPop(el('rCoins').parentElement, 1.2);
     el('rWallet').textContent = '(wallet '+rw.total+')';
     el('rLucky').style.display = rw.lucky > 1 ? '' : 'none';
     if (rw.lucky > 1){
@@ -1378,6 +1393,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
     el('rTicket').style.display = rw.ticket ? '' : 'none';
     el('rBest').textContent = (newBestT||newBestK ? '★ New best! ' : '')+
       'Best: '+fmtTime(save.bestTime)+' · '+save.bestKills+' kills';
+    if (newBestT||newBestK) fxPop(el('rBest'), 1.35);
     el('topBtns').classList.add('hidden');
     el('resultOl').classList.remove('hidden');
     sfx(win?'victory':'death');

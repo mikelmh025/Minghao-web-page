@@ -85,6 +85,7 @@ kbd{background:#26263a;border:1px solid #3c3c56;border-radius:5px;padding:1px 6p
   <div class="tb" id="t-pause" data-k="pause">| |</div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -706,6 +707,17 @@ function awardCoins(slug, n){return awardCoinsPlus(slug, n).total}
 function walletCoins(){try{const w=JSON.parse(localStorage.getItem('arcade-wallet'));return w&&w.coins||0}catch(e){return 0}}
 function loadSave(){try{return JSON.parse(localStorage.getItem('arcade-iron-fists'))||null}catch(e){return null}}
 function saveSave(s){try{localStorage.setItem('arcade-iron-fists',JSON.stringify(s))}catch(e){}}
+
+// ---- reward-moment motion layer (anime.js, DOM overlay only; no-ops if lib missing) ----
+const FX=(typeof window!=='undefined'&&window.anime)||null;
+const fxSpring=FX?FX.createSpring({stiffness:260,damping:15}):null;
+function fxPop(el,s0){if(FX&&el)FX.animate(el,{scale:[s0||1.35,1],ease:fxSpring});}
+function fxCountUp(el,prefix,target,suffix){
+  if(!FX||!(target>0)){el.textContent=prefix+target+(suffix||'');return;}
+  const o={v:0};
+  FX.animate(o,{v:target,duration:Math.min(1500,600+target/3),ease:'outExpo',
+    onUpdate:()=>{el.textContent=prefix+Math.round(o.v)+(suffix||'');}});
+}
 
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 let W=innerWidth,H=innerHeight,DPR=1;
@@ -1368,9 +1380,14 @@ function showResult(winner){
   }
   $('resultTitle').textContent=title;
   $('resultSub').textContent=sub;
-  $('coinsLine').innerHTML='+'+(rw?rw.n:coins)+' &#129689; &nbsp;<span style="color:#8a8aa0;font-size:14px">wallet: '+(rw?rw.total:walletCoins())+'</span>'
+  $('coinsLine').innerHTML='<span id="coinsNum"></span> &nbsp;<span style="color:#8a8aa0;font-size:14px">wallet: '+(rw?rw.total:walletCoins())+'</span>'
     +(rw&&rw.lucky>1?'<div class="luckyLine">🍀 LUCKY ×'+rw.lucky+'!</div>':'')
     +(rw&&rw.ticket?'<div class="ticketLine">🎟 PULL TICKET!</div>':'');
+  fxCountUp($('coinsNum'),'+',rw?rw.n:coins,' \u{1FA99}');
+  fxPop($('resultTitle'),1.6);
+  fxPop($('coinsLine'),1.2);
+  fxPop(resultEl.querySelector('.luckyLine'),1.3);
+  fxPop(resultEl.querySelector('.ticketLine'),1.3);
   const rb=$('resultBtns');rb.innerHTML='';
   for(const [label,cls,fn] of btns){
     const b=document.createElement('button');

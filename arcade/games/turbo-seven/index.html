@@ -81,6 +81,7 @@ table.res tr.me td{background:#2a2a44;font-weight:bold}
   </div>
 </div>
 </div>
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -551,6 +552,17 @@ function walletCoins(){
 }
 function refreshCoinPill(){ $('coinPill').textContent = '🪙 ' + walletCoins(); }
 refreshCoinPill();
+
+/* ---------- anime.js reward-moment FX (no-ops if lib missing) ---------- */
+const FX = (typeof window !== 'undefined' && window.anime) || null;
+const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+function fxPop(el, s0){ if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+function fxCountUp(el, prefix, target, suffix){
+  if (!FX || !(target > 0)){ el.textContent = prefix + target + (suffix || ''); return; }
+  const o = { v: 0 };
+  FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+    onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+}
 
 /* ---------- themes ---------- */
 var THEMES = [
@@ -1060,10 +1072,10 @@ function showResults(){
       (cup ? '<td>+' + CUP_PTS[k.rank - 1] + ' pts (' + cup.pts[k.i] + ')</td>' : '') + '</tr>';
   });
   html += '</table>';
-  html += '<div class="small">Laps: ' + p.lapTimes.map(fmtT).join(' · ') +
+  html += '<div class="small" id="rLaps">Laps: ' + p.lapTimes.map(fmtT).join(' · ') +
           (newLap ? ' <b style="color:#ffd35c">NEW BEST LAP!</b>' : '') +
           (newRace ? ' <b style="color:#ffd35c">NEW BEST RACE!</b>' : '') + '</div>';
-  html += '<div class="coinFly">+' + award.n + ' 🪙 <span class="small">(wallet ' + award.total + ')</span></div>';
+  html += '<div class="coinFly" id="rCoin"><span id="rCoinN">+' + award.n + ' 🪙</span> <span class="small">(wallet ' + award.total + ')</span></div>';
   if (award.lucky > 1) html += '<div class="luckyPop">🍀 LUCKY ×' + award.lucky + '!</div>';
   if (award.ticket) html += '<div class="ticketPop">🎟 PULL TICKET!</div>';
   html += '<div class="btnRow">';
@@ -1079,6 +1091,13 @@ function showResults(){
   if ((b = $('rPodium'))) b.addEventListener('click', showPodium);
   if ((b = $('rRetry'))) b.addEventListener('click', function(){ if (race) startRace(race.trackIdx); });
   $('rTitle').addEventListener('click', toTitle);
+  // reward-moment juice (no-op without anime.js)
+  fxPop($('resultsPanel').querySelector('h2'), 1.5);
+  fxPop($('rLaps'), 1.15);                       // times pop, never count up
+  fxCountUp($('rCoinN'), '+', award.n, ' 🪙');
+  fxPop($('rCoin'), 1.2);
+  var bests = $('resultsPanel').querySelectorAll('#rLaps b');
+  for (var bi = 0; bi < bests.length; bi++) fxPop(bests[bi], 1.45);
 }
 function showPodium(){
   var order = cup.pts.map(function(p, i){ return { i: i, p: p }; }).sort(function(a, b){ return b.p - a.p; });
@@ -1100,6 +1119,9 @@ function showPodium(){
   $('resultsPanel').innerHTML = html;
   fanfare();
   $('rTitle2').addEventListener('click', toTitle);
+  fxPop($('resultsPanel').querySelector('h2'), 1.5);
+  var cols = $('resultsPanel').querySelectorAll('.podium .col');
+  for (var ci2 = 0; ci2 < cols.length; ci2++) fxPop(cols[ci2], 1.3);
 }
 
 /* ---------- events / juice ---------- */

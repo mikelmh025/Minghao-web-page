@@ -64,6 +64,17 @@
   }
   function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch {} }
 
+  // anime.js result-screen juice (no-ops if lib/anime.min.js failed to load)
+  const FX = window.anime || null;
+  const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(elm, s0) { if (FX && elm) FX.animate(elm, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(elm, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { elm.textContent = prefix + target + suffix; return; }
+    const o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: () => { elm.textContent = prefix + Math.round(o.v) + suffix; } });
+  }
+
   // Saves are keyed by level NAME so reordering/inserting levels never breaks progress.
   function starsFor(i) { return save.stars[LEVELS[i].name] || 0; }
   function totalStars() { return LEVELS.reduce((s, lv, i) => s + starsFor(i), 0); }
@@ -515,10 +526,13 @@
     }
     const reward = awardCoinsPlus(Math.round(world.score / 400));
     el('result-title').textContent = '∞ Endless Run';
+    fxPop(el('result-title'), 1.5);
     document.querySelectorAll('.result-star').forEach(s => s.classList.remove('lit'));
-    el('result-score').textContent = `Score: ${world.score} · Size ×${world.maxSize.toFixed(1)} · ${Math.floor(world.time / 60)}:${String(Math.floor(world.time) % 60).padStart(2, '0')}`;
+    fxCountUp(el('result-score'), 'Score: ', world.score,
+      ` · Size ×${world.maxSize.toFixed(1)} · ${Math.floor(world.time / 60)}:${String(Math.floor(world.time) % 60).padStart(2, '0')}`);
     const best = save.endlessBest || { score: 0, size: 1, time: 0 };
     el('result-best').textContent = `Best: ${best.score}${isRecord ? ' — new record!' : ''}` + rewardText(reward);
+    fxPop(el('result-best'), 1.2);
     const nextBtn = el('btn-next');
     nextBtn.disabled = false;
     nextBtn.textContent = 'Run it back ∞';
@@ -571,12 +585,13 @@
       void s.offsetWidth;
       if (i < stars) s.classList.add('lit');
     });
-    el('result-score').textContent = world.reversal
-      ? `City survived: ${(world.remainFrac * 100).toFixed(0)}%`
-      : `Score: ${world.score}`;
+    fxPop(el('result-title'), 1.5);
+    if (world.reversal) fxCountUp(el('result-score'), 'City survived: ', Math.round(world.remainFrac * 100), '%');
+    else fxCountUp(el('result-score'), 'Score: ', world.score, '');
     el('result-best').textContent =
       `Best: ${save.best[key]}${(world.reversal ? Math.round(world.remainFrac * 100) : world.score) > prevBest ? ' — new record!' : ''}` +
       rewardText(reward);
+    fxPop(el('result-best'), 1.2);
     const nextBtn = el('btn-next');
     if (world.reversal) {
       nextBtn.disabled = false;
