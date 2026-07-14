@@ -169,6 +169,8 @@ footer { text-align: center; color: #55556a; font-size: 12px; margin-top: 36px; 
 .stat-pill { font-size: 13px; font-weight: 700; font-family: var(--mono); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
   border-radius: 999px; padding: 7px 14px; white-space: nowrap; }
 .stat-pill.streak { color: #fda4af; border-color: rgba(251,113,133,0.35); }
+.showcase { width: 46px; height: 64px; border-radius: 9px; border: 1px solid rgba(250,204,21,0.45);
+  box-shadow: 0 0 10px rgba(250,204,21,0.2); flex: none; object-fit: cover; }
 .stat-pill.tik { color: #a5f3fc; border-color: rgba(103,232,249,0.35); }
 
 .vault-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-decoration: none; color: inherit;
@@ -221,6 +223,7 @@ footer { text-align: center; color: #55556a; font-size: 12px; margin-top: 36px; 
 <div class="eyebrow"><b>▸</b> PLAYER ONE</div>
 <div class="meta-deck">
   <div class="profile-strip">
+    <img id="showcase" class="showcase" alt="" style="display:none">
     <div class="lvl-badge" id="lvl">1</div>
     <div class="xp-wrap">
       <small id="xp-label">LEVEL 1 · 0 XP</small>
@@ -954,6 +957,15 @@ function renderMeta() {
   const cur = xpForLevel(lvl), next = xpForLevel(lvl + 1);
   const lvlEl = document.getElementById('lvl');
   if (lvlEl.textContent !== '' + lvl) { lvlEl.textContent = lvl; pop(lvlEl, 1.5); }
+  const sc = readJ('arcade-showcase', null);
+  const scEl = document.getElementById('showcase');
+  if (sc && sc.img) {
+    if (scEl.dataset.id !== sc.id) {
+      scEl.dataset.id = sc.id; scEl.src = sc.img;
+      scEl.title = `Your legend: ${sc.name} [${sc.rarity}]`;
+      scEl.style.display = ''; pop(scEl, 1.4);
+    }
+  } else scEl.style.display = 'none';
   document.getElementById('xp-label').textContent = `LEVEL ${lvl} · ${xp - cur}/${next - cur} XP`;
   document.getElementById('xp-fill').style.width = Math.min(100, ((xp - cur) / (next - cur)) * 100) + '%';
   rollTo('coin-count', w.coins || 0);

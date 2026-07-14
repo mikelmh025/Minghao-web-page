@@ -214,6 +214,27 @@ function saveVault() {
   w.bonusPct = collectionPower();
   saveWallet(w);
   writeJSON('arcade-vault', vault);
+  updateShowcase();
+}
+/* Cache a rendered thumbnail of the rarest owned card for the hub's player strip. */
+function updateShowcase() {
+  const ord = { UR: 0, SSR: 1, SR: 2, R: 3, N: 4 };
+  const best = CARDS.filter(c => vault.cards[c.id]).sort((a, b) => ord[a.rarity] - ord[b.rarity])[0];
+  const cur = readJSON('arcade-showcase', null);
+  if (!best) { if (cur) try { localStorage.removeItem('arcade-showcase'); } catch {} return; }
+  if (cur && cur.id === best.id) return;
+  try {
+    const cv = document.createElement('canvas');
+    drawCardArt(cv, best); // offscreen: falls back to 96x134 at DPR
+    const c = cv.getContext('2d');
+    const w = cv.width / (Math.min(2, window.devicePixelRatio || 1));
+    const h = cv.height / (Math.min(2, window.devicePixelRatio || 1));
+    c.font = '44px -apple-system'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(best.em, w / 2, h * 0.44);
+    localStorage.setItem('arcade-showcase', JSON.stringify({
+      id: best.id, name: best.name, rarity: best.rarity, img: cv.toDataURL('image/png'),
+    }));
+  } catch {}
 }
 function collectionPower() {
   let p = 0;
