@@ -857,15 +857,24 @@ function vaultPulls() { return (readJ('arcade-vault', {}).pulls) || 0; }
 function levelFor(xp) { return 1 + Math.floor(Math.sqrt(xp / 60)); }
 function xpForLevel(l) { return Math.pow(l - 1, 2) * 60; }
 
+// Featured game of the day (also drives the featured-challenge mission)
+const READY_GAMES = GAMES.filter(g => g.ready);
+const FEATURED = READY_GAMES[Math.floor(Date.now() / 864e5) % READY_GAMES.length];
+
 // New day: advance streak, reset missions, grant the login reward
 (function dayTick() {
-  if (meta.lastDay === todayStr) return;
+  if (meta.lastDay === todayStr) {
+    // backfill for saves created before the featured challenge existed
+    if (meta.dayFeatBase == null) { meta.dayFeatBase = bestNumber(FEATURED.slug); writeJ('arcade-meta', meta); }
+    return;
+  }
   const yesterday = new Date(Date.now() - 864e5).toDateString();
   meta.streak = meta.lastDay === yesterday ? (meta.streak || 0) + 1 : 1;
   meta.lastDay = todayStr;
   meta.playsToday = [];
   meta.dayEarnBase = totalEarned();
   meta.dayPullBase = vaultPulls();
+  meta.dayFeatBase = bestNumber(FEATURED.slug);
   meta.claimed = [];
   const reward = Math.min(100, 10 + meta.streak * 10);
   const w = walletW();
@@ -907,6 +916,8 @@ const MISSIONS = [
   { id: 'play3', label: 'Play 3 different games', prog: () => meta.playsToday.length, target: 3, reward: { coins: 40 } },
   { id: 'earn150', label: 'Earn 150 coins today', prog: () => Math.max(0, totalEarned() - (meta.dayEarnBase || 0)), target: 150, reward: { coins: 60 } },
   { id: 'pull1', label: 'Pull a card in the Vault', prog: () => Math.max(0, vaultPulls() - (meta.dayPullBase || 0)), target: 1, reward: { tickets: 1 } },
+  { id: 'featured', label: `★ Beat your best in ${FEATURED.name}`, target: 1, reward: { coins: 80 },
+    prog: () => bestNumber(FEATURED.slug) > (meta.dayFeatBase || 0) ? 1 : 0 },
 ];
 function renderMissions() {
   const box = document.getElementById('missions');
@@ -1032,8 +1043,7 @@ function checkAchievements() {
 
 // Featured game of the day
 (function featured() {
-  const ready = GAMES.filter(g => g.ready);
-  const g = ready[Math.floor(Date.now() / 864e5) % ready.length];
+  const g = FEATURED;
   const el = document.getElementById('featured');
   el.href = g.href;
   document.getElementById('featured-name').textContent = g.name;
