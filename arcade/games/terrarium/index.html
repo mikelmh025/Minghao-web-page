@@ -56,6 +56,7 @@
   #inspect .cmp{display:flex;justify-content:space-between;font-size:10px}
   #inspect .cmp .v{width:60px;text-align:right}
   #wallet{font-size:11px}
+  #genMax,#coins{display:inline-block;transform-origin:center}
   #intro{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
     background:rgba(6,8,10,.6);backdrop-filter:blur(4px);pointer-events:auto}
   #card{max-width:440px;width:88%;background:linear-gradient(180deg,#17211a,#121a17);
@@ -661,11 +662,17 @@ if(typeof module!=='undefined' && module.exports) module.exports = api;
 </script>
 
 <!-- ================= RENDER / UI / AUDIO / IDLE ================= -->
+<script src="../../lib/anime.min.js"></script>
 <script>
 (function(){
 'use strict';
 var T = globalThis.Terrarium, C = T.C;
 var SLUG='terrarium', LS_STATE='arcade-terrarium';
+
+// ---------- anime.js motion layer (event moments only; no-op without lib) ----------
+var FX = (typeof window !== 'undefined' && window.anime) || null;
+var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
 
 // ---------- wallet ----------
 function loadWallet(){ try{return JSON.parse(localStorage.getItem('arcade-wallet'))||{coins:0,earned:{},spent:0,tickets:0};}catch(e){return {coins:0,earned:{},spent:0,tickets:0};} }
@@ -700,6 +707,7 @@ function saveState(){
       var got=awardCoins(ap.coins);
       awayEl.style.display='block';
       awayEl.innerHTML=ap.summary+'<br>+'+got+' 🪙 Arcade Coins awarded.';
+      fxPop(awayEl, 1.2);
     }
   }
   saveState();
@@ -1082,7 +1090,15 @@ function drawGraph(){
 var lastChron='', chronIdx=0;
 function updateChron(){
   var ch=world.chronicle;
-  if(ch.length){ var m=ch[ch.length-1].msg; if(m!==lastChron){ lastChron=m; document.getElementById('chronText').textContent=m; } }
+  if(ch.length){ var m=ch[ch.length-1].msg;
+    if(m!==lastChron){
+      lastChron=m;
+      var el=document.getElementById('chronText');
+      el.textContent=m;
+      // bigger pop for ecosystem-shaking events (extinction / migration waves)
+      fxPop(el, /migrat|died out|vanished/i.test(m) ? 1.5 : 1.2);
+    }
+  }
 }
 
 function fmtSel(){
@@ -1112,12 +1128,19 @@ function fmtSel(){
 }
 
 var coinFlash=0;
-function flashCoins(){ coinFlash=1; }
+function flashCoins(){ coinFlash=1; fxPop(document.getElementById('coins'), 1.2); }
 
+var prevGenShown=-1;
 function updateHUD(){
   document.getElementById('seasonName').textContent=world.seasonName+' '+seasonEmoji();
   document.getElementById('clockPhase').textContent=world.night?'🌙 night':'☀ day';
-  document.getElementById('genMax').textContent=Math.max(world.genMax.bibbit,world.genMax.snapper);
+  var genEl=document.getElementById('genMax');
+  var genNow=Math.max(world.genMax.bibbit,world.genMax.snapper);
+  genEl.textContent=genNow;
+  if(genNow>prevGenShown){
+    if(prevGenShown>=0) fxPop(genEl, 1.5);  // new generation milestone
+    prevGenShown=genNow;
+  }
   document.getElementById('totPop').textContent=world.bibbits.length+world.snappers.length;
   document.getElementById('cntPlant').textContent=world.plants.length;
   document.getElementById('cntBib').textContent=world.bibbits.length;

@@ -68,8 +68,9 @@ context/tensor/pipeline parallelism, MoE + expert parallelism, and the serving s
 <summary style="cursor:pointer;color:#494e52;font-size:0.9em;">More details</summary>
 
 A side project: a full web arcade where every game is one self-contained HTML file with
-synthesized audio, and all of them share a coin economy, a collectible card gacha, and
-daily missions. Progress lives in your browser — no accounts, no real money.
+synthesized audio, and all of them share a coin economy, a collectible card gacha
+(46 legends, each with unique seeded generative art), daily missions, and 18
+cross-game achievements. Progress lives in your browser — no accounts, no real money.
 Agent-built, verified by headless simulation tests plus real-browser runs.
 
 - **Echo Hunter** — you're blind; the world renders only where your sonar ping sweeps it (and the creatures hear your pings)

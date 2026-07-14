@@ -47,6 +47,7 @@
   #follow{background:var(--panel);border:1px solid var(--line);border-radius:10px;
     padding:6px 10px;font-size:11px;display:none;pointer-events:auto;backdrop-filter:blur(8px)}
   #wallet{font-size:11px}
+  #coins{display:inline-block} /* inline-block so anime.js scale pops apply */
   /* intro */
   #intro{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
     background:rgba(6,6,10,.55);backdrop-filter:blur(3px);pointer-events:auto}
@@ -489,10 +490,17 @@
 <!-- ===================================================================
      RENDER + UI + AUDIO + WALLET  (browser only)
 =================================================================== -->
+<script src="../../lib/anime.min.js"></script>
 <script>
 (function(){
   "use strict";
   var AE=globalThis.AntEmpire, C=AE.C;
+
+  // ---------- anime.js motion layer (event moments only; no-op if lib missing) ----------
+  var FX=(typeof window!=='undefined' && window.anime)||null;
+  var fxSpring=FX?FX.createSpring({stiffness:260,damping:15}):null;
+  function fxPop(el,s0){ if(FX&&el) FX.animate(el,{scale:[s0||1.35,1],ease:fxSpring}); }
+  function fxSlideIn(el,s0){ if(FX&&el) FX.animate(el,{opacity:[0,1],translateY:[8,0],scale:[s0||1,1],ease:fxSpring}); }
   var W=C.W, H=C.H, CELL=C.CELL, GW=C.GW, GH=C.GH;
   var SLUG='ant-empire', LS_STATE='arcade-ant-empire';
 
@@ -532,6 +540,7 @@
         awayEl.style.display='block';
         awayEl.innerHTML='While you were away ('+mins+' min): '+ap.wars+' wars, '+
           ap.expansions+' expansions, '+ap.rains+' storms.<br>+'+got+' 🪙 Arcade Coins awarded.';
+        fxSlideIn(awayEl,1.2); // coin-award line pops in
       }
     }
     saveState();
@@ -656,8 +665,8 @@
   // ---------- chronicle ticker ----------
   var chronEl=document.getElementById('chronText'), chronQ=[], chronCur='The colonies stir…', chronT=0;
   function pumpChron(){
-    // drain sim events into the chronicle
-    if(world.events.length){ for(var i=0;i<world.events.length;i++) chronQ.push(world.events[i].msg);
+    // drain sim events into the chronicle (keep kind for motion emphasis)
+    if(world.events.length){ for(var i=0;i<world.events.length;i++) chronQ.push({kind:world.events[i].kind,msg:world.events[i].msg});
       world.events.length=0; if(chronQ.length>12) chronQ.splice(0,chronQ.length-12); }
   }
   var ambient=['Foragers fan out from the mound.','A trail thickens toward the food.',
@@ -666,7 +675,8 @@
   // ---------- coins flash ----------
   var coinsEl=document.getElementById('coins');
   function flashCoins(){ coinsEl.style.transition='none'; coinsEl.style.color='#fff';
-    setTimeout(function(){ coinsEl.style.transition='color .8s'; coinsEl.style.color=''; },30); }
+    setTimeout(function(){ coinsEl.style.transition='color .8s'; coinsEl.style.color=''; },30);
+    fxPop(coinsEl,1.2); }
 
   // ---------- HUD refs ----------
   var el={popB:g0('popB'),popR:g0('popR'),stB:g0('stB'),stR:g0('stR'),barB:g0('barB'),barR:g0('barR'),
@@ -813,8 +823,12 @@
     pumpChron();
     if(chronRot>4){
       chronRot=0;
-      var msg = chronQ.length? chronQ.shift() : ambient[Math.floor(Math.random()*ambient.length)];
-      chronEl.textContent='🐜 '+msg;
+      var it = chronQ.length? chronQ.shift() : null;
+      chronEl.textContent='🐜 '+(it?it.msg:ambient[Math.floor(Math.random()*ambient.length)]);
+      if(it){ // sim event entry: slide/pop in; major moments pop bigger
+        var major = it.kind==='war'||it.kind==='collapse'||it.kind==='spore';
+        fxSlideIn(chronEl, major?1.5:1.2);
+      }
     }
   }
 
