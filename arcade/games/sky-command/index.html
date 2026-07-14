@@ -96,6 +96,7 @@
     </div>
   </div>
 </div>
+<script src="../../lib/anime.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -538,6 +539,17 @@ function refreshTitleCoins(){
   document.getElementById('titleCoins').textContent = '🪙 ' + walletCoins() + ' coins';
 }
 function buzz(ms){ try{ if (navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+
+/* ---------- reward-moment motion (anime.js, no-op if lib missing) ---------- */
+const FX = (typeof window !== 'undefined' && window.anime) || null;
+const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+function fxCountUp(el, prefix, target, suffix) {
+  if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+  const o = { v: 0 };
+  FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+    onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+}
 var laserFlash = 0;
 var shootingStars = [];
 
@@ -769,17 +781,22 @@ function rewardCeremony(rw){
 function onGameOver(){
   droneStop();
   buzz(40);
-  if (S.score > best){ best = S.score; try { localStorage.setItem(HS_KEY, String(best)); } catch(e){} }
+  var isNewBest = S.score > best;
+  if (isNewBest){ best = S.score; try { localStorage.setItem(HS_KEY, String(best)); } catch(e){} }
   var coins = Math.max(1, Math.min(200, Math.round(S.score / 150)));
   var rw = awardCoinsPlus('sky-command', coins);
   refreshTitleCoins();
-  document.getElementById('finalCoins').textContent = '+' + rw.n + ' 🪙 (wallet ' + rw.total + ')';
+  var coinEl = document.getElementById('finalCoins');
+  coinEl.textContent = '+' + rw.n + ' 🪙 (wallet ' + rw.total + ')';
   rewardCeremony(rw);
-  document.getElementById('finalScore').textContent = S.score;
+  fxCountUp(document.getElementById('finalScore'), '', S.score, '');
   document.getElementById('finalBest').textContent = best;
   document.getElementById('overFlavor').textContent =
     'You held the line through ' + (S.wave - 1) + ' full wave' + (S.wave === 2 ? '' : 's') + '.';
   showCard('over');
+  fxPop(document.querySelector('#cardOver h2'), 1.5);
+  fxPop(coinEl, 1.2);
+  if (isNewBest) fxPop(document.getElementById('finalBest'), 1.35);
 }
 
 /* ---------- sizing / input ---------- */

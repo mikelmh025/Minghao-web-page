@@ -124,6 +124,7 @@
   <a class="pill" href="../../vault.html">🎴 Card Vault</a>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* ================================================================
@@ -364,6 +365,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CORE;
 if (typeof document !== 'undefined') (() => {
   const W = 1280, H = 720;
   const { clamp } = CORE;
+
+  /* ---------- anime.js reward-moment FX (no-op if lib missing) ---------- */
+  const FX = (typeof window !== 'undefined' && window.anime) || null;
+  const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    const o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
 
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
@@ -884,7 +896,8 @@ if (typeof document !== 'undefined') (() => {
     // arcade coins: win 60 / loss 15, + 10 per round won (P1 perspective in hot-seat)
     const coins = CORE.clamp(Math.round((won ? 60 : 15) + match.pWins * 10), 1, 200);
     const rw = awardCoinsPlus('tank-duel', coins);
-    $('coinLine').textContent = '+' + rw.n + ' 🪙 (wallet ' + rw.total + ')';
+    fxCountUp($('coinLine'), '+', rw.n, ' 🪙 (wallet ' + rw.total + ')');
+    fxPop($('coinLine'), 1.2);
     $('walletLine').textContent = '🪙 ' + rw.total;
     $('luckyLine').style.display = rw.lucky > 1 ? '' : 'none';
     if (rw.lucky > 1) { $('luckyLine').textContent = '🍀 LUCKY ×' + rw.lucky + '!'; luckyArp(); buzz(30); }
@@ -900,6 +913,10 @@ if (typeof document !== 'undefined') (() => {
       '<span>Damage taken</span><b>' + Math.round(s.dmgTaken) + '</b>' +
       recLine;
     endOv.classList.remove('hidden');
+    fxPop($('endTitle'), 1.5);
+    fxPop($('endStats'), 1.15);
+    if (rw.lucky > 1) fxPop($('luckyLine'), 1.35);
+    if (rw.ticket) fxPop($('ticketLine'), 1.35);
     state = 'matchOver';
     jingle(won);
   }

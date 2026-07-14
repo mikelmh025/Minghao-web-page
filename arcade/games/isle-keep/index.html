@@ -62,6 +62,7 @@
   .statline{color:var(--dim);font-size:13px;margin:10px 0 18px;line-height:1.9}
   .statline b{color:var(--txt)}
   .coinpop{font-size:19px;color:var(--gold);font-weight:800;margin:4px 0 14px}
+  .newbest{color:var(--gold);font-size:15px;font-weight:800;letter-spacing:1px;margin:6px 0;text-shadow:0 0 12px rgba(255,215,90,.7)}
   .luckypop{color:#7dff8a;font-size:21px;font-weight:800;letter-spacing:1px;margin:6px 0;text-shadow:0 0 14px rgba(125,255,138,.85),0 0 4px rgba(255,215,90,.9);animation:luckypop .9s ease-out}
   .ticketpop{color:#5ee7ff;font-size:15px;font-weight:700;margin:4px 0;text-shadow:0 0 10px rgba(94,231,255,.8);animation:luckypop .9s ease-out}
   @keyframes luckypop{0%{transform:scale(.3);opacity:0}55%{transform:scale(1.28)}100%{transform:scale(1);opacity:1}}
@@ -157,6 +158,7 @@
   </div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* =========================================================
@@ -867,6 +869,18 @@ if(typeof window!=='undefined'&&typeof document!=='undefined'){(function(){
   var keys={};
   var GAME_KEY='arcade-isle-keep',WALLET_KEY='arcade-wallet',SLUG='isle-keep';
 
+  /* ---------- reward motion (anime.js, optional) ---------- */
+  var FX=(typeof window!=='undefined'&&window.anime)||null;
+  var fxSpring=FX?FX.createSpring({stiffness:260,damping:15}):null;
+  function fxPop(el2,s0){if(FX&&el2)FX.animate(el2,{scale:[s0||1.35,1],ease:fxSpring});}
+  function fxCountUp(el2,prefix,target,suffix){
+    if(!el2)return;
+    if(!FX||!(target>0)){el2.textContent=prefix+target+(suffix||'');return;}
+    var o={v:0};
+    FX.animate(o,{v:target,duration:Math.min(1500,600+target/3),ease:'outExpo',
+      onUpdate:function(){el2.textContent=prefix+Math.round(o.v)+(suffix||'');}});
+  }
+
   /* ---------- storage / coins ---------- */
   function loadJSON(k){try{return JSON.parse(localStorage.getItem(k))||null;}catch(e){return null;}}
   function saveJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
@@ -1415,10 +1429,10 @@ if(typeof window!=='undefined'&&typeof document!=='undefined'){(function(){
         case 'build_done':puff(e.x,e.y,'#e8dcc0',12,1.4,26);sfx('done');break;
         case 'repair':puff(e.x,e.y,'#9fd8ae',8,1,22);sfx('done');break;
         case 'sell':sfx('sell');break;
-        case 'horn':sfx('horn');break;
+        case 'horn':sfx('horn');fxPop(el.phaselbl,1.25);break;
         case 'howl':sfx('howl');break;
         case 'wave':floatTxt(12,4,'⚔️ Raiders sighted!','#ff9a8a');break;
-        case 'dawn':floatTxt(12,8,'☀️ Dawn breaks','#ffe9a8');break;
+        case 'dawn':floatTxt(12,8,'☀️ Dawn breaks','#ffe9a8');fxPop(el.phaselbl,1.25);break;
         case 'arrow':sfx('arrow');break;
         case 'clank':sfx('clank');if(Math.random()<0.5)puff(e.x,e.y,'#ffd98a',2,0.5,16);break;
         case 'hit':sfx('hit');puff(e.x,e.y,'#d8decc',3,0.6,14);break;
@@ -1805,13 +1819,15 @@ if(typeof window!=='undefined'&&typeof document!=='undefined'){(function(){
     var nights=g.nightsSurvived;
     var score=g.score();
     var s=loadJSON(GAME_KEY)||{};
+    var newBest=(nights>(s.bestNight||0))||(score>(s.bestScore||0));
     if(!s.bestNight||nights>s.bestNight)s.bestNight=nights;
     if(!s.bestScore||score>s.bestScore)s.bestScore=score;
     if(victory)s.victory=true;
     saveJSON(GAME_KEY,s);
     var award=awardCoinsPlus(SLUG,nights*8+(victory?80:0));
     refreshTitle();
-    var stats='Nights survived: <b>'+nights+'</b><br>Buildings raised: <b>'+g.built+'</b> · Raiders slain: <b>'+g.kills+'</b><br>Score: <b>'+score+'</b>';
+    var stats='Nights survived: <b class="fxNights">'+nights+'</b><br>Buildings raised: <b>'+g.built+'</b> · Raiders slain: <b>'+g.kills+'</b><br>Score: <b class="fxScore">'+score+'</b>';
+    if(newBest)stats+='<div class="newbest fxBest">🏆 NEW BEST!</div>';
     var reward='+'+award.n+' 🪙 <span style="font-size:12px;color:var(--dim)">(wallet '+award.total+')</span>';
     if(award.lucky>1)reward+='<div class="luckypop">🍀 LUCKY ×'+award.lucky+'!</div>';
     if(award.ticket)reward+='<div class="ticketpop">🎟 PULL TICKET!</div>';
@@ -1820,17 +1836,23 @@ if(typeof window!=='undefined'&&typeof document!=='undefined'){(function(){
       [523,659,784,1047].forEach(function(f,i){tone(f,0.12,'square',0.18,null,i*0.09);});
       vibrate(30);
     }
+    var statsEl,coinsEl,ov;
     if(victory){
-      el.victoryStats.innerHTML=stats;
-      el.victoryCoins.innerHTML=reward;
-      el.victoryOv.style.display='flex';
+      statsEl=el.victoryStats;coinsEl=el.victoryCoins;ov=el.victoryOv;
       sfx('fanfare');vibrate([60,40,60,40,120]);
     }else{
-      el.defeatStats.innerHTML=stats;
-      el.defeatCoins.innerHTML=reward;
-      el.defeatOv.style.display='flex';
+      statsEl=el.defeatStats;coinsEl=el.defeatCoins;ov=el.defeatOv;
       sfx('dirge');vibrate(120);
     }
+    statsEl.innerHTML=stats;
+    coinsEl.innerHTML=reward;
+    ov.style.display='flex';
+    // reward motion layer (no-ops if anime.js missing)
+    fxPop(ov.querySelector('h1'),1.5);
+    fxCountUp(statsEl.querySelector('.fxNights'),'',nights,'');
+    fxCountUp(statsEl.querySelector('.fxScore'),'',score,'');
+    fxPop(coinsEl,1.2);
+    if(newBest)fxPop(statsEl.querySelector('.fxBest'),1.35);
   }
 
   /* ---------- main loop ---------- */

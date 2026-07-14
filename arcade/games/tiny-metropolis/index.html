@@ -183,6 +183,7 @@
   </div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -635,15 +636,31 @@ if (typeof window !== 'undefined') (function () {
   syncMute();
   window.addEventListener('pointerdown', function () { initAudio(); if (AC && AC.state === 'suspended') AC.resume(); }, { passive: true });
 
+  /* ---------------- reward motion layer (anime.js, optional) ---------------- */
+  var FX = (typeof window !== 'undefined' && window.anime) || null;
+  var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix, format) {
+    var f = format || function (n) { return Math.round(n); };
+    if (!FX || !(target > 0)) { el.textContent = prefix + f(target) + (suffix || ''); return; }
+    var o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: function () { el.textContent = prefix + f(o.v) + (suffix || ''); } });
+  }
+
   /* ---------------- toasts / floaties ---------------- */
   var toastBox = document.getElementById('toasts');
   function toast(msg, gold) {
     var el = document.createElement('div');
     el.className = 'toast' + (gold ? ' gold' : '');
-    el.textContent = msg;
+    var sp = document.createElement('span');
+    sp.style.display = 'inline-block';   // scale-able inner span (keeps CSS anims on the box)
+    sp.textContent = msg;
+    el.appendChild(sp);
     toastBox.appendChild(el);
     while (toastBox.children.length > 3) toastBox.removeChild(toastBox.firstChild);
     setTimeout(function () { el.classList.add('out'); setTimeout(function () { el.remove(); }, 450); }, 3400);
+    return sp;
   }
   function floaty(text, x, y) {
     // x,y in viewport coords; convert into #wrap's local space
@@ -651,11 +668,15 @@ if (typeof window !== 'undefined') (function () {
     var wr = wrap.getBoundingClientRect();
     var el = document.createElement('div');
     el.className = 'floaty';
-    el.textContent = text;
+    var sp = document.createElement('span');
+    sp.style.display = 'inline-block';
+    sp.textContent = text;
+    el.appendChild(sp);
     el.style.left = (x - wr.left) + 'px';
     el.style.top = Math.max(8, Math.min(wr.height - 30, y - wr.top)) + 'px';
     wrap.appendChild(el);
     setTimeout(function () { el.remove(); }, 1500);
+    return sp;
   }
 
   /* ---------------- living details state ---------------- */
@@ -822,7 +843,7 @@ if (typeof window !== 'undefined') (function () {
       unlockSig = sig;
       buildCards();
       newTypes.forEach(function (id) {
-        toast(TM.BY_ID[id].icon + ' ' + TM.BY_ID[id].name + ' unlocked!', true);
+        fxPop(toast(TM.BY_ID[id].icon + ' ' + TM.BY_ID[id].name + ' unlocked!', true), 1.5);
         sfxFanfare();
       });
     }
@@ -884,11 +905,11 @@ if (typeof window !== 'undefined') (function () {
     var msg = '📦 Goods exported! +' + res.n + ' 🪙';
     if (res.lucky > 1) msg += '  🍀 LUCKY ×' + res.lucky + '!';
     if (res.ticket) msg += '  🎟 PULL TICKET!';
-    toast(msg, res.lucky > 1);
+    fxPop(toast(msg, res.lucky > 1), 1.2);
     sfxCoin();
     if (res.lucky > 1) sfxFanfare();
     var r = exportBtn.getBoundingClientRect();
-    floaty('+' + res.n + ' 🪙' + (res.lucky > 1 ? ' 🍀' : ''), r.left + r.width / 2, Math.max(10, r.top - 60));
+    fxPop(floaty('+' + res.n + ' 🪙' + (res.lucky > 1 ? ' 🍀' : ''), r.left + r.width / 2, Math.max(10, r.top - 60)), 1.2);
   }
   exportBtn.addEventListener('click', doExport);
   function syncWallet() {
@@ -907,6 +928,7 @@ if (typeof window !== 'undefined') (function () {
       : 'Earn $' + TM.fmt(Math.pow(S.stars + 1, 2) * 1e6) + ' lifetime for your next star. Lifetime so far: $' + TM.fmt(S.lifetime);
     document.getElementById('pgYes').style.display = g >= 1 ? '' : 'none';
     pgBack.classList.add('show');
+    fxPop(document.getElementById('pgGain'), 1.5);
   });
   document.getElementById('pgNo').addEventListener('click', function () { pgBack.classList.remove('show'); });
   document.getElementById('pgYes').addEventListener('click', function () {
@@ -914,7 +936,7 @@ if (typeof window !== 'undefined') (function () {
     pgBack.classList.remove('show');
     if (g > 0) {
       construction = []; cats = [];
-      toast('📜 New City Charter signed! +' + g + ' ⭐ (income ×' + TM.starMult(S.stars).toFixed(1) + ')', true);
+      fxPop(toast('📜 New City Charter signed! +' + g + ' ⭐ (income ×' + TM.starMult(S.stars).toFixed(1) + ')', true), 1.5);
       sfxFanfare();
       refreshCards('rebuild');
       persist();
@@ -928,7 +950,7 @@ if (typeof window !== 'undefined') (function () {
       var m = TM.POP_MILESTONES[i];
       if (pop >= m.pop && !S.seen['pop' + m.pop]) {
         S.seen['pop' + m.pop] = true;
-        toast(m.msg, true);
+        fxPop(toast(m.msg, true), 1.5);
         sfxFanfare();
       }
     }
@@ -951,16 +973,21 @@ if (typeof window !== 'undefined') (function () {
             'While you were away (' + (h > 0 ? h + 'h ' : '') + mn + 'm' + (capped ? ', capped at 8h' : '') + '):';
           document.getElementById('wbNote').textContent = capped ? 'Offline earnings cap at 8 hours — visit often!' : '';
           var amtEl = document.getElementById('wbAmount');
-          var t0 = null;
           document.getElementById('wbBack').classList.add('show');
-          function countUp(ts) {
-            if (!t0) t0 = ts;
-            var p = Math.min(1, (ts - t0) / 1800);
-            var ease = 1 - Math.pow(1 - p, 3);
-            amtEl.textContent = '$' + TM.fmt(earned * ease);
-            if (p < 1) requestAnimationFrame(countUp);
+          if (FX) {
+            // count the raw amount up through the game's own K/M/B formatter
+            fxCountUp(amtEl, '$', earned, '', TM.fmt);
+          } else {
+            var t0 = null;
+            var countUp = function (ts) {
+              if (!t0) t0 = ts;
+              var p = Math.min(1, (ts - t0) / 1800);
+              var ease = 1 - Math.pow(1 - p, 3);
+              amtEl.textContent = '$' + TM.fmt(earned * ease);
+              if (p < 1) requestAnimationFrame(countUp);
+            };
+            requestAnimationFrame(countUp);
           }
-          requestAnimationFrame(countUp);
         }
       }
     }

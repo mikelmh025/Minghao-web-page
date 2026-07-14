@@ -111,7 +111,7 @@
 </div>
 
 <div id="overOv" class="overlay hidden">
-  <div class="big" style="color:#ff6a6a">CRASHED</div>
+  <div class="big" id="oTitle" style="color:#ff6a6a">CRASHED</div>
   <div class="stat" style="font-size:24px"><b id="oDist">0 m</b></div>
   <div class="stat">Coins collected: <b id="oCoins">0</b></div>
   <div class="stat" id="oBestLine">Best: <b id="oBest">0 m</b></div>
@@ -125,6 +125,7 @@
   <a class="arcade" href="../../vault.html">🎴 Card Vault</a>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* ================================================================
@@ -442,6 +443,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CaveCore;
    ================================================================ */
 if (typeof window !== 'undefined' && typeof document !== 'undefined') (function () {
   var C = CaveCore, VH = C.VH;
+
+  /* ---------- anime.js reward-moment FX (no-ops if lib missing) ---------- */
+  const FX = (typeof window !== 'undefined' && window.anime) || null;
+  const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    const o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
+
   var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
   var scale = 1, viewW = 800;
 
@@ -672,17 +685,20 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') (function 
       var award = Math.max(1, Math.min(200, Math.round(run.meters / 40)));
       var rw = awardCoinsPlus('cave-flyer', award);
       $('oArcade').textContent = '+' + rw.n + ' 🪙 arcade (wallet ' + rw.total + ')';
+      fxPop($('oArcade'), 1.2);
       rewardCeremony(rw);
       if (run.daily) {
         var rec = loadDaily(), m = Math.floor(run.meters);
         if (!rec || m > rec.best) saveDaily(m);
       }
     }
-    $('oDist').textContent = Math.floor(run.meters) + ' m';
+    fxCountUp($('oDist'), '', Math.floor(run.meters), ' m');
     $('oCoins').textContent = run.coins;
     $('oBest').textContent = Math.floor(save.best) + ' m' + (run.newBest ? '  🏆 NEW!' : '');
     $('oBank').textContent = save.bank;
     overOv.classList.remove('hidden');
+    fxPop($('oTitle'), 1.5);
+    if (run.newBest) fxPop($('oBestLine'), 1.35);
     mode = 'dead';
   }
   function toTitle() {

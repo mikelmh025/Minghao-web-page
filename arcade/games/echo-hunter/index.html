@@ -54,6 +54,7 @@
 <button class="pill corner" id="muteBtn">🔊 Sound</button>
 <div class="ov" id="ov"></div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -621,6 +622,17 @@ if(typeof window!=='undefined')(function(){
   }
   window.addEventListener('resize',resize); resize();
 
+  /* ---------- reward-moment motion (anime.js, no-op if lib missing) ---------- */
+  const FX = (typeof window !== 'undefined' && window.anime) || null;
+  const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    const o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
+
   /* ---------- persistence & coins ---------- */
   var SAVE_KEY='arcade-echo-hunter';
   function loadBest(){
@@ -926,32 +938,44 @@ if(typeof window!=='undefined')(function(){
     stopDrone();
     var cleared=victory?5:(game.level-1);
     var award=awardCoinsPlus('echo-hunter',coinsForRun(cleared));
-    saveBest(victory?5:game.level,game.totalWorms);
-    var reward='<div class="coins">+'+award.n+' 🪙 <span style="opacity:.7">(wallet '+award.total+')</span></div>';
+    var prevBest=loadBest();
+    var depthReached=victory?5:game.level;
+    var newBest=depthReached>(prevBest.bestLevel||0)||game.totalWorms>(prevBest.bestWorms||0);
+    saveBest(depthReached,game.totalWorms);
+    var reward='<div class="coins" id="endCoins">+'+award.n+' 🪙 <span style="opacity:.7">(wallet '+award.total+')</span></div>';
     if(award.lucky>1)reward+='<div class="luckypop">🍀 LUCKY ×'+award.lucky+'!</div>';
     if(award.ticket)reward+='<div class="ticketpop">🎟 PULL TICKET!</div>';
+    if(newBest)reward+='<div class="stats" id="endBest" style="color:#7dd8ff;margin-top:8px;letter-spacing:2px">★ NEW BEST</div>';
     if(award.lucky>1){
       if(AC){var lt=AC.currentTime;[523,659,784,1047].forEach(function(f,i){tone({f0:f,dur:0.12,type:'triangle',gain:0.12,when:lt+i*0.09});});}
       vib(30);
     }
     if(victory){
       ui='victory';
-      showOv('<h2>YOU SURFACED</h2>'+
+      showOv('<h2 id="endTitle">YOU SURFACED</h2>'+
         '<p>Five caves deep and back out alive. The Matriarch\'s song fades below you.</p>'+
-        '<div class="stats">glowworms: '+game.totalWorms+'</div>'+
+        '<div class="stats">glowworms: <span id="stWorms">'+game.totalWorms+'</span></div>'+
         reward+
         '<button class="pill primary" id="againBtn" style="margin-top:16px">Descend again</button>'+
         '<div class="tag"><a class="pill" href="../../arcade.html">&larr; Arcade</a> <a class="pill" href="../../vault.html">🎴 Card Vault</a></div>');
     }else{
       ui='over';
-      showOv('<h2>SWALLOWED BY THE DARK</h2>'+
+      showOv('<h2 id="endTitle">SWALLOWED BY THE DARK</h2>'+
         '<p>The cave keeps what it catches.</p>'+
-        '<div class="stats">depth '+game.level+' · glowworms '+game.totalWorms+'</div>'+
+        '<div class="stats">depth <span id="stDepth">'+game.level+'</span> · glowworms <span id="stWorms">'+game.totalWorms+'</span></div>'+
         reward+
         '<button class="pill primary" id="againBtn" style="margin-top:16px">Try again</button>'+
         '<div class="tag"><a class="pill" href="../../arcade.html">&larr; Arcade</a> <a class="pill" href="../../vault.html">🎴 Card Vault</a></div>',true);
     }
     bindBtn('againBtn',function(){ showTitle(); });
+    // reward-moment motion (DOM overlay only; no-op without anime.js)
+    fxPop(document.getElementById('endTitle'),1.5);
+    var dEl=document.getElementById('stDepth');
+    if(dEl)fxCountUp(dEl,'',game.level,'');
+    var wEl=document.getElementById('stWorms');
+    if(wEl)fxCountUp(wEl,'',game.totalWorms,'');
+    fxPop(document.getElementById('endCoins'),1.2);
+    fxPop(document.getElementById('endBest'),1.35);
   }
   function showDead(){
     stopDrone();

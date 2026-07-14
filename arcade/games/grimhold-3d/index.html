@@ -121,6 +121,7 @@
 </div>
 <footer>Grimhold 3D &mdash; raycast dungeon crawler. Desktop: WASD + mouse. Touch: left stick, drag right side to turn.</footer>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 "use strict";
 /* =========================================================================
@@ -983,6 +984,22 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
     }
   }
   const coinFormula = g => Core.clamp(g.levelNum * 10 + Math.floor(g.player.gold / 20), 1, 200);
+
+  /* ---------------- anime.js reward motion (no-op if lib missing) ---------------- */
+  const FX = (typeof window !== 'undefined' && window.anime) || null;
+  const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0){ if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix){
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    const o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
+  function fxNum(n){ return '<span class="fxn" data-n="' + (+n || 0) + '">' + n + '</span>'; }
+  function fxJuiceStats(el){
+    if (!FX || !el) return;
+    el.querySelectorAll('.fxn').forEach(sp => fxCountUp(sp, '', +sp.dataset.n, ''));
+  }
 
   /* ---------------- audio ---------------- */
   let AC = null, master = null, muted = false, noiseBuf = null;
@@ -1859,16 +1876,19 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
 
   function statsHTML(g){
     return 'Time ' + fmtTime(g.time) +
-      ' &nbsp;·&nbsp; Kills ' + g.kills + '/' + g.totalMonsters +
-      ' &nbsp;·&nbsp; Secrets ' + g.secretsFound + '/' + g.secretsTotal +
-      ' &nbsp;·&nbsp; Gold ' + g.player.gold;
+      ' &nbsp;·&nbsp; Kills ' + fxNum(g.kills) + '/' + g.totalMonsters +
+      ' &nbsp;·&nbsp; Secrets ' + fxNum(g.secretsFound) + '/' + g.secretsTotal +
+      ' &nbsp;·&nbsp; Gold ' + fxNum(g.player.gold);
   }
   function saveBest(g){
     const b = save.best[g.levelNum];
-    if (!b || g.time < b.time)
+    const isNew = !b || g.time < b.time;
+    if (isNew)
       save.best[g.levelNum] = { time: Math.round(g.time), kills: g.kills, secrets: g.secretsFound };
     storeSave(save);
+    return isNew;
   }
+  const NEW_BEST_HTML = '<div class="newbest" style="color:var(--gold);font-weight:700;margin-top:6px">NEW BEST TIME!</div>';
 
   function onDead(){
     state = 'dead';
@@ -1878,25 +1898,36 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
     $('deadStats').innerHTML = 'Floor ' + game.levelNum + ' &nbsp;·&nbsp; ' + statsHTML(game);
     $('deadCoins').innerHTML = rewardHTML(award);
     show('deadOv');
+    fxPop($('deadOv').querySelector('h2'), 1.5);
+    fxJuiceStats($('deadStats'));
+    fxPop($('deadCoins'), 1.2);
   }
   function onComplete(){
     state = 'complete';
     exitLock();
     save.unlocked = Math.max(save.unlocked, game.levelNum + 1);
-    saveBest(game);
-    $('compStats').innerHTML = 'Floor ' + game.levelNum + ' cleared!<br>' + statsHTML(game);
+    const nb = saveBest(game);
+    $('compStats').innerHTML = 'Floor ' + game.levelNum + ' cleared!<br>' + statsHTML(game) +
+      (nb ? NEW_BEST_HTML : '');
     show('completeOv');
+    fxPop($('completeOv').querySelector('h2'), 1.5);
+    fxJuiceStats($('compStats'));
+    if (nb) fxPop($('compStats').querySelector('.newbest'), 1.35);
   }
   function onVictory(){
     state = 'victory';
     exitLock();
     save.unlocked = 5;
-    saveBest(game);
+    const nb = saveBest(game);
     let award = null;
     if (coinsGivenFor !== game){ award = awardCoinsPlus(GAME_ID, coinFormula(game)); coinsGivenFor = game; rewardFx(award); }
-    $('victStats').innerHTML = statsHTML(game);
+    $('victStats').innerHTML = statsHTML(game) + (nb ? NEW_BEST_HTML : '');
     $('victCoins').innerHTML = rewardHTML(award);
     show('victoryOv');
+    fxPop($('victoryOv').querySelector('h1'), 1.5);
+    fxJuiceStats($('victStats'));
+    if (nb) fxPop($('victStats').querySelector('.newbest'), 1.35);
+    fxPop($('victCoins'), 1.2);
   }
 
   function toggleMap(){

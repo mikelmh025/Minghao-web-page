@@ -121,6 +121,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
   <div style="background:var(--panel);border:1px solid var(--edge);border-radius:999px;padding:8px 18px;margin-top:52px;font-size:12px;pointer-events:auto" id="targettxt">Throw: arrows to aim, Enter to throw, Esc to cancel</div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -1139,6 +1140,16 @@ if(typeof module!=='undefined' && module.exports){ module.exports = GrimholdCore
 if(typeof window!=='undefined'){ (function(){
 const SAVE_KEY = 'arcade-depths-of-grimhold';
 const $ = (s)=>document.querySelector(s);
+// ---------- anime.js reward-moment FX (no-op if lib missing) ----------
+const FX = (typeof window !== 'undefined' && window.anime) || null;
+const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+function fxCountUp(el, prefix, target, suffix) {
+  if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+  const o = { v: 0 };
+  FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+    onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+}
 // ---------- meta persistence ----------
 function loadMeta(){
   try{ const m = JSON.parse(localStorage.getItem(SAVE_KEY)); if(m && typeof m==='object') return Object.assign({morgue:[],bestFloor:0,muted:false,wins:0},m); }catch(e){}
@@ -1814,8 +1825,14 @@ function showEnd(){
   $('#dtitle').textContent=s.victory?'VICTORY!':'YOU DIED';
   $('#dtitle').style.color=s.victory?'#e8c548':'#e05555';
   $('#dmsg').textContent=s.cause;
-  $('#dstats').innerHTML='Floor '+s.floor+' of '+CFG.FLOORS+' · Level '+s.level+' · '+s.kills+' kills · '+s.gold+' gold · '+s.turns+' turns';
-  let rw='+'+award.n+' 🪙 <span style="font-size:12px;color:var(--dim)">(wallet '+award.total+')</span>';
+  const newBest=s.floor>prevBest;
+  $('#dstats').innerHTML='<span id="dsfloor">Floor '+s.floor+'</span> of '+CFG.FLOORS
+    +' · <span id="dslevel">Level '+s.level+'</span>'
+    +' · <span id="dskills">'+s.kills+' kills</span>'
+    +' · <span id="dsgold">'+s.gold+' gold</span>'
+    +' · <span id="dsturns">'+s.turns+' turns</span>'
+    +(newBest?'<div id="dbest" style="margin-top:6px;color:var(--gold,#e8c548);display:inline-block">🏆 NEW BEST FLOOR!</div>':'');
+  let rw='<span id="dcoinnum" style="display:inline-block">+'+award.n+' 🪙</span> <span style="font-size:12px;color:var(--dim)">(wallet '+award.total+')</span>';
   if(award.lucky>1) rw+='<div class="luckypop">🍀 LUCKY ×'+award.lucky+'!</div>';
   if(award.ticket) rw+='<div class="ticketpop">🎟 PULL TICKET!</div>';
   rw+='<div style="margin-top:6px"><a href="../../vault.html" style="color:var(--gold);font-size:12px">🎴 Card Vault</a></div>';
@@ -1824,6 +1841,17 @@ function showEnd(){
   const newly=Object.keys(KITS).filter(k=>KITS[k].need>prevBest&&KITS[k].need<=META.bestFloor&&KITS[k].need>0);
   $('#unlockmsg').textContent=newly.length?('Unlocked: '+newly.map(k=>KITS[k].em+' '+KITS[k].label).join(', ')+' — new starting kit!'):'';
   $('#death').hidden=false;
+  // reward-moment motion layer (no-op without anime.js)
+  fxPop($('#dtitle'), 1.5);
+  fxCountUp($('#dsfloor'), 'Floor ', s.floor, '');
+  fxCountUp($('#dslevel'), 'Level ', s.level, '');
+  fxCountUp($('#dskills'), '', s.kills, ' kills');
+  fxCountUp($('#dsgold'), '', s.gold, ' gold');
+  fxCountUp($('#dsturns'), '', s.turns, ' turns');
+  fxCountUp($('#dcoinnum'), '+', award.n, ' 🪙');
+  fxPop($('#dcoins'), 1.2);
+  if(newBest) fxPop($('#dbest'), 1.35);
+  if(newly.length) fxPop($('#unlockmsg'), 1.35);
 }
 $('#btnStart').addEventListener('click',startRun);
 $('#btnAgain').addEventListener('click',()=>{ $('#death').hidden=true; buildTitle(); $('#title').hidden=false; });

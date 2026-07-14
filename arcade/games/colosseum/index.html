@@ -201,6 +201,7 @@
 
 <div id="pausedO" class="hidden">PAUSED</div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 /* =====================================================================
    COLOSSEUM — core simulation (DOM-free, deterministic, headless-testable)
@@ -733,6 +734,17 @@ if (typeof document!=='undefined') (function(){
 function $(id){return document.getElementById(id);}
 var W=CO.W, H=CO.H, CX=CO.CX, CY=CO.CY, RX=CO.RX, RY=CO.RY;
 
+/* ---------- anime.js win-moment FX (no-op if lib missing) ---------- */
+var FX=(typeof window!=='undefined' && window.anime)||null;
+var fxSpring=FX?FX.createSpring({stiffness:260,damping:15}):null;
+function fxPop(el,s0){ if(FX&&el)FX.animate(el,{scale:[s0||1.35,1],ease:fxSpring}); }
+function fxCountUp(el,prefix,target,suffix){
+  if(!FX||!(target>0)){ el.textContent=prefix+target+(suffix||''); return; }
+  var o={v:0};
+  FX.animate(o,{v:target,duration:Math.min(1500,600+target/3),ease:'outExpo',
+    onUpdate:function(){ el.textContent=prefix+Math.round(o.v)+(suffix||''); }});
+}
+
 /* ---------- persisted game state ---------- */
 var STATE_KEY='arcade-colosseum';
 function loadState(){
@@ -1091,9 +1103,14 @@ function endBattle(){
       state.life.biggest=Math.max(state.life.biggest,pay.net);
       session.pl+=pay.net;
       log.net=pay.net;
-      rb.innerHTML='<span style="color:#5fd98a">＋'+fmt(pay.net)+' 🪙 — payout '+fmt(pay.ret)+' at ×'+bet.mult.toFixed(2)+'</span>';
+      rb.innerHTML='<span style="color:#5fd98a"><span id="resPay">＋'+fmt(pay.net)+' 🪙</span> — payout '+fmt(pay.ret)+' at ×'+bet.mult.toFixed(2)+'</span>';
       coinShower(Math.min(140,30+Math.floor(pay.net/8)));
       sfx.jingle();
+      /* win-moment motion layer (DOM only) */
+      fxPop(title,1.5);
+      fxCountUp($('resPay'),'＋',pay.net,' 🪙');
+      fxPop(rb,upset?1.8:1.5);
+      fxPop($('coinPill'),1.2);
     }else{
       state.life.pl-=bet.amount; session.pl-=bet.amount;
       log.net=-bet.amount;

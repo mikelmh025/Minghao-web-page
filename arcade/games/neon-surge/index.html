@@ -152,6 +152,7 @@
 </div>
 
 <script src="../../lib/pixi.min.js"></script>
+<script src="../../lib/anime.min.js"></script>
 
 <!-- ================= CORE (DOM-free, Node-testable) ================= -->
 <script>
@@ -768,6 +769,17 @@ function walletAddTicket() {
   walletWrite(w);
 }
 function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+
+/* ---------- anime.js reward FX (DOM overlay only; no-op if lib missing) ---------- */
+var FX = (typeof window !== 'undefined' && window.anime) || null;
+var fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+function fxCountUp(el, prefix, target, suffix) {
+  if (!FX || !(target > 0)) { el.textContent = prefix + target.toLocaleString() + (suffix || ''); return; }
+  var o = { v: 0 };
+  FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+    onUpdate: function () { el.textContent = prefix + Math.round(o.v).toLocaleString() + (suffix || ''); } });
+}
 
 /* ---------- audio ---------- */
 var AC = null, master = null, muted = save.muted;
@@ -1461,6 +1473,13 @@ function onGameOver() {
       show(overOverlay);
       hud.style.display = 'none';
       bombBtn.style.display = 'none';
+      // reward-moment juice (DOM overlay only)
+      fxPop($('overTitle'), 1.5);
+      fxCountUp($('overScore'), '', game.score, '');
+      fxPop($('overCoins'), 1.2);
+      if (isBest) fxPop($('overBest'), 1.35);
+      if (res.lucky > 1) fxPop($('overLucky'), 1.35);
+      if (res.ticket) fxPop($('overTicket'), 1.35);
     }
   }, 1400);
 }

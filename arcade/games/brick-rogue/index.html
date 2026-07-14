@@ -143,6 +143,7 @@
   </div>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 /* ============================================================
    BRICK ROGUE — core (DOM-free, testable in Node) + shell
@@ -884,6 +885,17 @@ $('muteBtn').textContent = muted ? '🔇' : '🔊';
 
 function vib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 
+/* ---------- anime.js reward-moment layer (no-op if lib missing) ---------- */
+const FX = (typeof window !== 'undefined' && window.anime) || null;
+const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+function fxCountUp(el, prefix, target, suffix) {
+  if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+  const o = { v: 0 };
+  FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+    onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+}
+
 /* ---------- juice state ---------- */
 var particles = [], floats = [], bolts = [], beams = [], fireworksT = 0;
 var shake = 0, hitStop = 0, timeScale = 1, flashA = 0;
@@ -1064,6 +1076,8 @@ function startCeremony(){
     var rc = C.RARITIES.filter(function(r){ return r.id === rarity; })[0];
     $('rarityLabel').textContent = rc.name + '!';
     $('rarityLabel').style.color = rc.color;
+    $('rarityLabel').style.transition = 'none'; // let the FX pop own the transform
+    fxPop($('rarityLabel'), rarity === 'legendary' ? 1.7 : rarity === 'epic' ? 1.55 : 1.4);
     sfx.fanfare(rarity);
     if(rarity === 'legendary'){ vib(30); hitStop = Math.max(hitStop, 0.04); flashA = 0.35; }
     setTimeout(function(){ showCards(rarity); }, 550);
@@ -1167,7 +1181,8 @@ function showDeath(){
   deathShown = true; timeScale = 1;
   var levels = game.clearedLevels, bricks = game.bricksSmashed;
   var best = loadBest();
-  if(game.level > best){ best = game.level; }
+  var newBest = game.level > best;
+  if(newBest){ best = game.level; }
   saveJSON(SAVE_KEY, { best: best });
 
   wallet = loadWallet();
@@ -1203,6 +1218,13 @@ function showDeath(){
   $('death').classList.remove('hidden');
   $('bestTxt').textContent = best;
   $('walletTxt').textContent = '🪙 ' + wallet.coins;
+
+  // reward-moment motion layer (DOM overlay only)
+  fxPop($('deathTitle'), 1.5);
+  fxCountUp($('dLvls'), '', levels);
+  fxCountUp($('dBricks'), '', bricks);
+  fxPop($('award'), 1.2);
+  if(newBest) fxPop($('dBest'), 1.35);
 }
 
 /* ---------- render ---------- */

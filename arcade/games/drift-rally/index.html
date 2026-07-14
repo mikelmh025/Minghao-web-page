@@ -143,6 +143,7 @@
   <a class="vaultLink" href="../../vault.html">🎴 Card Vault</a>
 </div>
 
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -630,6 +631,17 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
   }
   window.addEventListener('resize', resize);
   resize();
+
+  // ----- reward-moment motion layer (anime.js v4; no-ops if lib missing) -----
+  const FX = (typeof window !== 'undefined' && window.anime) || null;
+  const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    const o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
 
   // ----- save -----
   const SAVE_KEY = 'arcade-drift-rally';
@@ -1207,6 +1219,15 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
     // photo finish: within 0.5s of any AI car's total time
     const photo = race.cars.some(c => !c.isPlayer && c.finished && Math.abs(c.finishTime - p.finishTime) <= 0.5);
     el.resPhoto.textContent = photo ? 'PHOTO FINISH!' : '';
+    // reward-moment juice (DOM overlay only)
+    fxPop(el.resTitle, 1.5);
+    const vCells = el.resGrid.querySelectorAll('.v');
+    // rows: 0 Position, 1 Total time, 2 Best lap, 3 Drift points, 4 Track best
+    if (vCells[1]) fxPop(vCells[1], 1.2);          // times shown exactly — pop, don't count
+    if (vCells[2]) fxPop(vCells[2], 1.2);
+    if (vCells[3]) fxCountUp(vCells[3], '', p.driftScore + Math.round(p.driftCombo), '');
+    if (el.resNew.textContent) fxPop(el.resNew, 1.35);
+    if (photo) fxPop(el.resPhoto, 1.35);
     // arcade coins: once per race, position base + drift bonus
     if (!coinsAwarded){
       coinsAwarded = true;
@@ -1214,6 +1235,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
       const award = clamp(base + Math.round(p.driftScore / 200), 1, 200);
       const rw = awardCoinsPlus('drift-rally', award);
       el.resCoins.textContent = '+' + rw.n + ' 🪙 (wallet ' + rw.total + ')';
+      fxPop(el.resCoins, 1.2);
       rewardCeremony(rw);
       vibe(p.pos === 4 ? 40 : 15);
     }

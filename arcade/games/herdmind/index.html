@@ -46,6 +46,8 @@
   .coins{display:inline-block;margin-top:10px;font-size:15px;color:#ffd76e;font-weight:700}
   .stars{font-size:34px;letter-spacing:6px;color:#ffd76e;margin:6px 0;text-shadow:0 2px 0 rgba(0,0,0,.4)}
   .award{font-size:20px;color:#ffd76e;font-weight:800;margin-top:8px}
+  .newbest{font-size:17px;color:#7dff8a;font-weight:800;letter-spacing:1px;margin-top:6px;
+    text-shadow:0 0 12px rgba(125,255,138,.7)}
   .luckypop{color:#7dff8a;font-size:21px;font-weight:800;letter-spacing:1px;margin-top:6px;text-shadow:0 0 14px rgba(125,255,138,.85),0 0 4px rgba(255,215,110,.9);animation:luckypop .9s ease-out}
   .ticketpop{color:#5ee7ff;font-size:15px;font-weight:700;margin-top:4px;text-shadow:0 0 10px rgba(94,231,255,.8);animation:luckypop .9s ease-out}
   @keyframes luckypop{0%{transform:scale(.3);opacity:0}55%{transform:scale(1.28)}100%{transform:scale(1);opacity:1}}
@@ -63,6 +65,7 @@
   <button class="pill" id="pauseBtn" title="Pause" style="display:none">⏸ Pause</button>
 </div>
 <div id="ovl"></div>
+<script src="../../lib/anime.min.js"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -538,6 +541,27 @@ var Core = (function(){
    ============================================================ */
 if (typeof window !== 'undefined') (function(){
   var TAU=Math.PI*2;
+
+  /* ---------- anime.js reward-moment helpers (no-op if lib missing) ---------- */
+  const FX = (typeof window !== 'undefined' && window.anime) || null;
+  const fxSpring = FX ? FX.createSpring({ stiffness: 260, damping: 15 }) : null;
+  function fxPop(el, s0) { if (FX && el) FX.animate(el, { scale: [s0 || 1.35, 1], ease: fxSpring }); }
+  function fxCountUp(el, prefix, target, suffix) {
+    if (!FX || !(target > 0)) { el.textContent = prefix + target + (suffix || ''); return; }
+    const o = { v: 0 };
+    FX.animate(o, { v: target, duration: Math.min(1500, 600 + target / 3), ease: 'outExpo',
+      onUpdate: () => { el.textContent = prefix + Math.round(o.v) + (suffix || ''); } });
+  }
+  /* Juice the run-end panel: count up stats, spring-pop title/award/new-best. */
+  function fxResults(root){
+    if(!FX || !root) return;
+    var title=root.querySelector('h2'); if(title) fxPop(title,1.5);
+    root.querySelectorAll('[data-fxnum]').forEach(function(el){
+      fxCountUp(el, '', +el.getAttribute('data-fxnum') || 0, '');
+    });
+    var award=root.querySelector('.award'); if(award) fxPop(award,1.2);
+    var best=root.querySelector('.newbest'); if(best) fxPop(best,1.35);
+  }
   var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
   var ovl=document.getElementById('ovl');
   var muteBtn=document.getElementById('muteBtn'), pauseBtn=document.getElementById('pauseBtn');
@@ -846,6 +870,9 @@ if (typeof window !== 'undefined') (function(){
     var hearts=S.hero.hearts;
     var stars=hearts>=3?3:hearts>=2?2:1;
     var score=S.wisps.length*10+hearts*50;
+    var prevBest=prog.best[S.idx]||0;
+    var newBest=prevBest>0 && score>prevBest;
+    var bestHTML=newBest?'<div class="newbest">🏅 NEW BEST!</div>':'';
     prog.stars[S.idx]=Math.max(prog.stars[S.idx]||0,stars);
     prog.best[S.idx]=Math.max(prog.best[S.idx]||0,score);
     prog.unlocked=Math.max(prog.unlocked||0,Math.min(7,S.idx+1));
@@ -857,7 +884,8 @@ if (typeof window !== 'undefined') (function(){
       ovl.innerHTML='<div class="panel"><h2>🏰 The Castle!</h2>'
         +'<div class="stars">'+starStr(stars)+'</div>'
         +'<p>He strolled in whistling, and never once looked back.<br><b>He never knew. The herd knew.</b></p>'
-        +'<p>Wisps saved: <b>'+S.wisps.length+'</b> ×10 &nbsp; Hearts: <b>'+hearts+'</b> ×50<br>Score: <b>'+score+'</b> &nbsp;·&nbsp; Total stars: <b>'+tot+'/24</b></p>'
+        +'<p>Wisps saved: <b data-fxnum="'+S.wisps.length+'">'+S.wisps.length+'</b> ×10 &nbsp; Hearts: <b data-fxnum="'+hearts+'">'+hearts+'</b> ×50<br>Score: <b data-fxnum="'+score+'">'+score+'</b> &nbsp;·&nbsp; Total stars: <b data-fxnum="'+tot+'">'+tot+'</b>/24</p>'
+        +bestHTML
         +rewardHTML(got)
         +'<div class="btnrow"><button class="btn" data-act="menu">Menu</button>'
         +'<button class="btn ghost" data-act="again">Play again</button></div></div>';
@@ -866,12 +894,14 @@ if (typeof window !== 'undefined') (function(){
     } else {
       ovl.innerHTML='<div class="panel"><h2>Level '+(S.idx+1)+' clear!</h2>'
         +'<div class="stars">'+starStr(stars)+'</div>'
-        +'<p>Wisps saved: <b>'+S.wisps.length+'</b> ×10 &nbsp;·&nbsp; Hearts: <b>'+hearts+'</b> ×50<br>Score: <b>'+score+'</b></p>'
+        +'<p>Wisps saved: <b data-fxnum="'+S.wisps.length+'">'+S.wisps.length+'</b> ×10 &nbsp;·&nbsp; Hearts: <b data-fxnum="'+hearts+'">'+hearts+'</b> ×50<br>Score: <b data-fxnum="'+score+'">'+score+'</b></p>'
+        +bestHTML
         +'<div class="btnrow"><button class="btn" data-act="next">Next level ▶</button>'
         +'<button class="btn ghost" data-act="replay">Replay</button>'
         +'<button class="btn ghost" data-act="menu">Menu</button></div></div>';
     }
     ovl.classList.add('on');
+    fxResults(ovl);
   }
   function showDefeat(timeup){
     var got=endRunAward();
@@ -882,6 +912,7 @@ if (typeof window !== 'undefined') (function(){
       +'<button class="btn ghost" data-act="menu">Menu</button></div></div>';
     ovl.classList.add('on');
     mode='over';
+    fxResults(ovl);
   }
   ovl.addEventListener('click',function(e){
     var b=e.target.closest('[data-act]');
